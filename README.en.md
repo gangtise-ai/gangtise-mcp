@@ -34,13 +34,16 @@ Repository used in examples below: [`https://github.com/XiaoYan3938/gangtise-dat
 
 ## Install by platform (recommended: `gangtise_mcp`)
 
-> **Tip**: On clients with an agent (Cursor, WorkBuddy, Claude, VS Code Copilot/Agent, etc.), prefer pasting the MCP JSON below into the agent and letting it install. You can also write the same JSON into the client config file manually.
+> **Tip**: On clients with an agent (Cursor, Claude, VS Code Copilot/Agent, etc.), prefer pasting the MCP JSON below into the agent and letting it install. You can also write the same JSON into the client config file manually.
 
 <details>
 <summary><b>Install in Cursor</b></summary>
 
 1. Paste the MCP JSON below into the Cursor **Agent** (optionally with real `GTS_ACCESS_KEY` / `GTS_SECRET_KEY`) and ask it to install:
 
+
+<details>
+<summary><b>MCP config JSON</b> (expand to copy)</summary>
 
 ```json
 {
@@ -70,6 +73,8 @@ Repository used in examples below: [`https://github.com/XiaoYan3938/gangtise-dat
   }
 }
 ```
+
+</details>
 
 ![Send MCP JSON to the Cursor Agent](assets/init_with_cursor.png)
 
@@ -89,60 +94,14 @@ You can also edit `~/.cursor/mcp.json` or project `.cursor/mcp.json` manually (s
 
 </details>
 
-<details>
-<summary><b>Install in WorkBuddy (Tencent CodeBuddy)</b></summary>
-
-Official guide: [WorkBuddy MCP Guide](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide). Recommended package: **`gangtise_mcp`**.
-
-1. Send the MCP JSON below (with real keys) to the WorkBuddy **agent** and ask it to install:
-
-```json
-{
-  "mcpServers": {
-    "gangtise_mcp": {
-      "command": "uvx",
-      "args": [
-        "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent",
-        "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data",
-        "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file",
-        "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
-        "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private",
-        "--from",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp",
-        "gangtise-mcp"
-      ],
-      "env": {
-        "GTS_ACCESS_KEY": "YOUR_ACCESS_KEY",
-        "GTS_SECRET_KEY": "YOUR_SECRET_KEY"
-      }
-    }
-  }
-}
-```
-
-![Send MCP JSON to the WorkBuddy agent](assets/init_with_workbuddy.png)
-
-2. After install, open sidebar **Expert · Skills · Connectors** → **Connectors** → **Custom connectors** / **My MCP**:
-
-![Locate Custom connectors / My MCP](assets/connector_locatin.png)
-
-3. **Trust** (and enable) `gangtise_mcp` under **My MCP** (first trust may take a few seconds while deps download):
-
-![Trust and enable gangtise_mcp](assets/trust_mcp.png)
-
-Remote HTTP: set `https://<host>:<port>/mcp` in a URL-capable connector config ([docs/http-sse.en.md](docs/http-sse.en.md)).
-
-</details>
 
 <details>
 <summary><b>Install in Claude Desktop</b></summary>
 
 Prefer pasting the JSON below into the Claude **agent / chat** and asking it to write the MCP config. You can also edit `claude_desktop_config.json` manually. Requires [uv](https://docs.astral.sh/uv/):
+
+<details>
+<summary><b>MCP config JSON</b> (expand to copy)</summary>
 
 ```json
 {
@@ -172,6 +131,8 @@ Prefer pasting the JSON below into the Claude **agent / chat** and asking it to 
   }
 }
 ```
+
+</details>
 
 </details>
 
@@ -199,6 +160,9 @@ Set `GTS_ACCESS_KEY` / `GTS_SECRET_KEY` in the MCP env or your shell.
 <summary><b>Install in VS Code</b></summary>
 
 Prefer pasting the JSON below into Copilot Chat / Agent and asking it to write workspace `.vscode/mcp.json`. You can also create the file manually:
+
+<details>
+<summary><b>MCP config JSON</b> (expand to copy)</summary>
 
 ```json
 {
@@ -229,6 +193,8 @@ Prefer pasting the JSON below into Copilot Chat / Agent and asking it to write w
   }
 }
 ```
+
+</details>
 
 For remote HTTP, set `"type": "http"` and `"url": "https://<host>:<port>/mcp"`.
 

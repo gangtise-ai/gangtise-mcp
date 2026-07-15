@@ -43,6 +43,9 @@
 
 1. 将下方 MCP 配置 JSON 发给 Cursor **Agent**（可附带真实 `GTS_ACCESS_KEY` / `GTS_SECRET_KEY`），请其完成安装：
 
+<details>
+<summary><b>MCP 配置 JSON</b>（点击展开 / 便于复制）</summary>
+
 ```json
 {
   "mcpServers": {
@@ -74,6 +77,8 @@
 }
 ```
 
+</details>
+
 ![将 MCP JSON 发给 Cursor Agent 安装](assets/init_with_cursor.png)
 
 2. 若出现改动确认提示，点击 **Accept**：
@@ -98,6 +103,9 @@
 官方说明见 [WorkBuddy MCP 指南](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide)。推荐接入 **`gangtise_mcp`**。
 
 1. 将下方 MCP 配置 JSON 发给 WorkBuddy **智能体**（可附带真实 `GTS_ACCESS_KEY` / `GTS_SECRET_KEY`），请其完成 MCP 安装：
+
+<details>
+<summary><b>MCP 配置 JSON</b>（点击展开 / 便于复制）</summary>
 
 ```json
 {
@@ -130,6 +138,8 @@
 }
 ```
 
+</details>
+
 ![将 MCP JSON 发给 WorkBuddy 智能体安装](assets/init_with_workbuddy.png)
 
 2. 安装完成后，打开侧边栏 **专家 · 技能 · 连接器** → 顶部 **连接器** → **自定义连接器** / **我的 MCP**：
@@ -148,6 +158,9 @@
 <summary><b>Install in Claude Desktop</b></summary>
 
 推荐：将下方 MCP 配置 JSON 发给 Claude **智能体 / 对话**，请其写入 MCP 配置并完成安装（可附带真实 AK/SK）。亦可手动编辑 `claude_desktop_config.json`（内容相同）。需已安装 [uv](https://docs.astral.sh/uv/)：
+
+<details>
+<summary><b>MCP 配置 JSON</b>（点击展开 / 便于复制）</summary>
 
 ```json
 {
@@ -182,6 +195,8 @@
 
 </details>
 
+</details>
+
 <details>
 <summary><b>Install in Claude Code</b></summary>
 
@@ -207,6 +222,9 @@ claude mcp add gangtise -- uvx \
 <summary><b>Install in VS Code</b></summary>
 
 推荐：在 Copilot Chat / Agent 等对话中粘贴下方 JSON，请智能体写入工作区 `.vscode/mcp.json` 并完成安装。亦可手动创建该文件：
+
+<details>
+<summary><b>MCP 配置 JSON</b>（点击展开 / 便于复制）</summary>
 
 ```json
 {
@@ -239,6 +257,8 @@ claude mcp add gangtise -- uvx \
   }
 }
 ```
+
+</details>
 
 HTTP 远程：将 `type` 改为 `http`，并设置 `url` 为 `https://<host>:<port>/mcp`。
 

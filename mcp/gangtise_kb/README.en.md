@@ -21,7 +21,7 @@ Knowledge-base semantic search and file fetch.
 ---
 
 <details>
-<summary><b>Install this package (Cursor / WorkBuddy)</b></summary>
+<summary><b>Install this package (Cursor)</b></summary>
 
 Get keys from the [open platform](https://open-platform.gangtise.com/). Requires [uv](https://docs.astral.sh/uv/).
 
@@ -48,7 +48,6 @@ Get keys from the [open platform](https://open-platform.gangtise.com/). Requires
 }
 ```
 
-**WorkBuddy** — Send the MCP JSON to the WorkBuddy **agent** to install; then open sidebar **Expert · Skills · Connectors** → **Connectors** → **Custom connectors** / **My MCP**, **Trust** and enable. Prefer the all-in-one package — see [`gangtise_mcp`](../gangtise_mcp/) and [repo README](../../README.en.md).
 
 Full platform folds: [`gangtise_mcp`](../gangtise_mcp/README.en.md) and [repo README](../../README.en.md).
 

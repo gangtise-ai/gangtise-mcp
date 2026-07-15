@@ -60,15 +60,6 @@ Prefer: send JSON to the Cursor **Agent** → **Accept** when prompted → **Cur
 
 </details>
 
-<details>
-<summary><b>Install in WorkBuddy (Tencent CodeBuddy)</b></summary>
-
-1. Send the MCP JSON (same as Cursor; server key may be `gangtise_mcp`; fill in ak/sk) to the WorkBuddy **agent** to install.
-2. Then open sidebar **Expert · Skills · Connectors** → **Connectors** → **Custom connectors** / **My MCP**, **Trust** and enable `gangtise_mcp` (first trust may take a few seconds).
-
-Screenshots: [repo README](../../README.en.md).
-
-</details>
 
 <details>
 <summary><b>Install in Claude Desktop / Claude Code / VS Code</b></summary>
