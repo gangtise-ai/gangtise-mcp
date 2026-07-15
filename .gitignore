@@ -5,3 +5,4 @@ __pycache__
 test*
 .DS_Store
 .venv
+mcp/*/workspace

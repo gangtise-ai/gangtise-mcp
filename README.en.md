@@ -257,7 +257,7 @@ Details: [docs/http-sse.en.md](docs/http-sse.en.md).
 | Package | Command | Notes |
 |---------|---------|--------|
 | **[mcp/gangtise_mcp](mcp/gangtise_mcp/)** (recommended) | `gangtise-mcp` | All leaf tools |
-| [mcp/gangtise_hub](mcp/gangtise_hub/) | `gangtise-hub-mcp` | 5 domain routers (list / read_ref / call) |
+| [mcp/gangtise_hub](mcp/gangtise_hub/) | `gangtise-hub-mcp` | Like skill concept, basic 5 domain entry, progressive list/read_ref/call |
 | [mcp/gangtise_agent](mcp/gangtise_agent/) | `gangtise-agent-mcp` | Research agents |
 | [mcp/gangtise_data](mcp/gangtise_data/) | `gangtise-data-mcp` | Quotes / financials / valuation |
 | [mcp/gangtise_file](mcp/gangtise_file/) | `gangtise-file-mcp` | Reports / filings / notes |

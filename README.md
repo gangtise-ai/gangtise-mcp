@@ -5,7 +5,7 @@
 **简体中文** | [English](README.en.md)
 
 基于 [Model Context Protocol](https://modelcontextprotocol.io/) 的 Gangtise 金融数据与研报工具集。  
-**推荐使用 [`gangtise_mcp`](mcp/gangtise_mcp/)**：一次挂载五域全部叶子工具。
+**推荐使用 [`gangtise_mcp`](mcp/gangtise_mcp/)**：一次挂载五域全部工具。
 
 [账号申请](https://open-platform.gangtise.com/) ·
 [HTTP / SSE / OAuth](docs/http-sse.md) ·
@@ -266,8 +266,8 @@ https://<host>:<port>/mcp
 
 | 包 | 命令 | 说明 |
 |----|------|------|
-| **[mcp/gangtise_mcp](mcp/gangtise_mcp/)**（推荐） | `gangtise-mcp` | 五域全部叶子工具 |
-| [mcp/gangtise_hub](mcp/gangtise_hub/) | `gangtise-hub-mcp` | 仅 5 个域入口，渐进 list/read_ref/call |
+| **[mcp/gangtise_mcp](mcp/gangtise_mcp/)**（推荐） | `gangtise-mcp` | 五域全部工具 |
+| [mcp/gangtise_hub](mcp/gangtise_hub/) | `gangtise-hub-mcp` | 类似skill理念，基础仅 5 个域入口，渐进 list/read_ref/call |
 | [mcp/gangtise_agent](mcp/gangtise_agent/) | `gangtise-agent-mcp` | 研报 Agent |
 | [mcp/gangtise_data](mcp/gangtise_data/) | `gangtise-data-mcp` | 行情 / 财务 / 估值等 |
 | [mcp/gangtise_file](mcp/gangtise_file/) | `gangtise-file-mcp` | 研报 / 公告 / 纪要等 |
