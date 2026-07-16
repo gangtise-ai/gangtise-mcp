@@ -1,4 +1,4 @@
-"""Gangtise MCP HTTP/SSE server — 鉴权与 OAuth 在本包；业务工具来自对应 mcp 包。
+"""Gangtise MCP HTTP/SSE server — 鉴权透传 Authorization；业务工具来自对应 mcp 包。
 
 仅支持 `--transport http|sse|both`（默认 both）。stdio 请用 mcp 包入口。
 """
@@ -6,10 +6,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import base64
 import inspect
 import io
-import json
 import os
 import sys
 from contextlib import asynccontextmanager, redirect_stdout
@@ -46,31 +44,35 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from authorization import (
     is_auth_configured,
-    reset_request_credentials,
-    set_request_credentials,
+    reset_request_authorization,
+    set_request_authorization,
 )
-from oauth_asgi import oauth_routes
-from oauth_tokens import TokenConfigError, decode_access_token, oauth_configured
 from references_loader import load_all_tool_specs
 from result_attachments import with_path_attachments
+from http_compat import BailianHttpMiddleware
+from tool_errors import tool_error
+from url_blocklist import filter_blocked_handlers, parse_url_block_list
 from gangtise_agent.tools_registry import INTERNAL_PARAMS, TOOL_HANDLERS
 
 SERVER_NAME = "gangtise-agent-mcp"
 SERVER_VERSION = "0.1.0"
 
-_CREDENTIALS_HEADER_NAMES = (
-    "x-gts-credentials",
-    "gts-credentials",
-    "x-gangtise-credentials",
-)
+_ACTIVE_HANDLERS = None
+
+
+def _active_handlers():
+    global _ACTIVE_HANDLERS
+    if _ACTIVE_HANDLERS is None:
+        kept, _blocked = filter_blocked_handlers(TOOL_HANDLERS, parse_url_block_list())
+        _ACTIVE_HANDLERS = kept
+    return _ACTIVE_HANDLERS
 
 
 def _auth_missing_message() -> str:
     return (
-        "未配置 Gangtise 授权（AccessKey / SecretKey）\n"
-        "请前往 https://open-platform.gangtise.com/ 进行账号登陆/申请并获取凭证\n"
-        "登陆后在`我的账号`->`账号列表`页面最下方查看 Access Key 和 Secret Key\n"
-        "再通过环境变量、本地凭证文件或请求头配置后使用"
+        "未配置 Authorization。\n"
+        "HTTP：请在请求头携带 Authorization: Bearer <token>\n"
+        "stdio：设置环境变量 GTS_AUTHORIZATION 或本地 authorization 文件"
     )
 
 
@@ -111,7 +113,7 @@ server = Server(SERVER_NAME)
 async def list_tools() -> List[Tool]:
     tools: List[Tool] = []
     for spec in load_all_tool_specs():
-        if spec.name not in TOOL_HANDLERS:
+        if spec.name not in _active_handlers():
             continue
         tools.append(
             Tool(
@@ -126,18 +128,18 @@ async def list_tools() -> List[Tool]:
 @server.call_tool()
 async def call_tool(
     name: str, arguments: Dict[str, Any]
-) -> List[TextContent | EmbeddedResource]:
+) -> Any:
     auth_err = _check_auth_env()
     if auth_err:
-        return [TextContent(type="text", text=auth_err)]
+        return tool_error(auth_err, code="UNAUTHORIZED")
 
-    handler = TOOL_HANDLERS.get(name)
+    handler = _active_handlers().get(name)
     if handler is None:
-        return [TextContent(type="text", text=f"未知工具: {name}")]
+        return tool_error(f"未知工具: {name}", code="UNKNOWN_TOOL")
 
     filtered, param_err = _filter_arguments(handler, arguments or {})
     if param_err:
-        return [TextContent(type="text", text=param_err)]
+        return tool_error(param_err, code="INVALID_PARAMS")
     try:
         ctx = copy_context()
 
@@ -149,9 +151,9 @@ async def call_tool(
 
         result, stdout_text = await asyncio.to_thread(ctx.run, _invoke)
     except TypeError as e:
-        return [TextContent(type="text", text=f"参数错误: {e}")]
+        return tool_error(f"参数错误: {e}", code="INVALID_PARAMS")
     except Exception as e:
-        return [TextContent(type="text", text=f"调用失败: {e}")]
+        return tool_error(f"调用失败: {e}", code="INTERNAL_ERROR")
 
     text = _normalize_result(result)
     if stdout_text:
@@ -162,86 +164,16 @@ async def call_tool(
     return with_path_attachments(text, enabled=attach)
 
 
-def _parse_credentials_payload(raw: str) -> Optional[Tuple[str, str]]:
-    text = (raw or "").strip()
-    if not text:
-        return None
-    if not text.startswith("{"):
-        try:
-            decoded = base64.b64decode(text, validate=True).decode("utf-8")
-            if decoded.strip().startswith("{"):
-                text = decoded.strip()
-        except Exception:
-            pass
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
-        return None
-    if not isinstance(data, dict):
-        return None
-    ak = data.get("accessKey") or data.get("access_key")
-    sk = data.get("secretKey") or data.get("secret_key") or data.get("secretAccessKey")
-    if ak and sk:
-        return str(ak).strip(), str(sk).strip()
-    return None
 
 
-def _parse_credentials_from_headers(headers: Dict[str, str]) -> Optional[Tuple[str, str]]:
-    for name in _CREDENTIALS_HEADER_NAMES:
-        if name in headers:
-            parsed = _parse_credentials_payload(headers[name])
-            if parsed:
-                return parsed
-    ak = headers.get("accesskey") or headers.get("x-access-key") or headers.get("access-key")
-    sk = (
-        headers.get("secretkey")
-        or headers.get("x-secret-key")
-        or headers.get("secret-key")
-        or headers.get("secretaccesskey")
+def _wrap_bailian_middleware(app: ASGIApp, *, mcp_paths: set[str]) -> ASGIApp:
+    return BailianHttpMiddleware(
+        app,
+        set_authorization=set_request_authorization,
+        reset_authorization=reset_request_authorization,
+        mcp_paths=mcp_paths,
     )
-    if ak and sk:
-        return ak.strip(), sk.strip()
-    return None
 
-
-def _headers_dict(scope: Scope) -> Dict[str, str]:
-    out: Dict[str, str] = {}
-    for key, value in scope.get("headers") or []:
-        out[key.decode("latin-1").lower()] = value.decode("latin-1")
-    return out
-
-
-class RequestCredentialsMiddleware:
-    """注入 AK/SK：优先 OAuth Bearer，其次请求头；无凭证仍放行。"""
-
-    def __init__(self, app: ASGIApp) -> None:
-        self.app = app
-
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http":
-            await self.app(scope, receive, send)
-            return
-
-        headers = _headers_dict(scope)
-        creds = None
-        auth = headers.get("authorization") or ""
-        if auth.lower().startswith("bearer "):
-            bearer = auth[7:].strip()
-            if bearer and oauth_configured():
-                try:
-                    creds = decode_access_token(bearer)
-                except TokenConfigError:
-                    creds = None
-        if not creds:
-            creds = _parse_credentials_from_headers(headers)
-        token = None
-        if creds:
-            token = set_request_credentials(creds[0], creds[1])
-        try:
-            await self.app(scope, receive, send)
-        finally:
-            if token is not None:
-                reset_request_credentials(token)
 
 
 class _StreamableHTTPASGIApp:
@@ -275,7 +207,7 @@ def _build_network_app(
     sse_path = _normalize_path(sse_path)
     message_path = _normalize_path(message_path, trailing_slash=True)
 
-    routes: list[Any] = list(oauth_routes())
+    routes: list[Any] = []
     session_manager: StreamableHTTPSessionManager | None = None
 
     if enable_http:
@@ -310,7 +242,8 @@ def _build_network_app(
             yield
 
     starlette_app = Starlette(routes=routes, lifespan=lifespan)
-    return RequestCredentialsMiddleware(starlette_app)
+    mcp_paths = {path, sse_path, message_path.rstrip("/")}
+    return _wrap_bailian_middleware(starlette_app, mcp_paths=mcp_paths)
 
 
 def _run_network(
@@ -345,14 +278,14 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description=(
             f"{SERVER_NAME} HTTP/SSE MCP Server。"
             "`--transport http|sse|both`（默认 both）。"
-            "鉴权：OAuth Bearer（/authorize）优先；亦支持请求头 X-GTS-Credentials 或 accessKey/secretKey。"
+            "鉴权：透传请求头 Authorization: Bearer <token>。"
         ),
     )
     parser.add_argument(
         "--transport",
         choices=("http", "sse", "both"),
-        default=os.getenv("MCP_TRANSPORT", "both"),
-        help="启动模式：http、sse，或 both（默认）",
+        default=os.getenv("MCP_TRANSPORT", "http"),
+        help="启动模式：http（默认）、sse，或 both",
     )
     parser.add_argument("--host", default=os.getenv("MCP_HOST", "0.0.0.0"))
     parser.add_argument("--port", type=int, default=int(os.getenv("MCP_PORT", "8000")))

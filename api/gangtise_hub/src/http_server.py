@@ -6,9 +6,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import base64
 import io
-import json
 import os
 import sys
 from contextlib import asynccontextmanager, redirect_stdout
@@ -52,33 +50,25 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from authorization import (
     is_auth_configured,
-    reset_request_credentials,
-    set_request_credentials,
+    reset_request_authorization,
+    set_request_authorization,
 )
-from oauth_asgi import oauth_routes
-from oauth_tokens import TokenConfigError, decode_access_token, oauth_configured
 from domains import DOMAINS, ROUTER_INPUT_SCHEMA, domain_tool_description
+from http_compat import BailianHttpMiddleware
 from package_loader import preload_all
 from result_attachments import with_path_attachments
 from router import route
+from tool_errors import tool_error
 
 SERVER_NAME = "gangtise-hub-mcp"
 SERVER_VERSION = "0.1.0"
 
-_CREDENTIALS_HEADER_NAMES = (
-    "x-gts-credentials",
-    "gts-credentials",
-    "x-gangtise-credentials",
-)
-
 
 def _auth_missing_message() -> str:
     return (
-        "未配置 Gangtise 授权（AccessKey / SecretKey）\n"
-        "请前往 https://open-platform.gangtise.com/ 进行账号登陆/申请并获取凭证\n"
-        "登陆后在`我的账号`->`账号列表`页面最下方查看 Access Key 和 Secret Key\n"
-        "再通过环境变量、本地凭证文件或请求头配置后使用"
-        "（提示：action=list / read_ref 无需凭证；仅 action=call 需要）"
+        "未配置 Authorization。\n"
+        "HTTP：请在请求头携带 Authorization: Bearer <token>\n"
+        "stdio：设置环境变量 GTS_AUTHORIZATION 或本地 authorization 文件"
     )
 
 
@@ -114,17 +104,19 @@ async def list_tools() -> List[Tool]:
 @server.call_tool()
 async def call_tool(
     name: str, arguments: Dict[str, Any]
-) -> List[TextContent | EmbeddedResource]:
+) -> Any:
     args = dict(arguments or {})
     action = str(args.get("action") or "list").strip().lower()
 
     if action == "call":
         auth_err = _check_auth_env()
         if auth_err:
-            return [TextContent(type="text", text=auth_err)]
+            return tool_error(auth_err, code="UNAUTHORIZED")
 
     text, invoke, _runtime = route(name, args)
     if invoke is None:
+        if text and text.startswith("未知"):
+            return tool_error(text, code="UNKNOWN_TOOL")
         return [TextContent(type="text", text=text or "(empty)")]
 
     handler, filtered = invoke
@@ -139,9 +131,9 @@ async def call_tool(
 
         result, stdout_text = await asyncio.to_thread(ctx.run, _invoke)
     except TypeError as e:
-        return [TextContent(type="text", text=f"参数错误: {e}")]
+        return tool_error(f"参数错误: {e}", code="INVALID_PARAMS")
     except Exception as e:
-        return [TextContent(type="text", text=f"调用失败: {e}")]
+        return tool_error(f"调用失败: {e}", code="INTERNAL_ERROR")
 
     out_text = _normalize_result(result)
     if stdout_text:
@@ -152,84 +144,15 @@ async def call_tool(
     return with_path_attachments(out_text, enabled=attach)
 
 
-def _parse_credentials_payload(raw: str) -> Optional[Tuple[str, str]]:
-    text = (raw or "").strip()
-    if not text:
-        return None
-    if not text.startswith("{"):
-        try:
-            decoded = base64.b64decode(text, validate=True).decode("utf-8")
-            if decoded.strip().startswith("{"):
-                text = decoded.strip()
-        except Exception:
-            pass
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
-        return None
-    if not isinstance(data, dict):
-        return None
-    ak = data.get("accessKey") or data.get("access_key")
-    sk = data.get("secretKey") or data.get("secret_key") or data.get("secretAccessKey")
-    if ak and sk:
-        return str(ak).strip(), str(sk).strip()
-    return None
 
 
-def _parse_credentials_from_headers(headers: Dict[str, str]) -> Optional[Tuple[str, str]]:
-    for hname in _CREDENTIALS_HEADER_NAMES:
-        if hname in headers:
-            parsed = _parse_credentials_payload(headers[hname])
-            if parsed:
-                return parsed
-    ak = headers.get("accesskey") or headers.get("x-access-key") or headers.get("access-key")
-    sk = (
-        headers.get("secretkey")
-        or headers.get("x-secret-key")
-        or headers.get("secret-key")
-        or headers.get("secretaccesskey")
+def _wrap_bailian_middleware(app: ASGIApp, *, mcp_paths: set[str]) -> ASGIApp:
+    return BailianHttpMiddleware(
+        app,
+        set_authorization=set_request_authorization,
+        reset_authorization=reset_request_authorization,
+        mcp_paths=mcp_paths,
     )
-    if ak and sk:
-        return ak.strip(), sk.strip()
-    return None
-
-
-def _headers_dict(scope: Scope) -> Dict[str, str]:
-    out: Dict[str, str] = {}
-    for key, value in scope.get("headers") or []:
-        out[key.decode("latin-1").lower()] = value.decode("latin-1")
-    return out
-
-
-class RequestCredentialsMiddleware:
-    def __init__(self, app: ASGIApp) -> None:
-        self.app = app
-
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http":
-            await self.app(scope, receive, send)
-            return
-
-        headers = _headers_dict(scope)
-        creds = None
-        auth = headers.get("authorization") or ""
-        if auth.lower().startswith("bearer "):
-            bearer = auth[7:].strip()
-            if bearer and oauth_configured():
-                try:
-                    creds = decode_access_token(bearer)
-                except TokenConfigError:
-                    creds = None
-        if not creds:
-            creds = _parse_credentials_from_headers(headers)
-        token = None
-        if creds:
-            token = set_request_credentials(creds[0], creds[1])
-        try:
-            await self.app(scope, receive, send)
-        finally:
-            if token is not None:
-                reset_request_credentials(token)
 
 
 class _StreamableHTTPASGIApp:
@@ -263,7 +186,7 @@ def _build_network_app(
     sse_path = _normalize_path(sse_path)
     message_path = _normalize_path(message_path, trailing_slash=True)
 
-    routes: list[Any] = list(oauth_routes())
+    routes: list[Any] = []
     session_manager: StreamableHTTPSessionManager | None = None
 
     if enable_http:
@@ -297,7 +220,9 @@ def _build_network_app(
         else:
             yield
 
-    return RequestCredentialsMiddleware(Starlette(routes=routes, lifespan=lifespan))
+    starlette_app = Starlette(routes=routes, lifespan=lifespan)
+    mcp_paths = {path, sse_path, message_path.rstrip("/")}
+    return _wrap_bailian_middleware(starlette_app, mcp_paths=mcp_paths)
 
 
 def _run_network(**kwargs) -> None:
@@ -310,7 +235,7 @@ def _run_network(**kwargs) -> None:
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="gangtise-hub-api")
-    parser.add_argument("--transport", choices=("http", "sse", "both"), default=os.getenv("MCP_TRANSPORT", "both"))
+    parser.add_argument("--transport", choices=("http", "sse", "both"), default=os.getenv("MCP_TRANSPORT", "http"))
     parser.add_argument("--host", default=os.getenv("MCP_HOST", "0.0.0.0"))
     parser.add_argument("--port", type=int, default=int(os.getenv("MCP_PORT", "8000")))
     parser.add_argument("--path", default=os.getenv("MCP_PATH", "/mcp"))

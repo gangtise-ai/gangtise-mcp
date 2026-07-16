@@ -27,4 +27,4 @@ parameters:
     description: 结束日期 yyyy-MM-dd。财报类截面常与 start_date 同为季度末；日频行情不含当天实时数据，默认最近已收盘日
   params:
     type: object
-    description: "JSON 参数字典：根级键为全局参数（如 adjustmentType 复权方式），嵌套指标编码可单独覆盖（如 {\"adjustmentType\":\"3\",\"qte_close\":{\"adjustmentType\":\"2\"}}）"
+    description: "JSON 参数字典序列化为字符串：根级键为全局参数（如 adjustmentType 复权方式），嵌套指标编码可单独覆盖。例：{\"adjustmentType\":\"3\",\"qte_close\":{\"adjustmentType\":\"2\"}}"

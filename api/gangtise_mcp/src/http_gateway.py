@@ -13,7 +13,10 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Route
 
-from oauth_asgi import oauth_routes
+from http_compat import (
+    DASHSCOPE_REQUEST_ID,
+    resolve_request_id,
+)
 from services import ALL_SERVICES
 
 DEFAULT_BACKENDS = {s.slug: s.port for s in ALL_SERVICES}
@@ -84,6 +87,7 @@ def create_app(backends: Dict[str, int]) -> Starlette:
 
     async def proxy(request: Request) -> Response:
         slug = _resolve_slug(request.url.path, backends.keys())
+        request_id = resolve_request_id({k.lower(): v for k, v in request.headers.items()})
         if slug is None:
             return JSONResponse(
                 {
@@ -94,6 +98,7 @@ def create_app(backends: Dict[str, int]) -> Starlette:
                     ),
                 },
                 status_code=404,
+                headers={DASHSCOPE_REQUEST_ID: request_id},
             )
 
         port = backends[slug]
@@ -103,6 +108,7 @@ def create_app(backends: Dict[str, int]) -> Starlette:
             for k, v in request.headers.items()
             if k.lower() not in _HOP_BY_HOP
         }
+        headers[DASHSCOPE_REQUEST_ID] = request_id
 
         body = await request.body()
         client: httpx.AsyncClient = request.app.state.http_client
@@ -120,6 +126,11 @@ def create_app(backends: Dict[str, int]) -> Starlette:
             for k, v in upstream.headers.items()
             if k.lower() not in _HOP_BY_HOP
         }
+        resp_headers[DASHSCOPE_REQUEST_ID] = (
+            resp_headers.get(DASHSCOPE_REQUEST_ID)
+            or resp_headers.get("X-DashScope-Request-ID")
+            or request_id
+        )
 
         async def body_iter():
             try:
@@ -144,7 +155,6 @@ def create_app(backends: Dict[str, int]) -> Starlette:
 
     return Starlette(
         routes=[
-            *oauth_routes(),
             Route("/health", endpoint=health, methods=["GET"]),
             Route(
                 "/{path:path}",

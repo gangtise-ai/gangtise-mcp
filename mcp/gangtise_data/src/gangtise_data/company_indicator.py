@@ -1044,13 +1044,52 @@ def company_indicator_data(
     securities: Optional[Any] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    params: Optional[Dict[str, Any]] = None,
+    params: Optional[Any] = None,
 ):
     """检索公司指标元信息，或在提供 indicator_codes + securities 时拉取时序/截面数据。
 
     优先级：有 indicator_codes → get；否则有 keyword → search。
     仅有 securities 不会进入 get。
     """
+    if isinstance(params, str):
+        text = params.strip()
+        if not text:
+            params = None
+        else:
+            try:
+                parsed = json.loads(text)
+            except json.JSONDecodeError as e:
+                return format_response(
+                    {
+                        "state": "error",
+                        "message": f"params 须为 JSON object 字符串: {e}",
+                        "data": [],
+                        "usage": {},
+                    },
+                    "company_indicator",
+                )
+            if not isinstance(parsed, dict):
+                return format_response(
+                    {
+                        "state": "error",
+                        "message": "params JSON 须解析为 object",
+                        "data": [],
+                        "usage": {},
+                    },
+                    "company_indicator",
+                )
+            params = parsed
+    elif params is not None and not isinstance(params, dict):
+        return format_response(
+            {
+                "state": "error",
+                "message": f"params 类型无效: {type(params).__name__}",
+                "data": [],
+                "usage": {},
+            },
+            "company_indicator",
+        )
+
     indicators_raw = (indicator_codes or "").strip()
     sec_list = normalize_securities_arg(securities)
 

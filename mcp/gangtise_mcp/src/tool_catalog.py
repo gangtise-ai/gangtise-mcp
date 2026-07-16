@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from references_loader import ToolSpec, load_all_tool_specs
 from tools_registry import DOMAIN_TOOL_NAMES, INTERNAL_PARAMS, TOOL_HANDLERS
+from url_blocklist import filter_blocked_handlers, parse_url_block_list
 
 ToolHandler = Callable[..., Any]
 
@@ -61,11 +62,22 @@ def load_catalog(*, force: bool = False) -> Catalog:
             for s in load_all_tool_specs(refs):
                 all_specs[s.name] = s
 
+        block_list = parse_url_block_list()
+        allowed_handlers, blocked = filter_blocked_handlers(
+            TOOL_HANDLERS, block_list, log=True
+        )
+        blocked_names = {name for name, _hit in blocked}
+        for name, hit in blocked:
+            cat.errors[name] = f"URL_BLOCK_LIST 屏蔽（引用 {hit}）"
+
         for domain_label, names in DOMAIN_TOOL_NAMES.items():
             for name in names:
-                handler = TOOL_HANDLERS.get(name)
+                handler = allowed_handlers.get(name)
                 if handler is None:
-                    cat.errors[name] = f"{domain_label} 声明了 {name} 但无 handler"
+                    if name in blocked_names:
+                        continue
+                    if name not in TOOL_HANDLERS:
+                        cat.errors[name] = f"{domain_label} 声明了 {name} 但无 handler"
                     continue
                 if name in cat.handlers:
                     cat.errors[name] = (

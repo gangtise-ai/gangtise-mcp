@@ -78,7 +78,7 @@ ROUTER_INPUT_SCHEMA: Dict = {
             "description": (
                 "list（默认）= 返回类似 SKILL.md 的下级能力目录与调用示例；"
                 "read_ref = 读取某叶子工具的完整参数说明（对应 references/<name>.yaml）；"
-                "call = 调用叶子工具并传入 arguments"
+                "call = 调用叶子工具并传入 arguments_json"
             ),
         },
         "name": {
@@ -88,10 +88,12 @@ ROUTER_INPUT_SCHEMA: Dict = {
                 "例如 quote、financial、report、kb、stockpool"
             ),
         },
-        "arguments": {
-            "type": "object",
-            "description": "传给叶子工具的参数对象（仅 action=call 时使用）",
-            "additionalProperties": True,
+        "arguments_json": {
+            "type": "string",
+            "description": (
+                "传给叶子工具的参数 JSON 对象字符串（仅 action=call 时使用）。"
+                "示例：{\"securities\":\"贵州茅台\",\"start_date\":\"2024-01-01\"}"
+            ),
         },
     },
 }

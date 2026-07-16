@@ -1,19 +1,26 @@
 #!/usr/bin/env bash
 # Docker 入口：stdio → mcp（gangtise-mcp）；HTTP/SSE/gateway → api（gangtise-mcp-api）。
-# 默认 MCP_LAYOUT=gateway；全量叶子用 MCP_LAYOUT=unified。
-# 鉴权（HTTP）：OAuth Bearer 或请求头 X-GTS-Credentials。
+# 默认（百炼）：MCP_LAYOUT=unified、MCP_TRANSPORT=http、MCP_REQUIRE_AUTH=true。
+# 鉴权：透传 Authorization: Bearer <token>；回传 X-DashScope-Request-ID。
 set -euo pipefail
 
 MCP_HOST="${MCP_HOST:-0.0.0.0}"
 MCP_PORT="${MCP_PORT:-8000}"
-MCP_TRANSPORT="${MCP_TRANSPORT:-both}"
+MCP_TRANSPORT="${MCP_TRANSPORT:-http}"
 MCP_PACKAGE="${MCP_PACKAGE:-domains}"
-MCP_LAYOUT="${MCP_LAYOUT:-gateway}"
+MCP_LAYOUT="${MCP_LAYOUT:-unified}"
 GTS_SAVE_FILE="${GTS_SAVE_FILE:-False}"
 GTS_MCP_ROOT="${GTS_MCP_ROOT:-/opt/mcp}"
+URL_BLOCK_LIST="${URL_BLOCK_LIST:-EDB_SEARCH_URL,EDB_GET_DATA_URL}"
+MCP_REQUIRE_AUTH="${MCP_REQUIRE_AUTH:-true}"
 export GTS_SAVE_FILE
 export GTS_MCP_ROOT
 export MCP_LAYOUT
+export URL_BLOCK_LIST
+export MCP_REQUIRE_AUTH
+export MCP_PATH="${MCP_PATH:-/mcp}"
+export MCP_STATELESS="${MCP_STATELESS:-true}"
+export MCP_JSON_RESPONSE="${MCP_JSON_RESPONSE:-true}"
 
 if [[ "${MCP_LAYOUT}" == "hub" ]]; then
   MCP_LAYOUT=unified

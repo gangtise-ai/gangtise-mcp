@@ -1,4 +1,4 @@
-# Gangtise MCP 整合镜像（mcp=stdio 业务；api=HTTP/SSE+鉴权）
+# Gangtise MCP 整合镜像（aliyun / 百炼内部部署）
 #
 #   cd mcps && docker build -t gangtise-mcp -f Dockerfile \
 #     --build-arg PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
@@ -7,10 +7,8 @@
 #
 # 运行：
 #   docker run -d -p 8000:8000 gangtise-mcp
-#   docker run -d -p 8000:8000 -e MCP_PACKAGE=all \
-#     -e GTS_JWT_SECRET=... -e GTS_CRED_ENC_KEY=... gangtise-mcp
-#
-# 鉴权：OAuth（/authorize）或请求头 X-GTS-Credentials
+#   Endpoint: https://<host>:8000/mcp
+#   鉴权：请求头 Authorization: Bearer <token>（原样透传下游）
 
 ARG BASE_IMAGE=python:3.11.9
 FROM ${BASE_IMAGE}
@@ -24,8 +22,6 @@ ARG OBS_BUCKET=
 ARG OBS_PATH=
 ARG MCP_ATTACH_MAX_BYTES=33554432
 ARG INSTALL_OBS=
-ARG GTS_JWT_SECRET=
-ARG GTS_CRED_ENC_KEY=
 # pip 源：留空走默认 PyPI；可覆盖为清华等
 ARG PIP_INDEX_URL=
 ARG PIP_EXTRA_INDEX_URL=
@@ -34,11 +30,16 @@ ARG PIP_TRUSTED_HOST=
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    MCP_TRANSPORT=both \
+    MCP_TRANSPORT=http \
     MCP_HOST=0.0.0.0 \
     MCP_PORT=8000 \
     MCP_PACKAGE=domains \
-    MCP_LAYOUT=gateway \
+    MCP_LAYOUT=unified \
+    MCP_PATH=/mcp \
+    MCP_STATELESS=true \
+    MCP_JSON_RESPONSE=true \
+    MCP_REQUIRE_AUTH=true \
+    URL_BLOCK_LIST=EDB_SEARCH_URL,EDB_GET_DATA_URL \
     GTS_SAVE_FILE=False \
     GTS_MCP_ROOT=/opt/mcp \
     MCP_ATTACH_MAX_BYTES=${MCP_ATTACH_MAX_BYTES} \
@@ -46,9 +47,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     OBS_SECRET_KEY=${OBS_SECRET_KEY} \
     OBS_ENDPOINT=${OBS_ENDPOINT} \
     OBS_BUCKET=${OBS_BUCKET} \
-    OBS_PATH=${OBS_PATH} \
-    GTS_JWT_SECRET=${GTS_JWT_SECRET} \
-    GTS_CRED_ENC_KEY=${GTS_CRED_ENC_KEY}
+    OBS_PATH=${OBS_PATH}
 
 COPY mcp/gangtise_mcp/entrypoint.sh /entrypoint.sh
 COPY api /app/api
@@ -68,8 +67,6 @@ RUN set -eux; \
         "requests>=2.32.5" \
         "pandas>=2.2.3" \
         "pyyaml>=6.0" \
-        "PyJWT>=2.8.0" \
-        "cryptography>=42.0.0" \
         "starlette>=0.37.0"; \
     for pkg in gangtise_agent gangtise_data gangtise_file gangtise_kb gangtise_private gangtise_hub gangtise_mcp; do \
          mkdir -p "/opt/mcp/api/${pkg}" "/opt/mcp/mcp/${pkg}"; \

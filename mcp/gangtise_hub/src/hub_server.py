@@ -44,6 +44,7 @@ from domains import DOMAINS, ROUTER_INPUT_SCHEMA, domain_tool_description
 from package_loader import preload_all
 from result_attachments import with_path_attachments
 from router import route
+from tool_errors import tool_error
 
 SERVER_NAME = "gangtise-hub-mcp"
 SERVER_VERSION = "0.1.0"
@@ -51,11 +52,9 @@ SERVER_VERSION = "0.1.0"
 
 def _auth_missing_message() -> str:
     return (
-        "未配置 Gangtise 授权（AccessKey / SecretKey）\n"
-        "请前往 https://open-platform.gangtise.com/ 进行账号登陆/申请并获取凭证\n"
-        "登陆后在`我的账号`->`账号列表`页面最下方查看 Access Key 和 Secret Key\n"
-        "再通过环境变量或本地凭证文件配置后使用"
-        "（提示：action=list / read_ref 无需凭证；仅 action=call 需要）"
+        "未配置 Authorization。\n"
+        "HTTP：请在请求头携带 Authorization: Bearer <token>\n"
+        "stdio：设置环境变量 GTS_AUTHORIZATION 或本地 authorization 文件"
     )
 
 
@@ -91,17 +90,19 @@ async def list_tools() -> List[Tool]:
 @server.call_tool()
 async def call_tool(
     name: str, arguments: Dict[str, Any]
-) -> List[TextContent | EmbeddedResource]:
+) -> Any:
     args = dict(arguments or {})
     action = str(args.get("action") or "list").strip().lower()
 
     if action == "call":
         auth_err = _check_auth_env()
         if auth_err:
-            return [TextContent(type="text", text=auth_err)]
+            return tool_error(auth_err, code="UNAUTHORIZED")
 
     text, invoke, _runtime = route(name, args)
     if invoke is None:
+        if text and (text.startswith("未知") or "必须提供" in text or "不是合法" in text):
+            return tool_error(text, code="INVALID_PARAMS")
         return [TextContent(type="text", text=text or "(empty)")]
 
     handler, filtered = invoke
@@ -116,15 +117,16 @@ async def call_tool(
 
         result, stdout_text = await asyncio.to_thread(ctx.run, _invoke)
     except TypeError as e:
-        return [TextContent(type="text", text=f"参数错误: {e}")]
+        return tool_error(f"参数错误: {e}", code="INVALID_PARAMS")
     except Exception as e:
-        return [TextContent(type="text", text=f"调用失败: {e}")]
+        return tool_error(f"调用失败: {e}", code="INTERNAL_ERROR")
 
     out_text = _normalize_result(result)
     if stdout_text:
         out_text = stdout_text + out_text
     attach = os.getenv("MCP_ATTACH_FILES", "").lower() in ("1", "true", "yes", "on")
     return with_path_attachments(out_text, enabled=attach)
+
 
 
 async def _run_stdio() -> None:

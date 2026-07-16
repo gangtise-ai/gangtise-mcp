@@ -44,20 +44,56 @@ class ToolSpec:
     title: Optional[str] = None
 
 
+def _append_desc(base: str, note: str) -> str:
+    base = (base or "").strip()
+    note = (note or "").strip()
+    if not base:
+        return note
+    if not note:
+        return base
+    if note in base:
+        return base
+    return f"{base} {note}"
+
+
 def _param_to_schema(param: Dict[str, Any]) -> Dict[str, Any]:
+    """生成 JSON Schema；array/object 扁平化为 string（百炼单层参数规范）。"""
     raw_type = str(param.get("type", "string")).lower()
-    schema: Dict[str, Any] = {"type": _TYPE_MAP.get(raw_type, raw_type)}
-    if "description" in param:
-        schema["description"] = param["description"]
+    desc = str(param.get("description") or "")
+
+    # 百炼：禁止嵌套 object / 原生 array，统一为根级基本类型
     if raw_type == "array":
-        items = param.get("items") or {"type": "string"}
-        if isinstance(items, str):
-            items = {"type": _TYPE_MAP.get(items.lower(), items)}
-        schema["items"] = items
+        schema: Dict[str, Any] = {
+            "type": "string",
+            "description": _append_desc(
+                desc,
+                "Comma-separated string (flat schema; do not pass a JSON array).",
+            ),
+        }
+    elif raw_type == "object":
+        schema = {
+            "type": "string",
+            "description": _append_desc(
+                desc,
+                "JSON object serialized as a string (flat schema).",
+            ),
+        }
+    else:
+        schema = {"type": _TYPE_MAP.get(raw_type, raw_type)}
+        if desc:
+            schema["description"] = desc
+
     if "enum" in param:
         schema["enum"] = param["enum"]
     if "default" in param:
-        schema["default"] = param["default"]
+        default = param["default"]
+        # 扁平化后 default 也须为基本类型
+        if raw_type == "array" and isinstance(default, list):
+            schema["default"] = ",".join(str(x) for x in default)
+        elif raw_type == "object" and isinstance(default, dict):
+            schema["default"] = json.dumps(default, ensure_ascii=False)
+        else:
+            schema["default"] = default
     return schema
 
 

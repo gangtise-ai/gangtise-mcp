@@ -24,18 +24,12 @@ def _schema_required(spec: ToolSpec) -> list:
 
 def _example_value(pname: str, pdef: Dict[str, Any]) -> Any:
     t = str(pdef.get("type") or "string")
-    if t == "array":
-        if pname == "securities":
-            return ["贵州茅台"]
-        return ["示例"]
     if t == "integer":
         return 10
     if t == "number":
         return 1.0
     if t == "boolean":
         return True
-    if t == "object":
-        return {}
     if pname == "securities":
         return "贵州茅台"
     if pname in ("keyword", "query", "q"):
@@ -78,7 +72,11 @@ def _example_arguments(spec: ToolSpec) -> Dict[str, Any]:
 
 
 def _call_example_json(domain_tool: str, leaf: str, arguments: Dict[str, Any]) -> str:
-    payload = {"action": "call", "name": leaf, "arguments": arguments}
+    payload = {
+        "action": "call",
+        "name": leaf,
+        "arguments_json": json.dumps(arguments, ensure_ascii=False),
+    }
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
@@ -100,7 +98,7 @@ def render_list(domain: DomainDef, runtime: Optional[DomainRuntime]) -> str:
         "|--------|------|",
         "| `list`（默认） | 本页：下级叶子工具目录 |",
         "| `read_ref` | 读取 `name` 对应叶子工具的完整参数说明（等同 `references/<name>.yaml`） |",
-        "| `call` | 执行叶子工具：`name` + `arguments` |",
+        "| `call` | 执行叶子工具：`name` + `arguments_json` |",
         "",
         "```json",
         json.dumps(
@@ -115,7 +113,7 @@ def render_list(domain: DomainDef, runtime: Optional[DomainRuntime]) -> str:
             {
                 "action": "call",
                 "name": "<leaf_tool>",
-                "arguments": {"...": "..."},
+                "arguments_json": "{\"...\":\"...\"}",
             },
             ensure_ascii=False,
             indent=2,
@@ -312,11 +310,22 @@ def route(
         known = ", ".join(sorted(runtime.handlers)) or "(无)"
         return f"未知叶子工具: `{leaf}`。可用: {known}", None, runtime
 
-    call_args = args.get("arguments")
+    call_args = args.get("arguments_json")
+    if call_args is None:
+        call_args = args.get("arguments")
     if call_args is None:
         call_args = {}
+    if isinstance(call_args, str):
+        text = call_args.strip()
+        if not text:
+            call_args = {}
+        else:
+            try:
+                call_args = json.loads(text)
+            except json.JSONDecodeError as e:
+                return f"arguments_json 不是合法 JSON: {e}", None, runtime
     if not isinstance(call_args, dict):
-        return "arguments 必须是对象（JSON object）。", None, runtime
+        return "arguments_json 必须是 JSON object 字符串。", None, runtime
 
     filtered, param_err = filter_arguments(handler, call_args, runtime.internal_params)
     if param_err:
