@@ -8,6 +8,12 @@ from typing import Any, Dict, Optional, Tuple
 from domains import DOMAIN_BY_TOOL, DomainDef, ROUTER_ACTIONS
 from package_loader import DomainRuntime, load_error, try_load_domain
 from references_loader import ToolSpec
+from url_whitelist import get_white_list, is_tool_allowed, tool_denied_reason
+
+
+def _allowed_specs(runtime: DomainRuntime):
+    wl = get_white_list()
+    return [s for s in runtime.specs if is_tool_allowed(s.name, wl)]
 
 
 def _first_line(text: str) -> str:
@@ -134,14 +140,15 @@ def render_list(domain: DomainDef, runtime: Optional[DomainRuntime]) -> str:
         ]
         return "\n".join(lines)
 
+    allowed = _allowed_specs(runtime)
     lines += [
         "## 下级工具",
         "",
-        f"共 **{len(runtime.specs)}** 个叶子工具（本包内嵌 `references/*.yaml`，域 `{domain.tool_name}`）。",
+        f"共 **{len(allowed)}** 个叶子工具（本包内嵌 `references/*.yaml`，域 `{domain.tool_name}`；已按权限过滤）。",
         "",
     ]
 
-    for spec in runtime.specs:
+    for spec in allowed:
         summary = _first_line(spec.description) or spec.name
         req = _schema_required(spec)
         req_s = ", ".join(f"`{x}`" for x in req) if req else "无强制必填（见 read_ref）"
@@ -179,9 +186,12 @@ def render_list(domain: DomainDef, runtime: Optional[DomainRuntime]) -> str:
 
 
 def render_read_ref(domain: DomainDef, runtime: DomainRuntime, leaf: str) -> str:
+    denied = tool_denied_reason(leaf)
+    if denied:
+        return f"无权限查看工具 `{leaf}`：{denied}"
     spec = runtime.spec_map.get(leaf)
     if spec is None:
-        known = ", ".join(sorted(runtime.spec_map)) or "(无)"
+        known = ", ".join(s.name for s in _allowed_specs(runtime)) or "(无)"
         return f"未知叶子工具: `{leaf}`。可用: {known}"
 
     props = (spec.input_schema or {}).get("properties") or {}
@@ -305,9 +315,12 @@ def route(
         return render_read_ref(domain, runtime, leaf), None, runtime
 
     # call
+    denied = tool_denied_reason(leaf)
+    if denied:
+        return f"无权限调用工具 `{leaf}`：{denied}", None, runtime
     handler = runtime.handlers.get(leaf)
     if handler is None:
-        known = ", ".join(sorted(runtime.handlers)) or "(无)"
+        known = ", ".join(s.name for s in _allowed_specs(runtime)) or "(无)"
         return f"未知叶子工具: `{leaf}`。可用: {known}", None, runtime
 
     call_args = args.get("arguments_json")

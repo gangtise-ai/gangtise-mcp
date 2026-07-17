@@ -42,10 +42,12 @@ curl -sS http://127.0.0.1:8000/health
 | `MCP_LAYOUT` | `unified` | `unified`（单进程全量叶子）/ `gateway` |
 | `MCP_PACKAGE` | `domains` | `domains` / `all` / 单域 slug |
 | `MCP_REQUIRE_AUTH` | `true` | `/mcp` 缺少 `Authorization` 时返回 401 |
-| `URL_BLOCK_LIST` | `EDB_SEARCH_URL,EDB_GET_DATA_URL` | 引用这些 URL 常量的工具不挂载 |
+| `TOOL_URL_DEPS_PATH` | `/opt/mcp/tool_url_deps.json` | 构建期扫描生成的 tool→URL 依赖图 |
 | `GTS_MCP_ROOT` | `/opt/mcp` | 下含 `api/` 与 `mcp/` |
 | `MCP_ATTACH_MAX_BYTES` | `33554432` | 嵌入附件上限 |
 | `OBS_*` | 空 | 超大附件外置（可选） |
+
+工具可见性：构建期扫描各工具对 `*_URL` 的依赖；运行时 `get_white_list()`（当前 stub 返回全量 URL）按白名单过滤 `tools/list` 与 `call`。无 URL 依赖的工具始终放行；白名单为空（用户被 ban）时，有 URL 依赖的工具全部隐藏。
 
 百炼：回传 `X-DashScope-Request-ID`；工具参数 schema 扁平化（`array`/`object` → `string`）。本分支**无** SPI / AK·SK / OAuth。
 

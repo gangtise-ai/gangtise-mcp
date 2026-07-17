@@ -31,10 +31,12 @@ Connect to `http://127.0.0.1:8000/mcp` with `Authorization: Bearer <token>` (for
 | `MCP_LAYOUT` | `unified` | `unified` / `gateway` |
 | `MCP_PACKAGE` | `domains` | `domains` / `all` / single-domain slug |
 | `MCP_REQUIRE_AUTH` | `true` | HTTP 401 if `/mcp` lacks `Authorization` |
-| `URL_BLOCK_LIST` | `EDB_SEARCH_URL,EDB_GET_DATA_URL` | Skip tools whose scripts reference these constants |
+| `TOOL_URL_DEPS_PATH` | `/opt/mcp/tool_url_deps.json` | Build-time tool→URL dependency map |
 | `GTS_MCP_ROOT` | `/opt/mcp` | contains `api/` and `mcp/` |
 | `MCP_ATTACH_MAX_BYTES` | `33554432` | Inline attachment limit |
 | `OBS_*` | empty | Optional large-attachment offload |
+
+Tool visibility: build scans `*_URL` deps per tool; runtime `get_white_list()` (stub = all URLs) filters `tools/list` and `call`. Tools with no URL deps always stay; empty whitelist (banned user) hides every tool that has URL deps.
 
 Responses echo `X-DashScope-Request-ID`. Tool schemas are flattened. No SPI / AK·SK / OAuth in this branch.
 

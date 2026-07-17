@@ -51,21 +51,12 @@ from references_loader import load_all_tool_specs
 from result_attachments import with_path_attachments
 from http_compat import BailianHttpMiddleware
 from tool_errors import tool_error
-from url_blocklist import filter_blocked_handlers, parse_url_block_list
+from url_whitelist import get_white_list, is_tool_allowed, tool_denied_reason
 from gangtise_file.tools_registry import INTERNAL_PARAMS, TOOL_HANDLERS
 
 SERVER_NAME = "gangtise-file-mcp"
 SERVER_VERSION = "0.1.0"
 
-_ACTIVE_HANDLERS = None
-
-
-def _active_handlers():
-    global _ACTIVE_HANDLERS
-    if _ACTIVE_HANDLERS is None:
-        kept, _blocked = filter_blocked_handlers(TOOL_HANDLERS, parse_url_block_list())
-        _ACTIVE_HANDLERS = kept
-    return _ACTIVE_HANDLERS
 
 
 def _auth_missing_message() -> str:
@@ -111,9 +102,12 @@ server = Server(SERVER_NAME)
 
 @server.list_tools()
 async def list_tools() -> List[Tool]:
+    wl = get_white_list()
     tools: List[Tool] = []
     for spec in load_all_tool_specs():
-        if spec.name not in _active_handlers():
+        if spec.name not in TOOL_HANDLERS:
+            continue
+        if not is_tool_allowed(spec.name, wl):
             continue
         tools.append(
             Tool(
@@ -133,7 +127,11 @@ async def call_tool(
     if auth_err:
         return tool_error(auth_err, code="UNAUTHORIZED")
 
-    handler = _active_handlers().get(name)
+    denied = tool_denied_reason(name)
+    if denied:
+        return tool_error(f"无权限调用工具 {name}: {denied}", code="FORBIDDEN")
+
+    handler = TOOL_HANDLERS.get(name)
     if handler is None:
         return tool_error(f"未知工具: {name}", code="UNKNOWN_TOOL")
 

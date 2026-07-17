@@ -9,7 +9,6 @@ from typing import Any, Callable, Dict, List, Optional
 from domains import DOMAINS, DomainDef
 from references_loader import ToolSpec, load_all_tool_specs
 from tools_registry import DOMAIN_TOOL_NAMES, INTERNAL_PARAMS, TOOL_HANDLERS
-from url_blocklist import filter_blocked_handlers, parse_url_block_list
 
 ToolHandler = Callable[..., Any]
 
@@ -55,12 +54,7 @@ def load_domain(domain: DomainDef, *, force: bool = False) -> DomainRuntime:
         raise KeyError(f"{domain.tool_name} 缺少 handler: {', '.join(missing)}")
 
     handlers = {n: TOOL_HANDLERS[n] for n in names}
-    handlers, blocked = filter_blocked_handlers(handlers, parse_url_block_list(), log=True)
-    if not handlers and blocked:
-        raise KeyError(
-            f"{domain.tool_name} 全部叶子工具被 URL_BLOCK_LIST 屏蔽: "
-            + ", ".join(f"{n}({h})" for n, h in blocked)
-        )
+    # 全量加载；叶子工具按用户白名单裁剪在 list/call 路径进行
     refs = domain_references_dir(domain.package_dir)
     if not refs.is_dir():
         raise FileNotFoundError(f"缺少 references/: {refs}")

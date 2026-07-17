@@ -10,7 +10,7 @@
 #   Endpoint: https://<host>:8000/mcp
 #   鉴权：请求头 Authorization: Bearer <token>（原样透传下游）
 
-ARG BASE_IMAGE=python:3.11.9
+ARG BASE_IMAGE=gangtise-dev-registry.crs-huadong1.ctyun.cn/gangtise-dev/python:3.11.9
 FROM ${BASE_IMAGE}
 
 WORKDIR /app
@@ -39,9 +39,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     MCP_STATELESS=true \
     MCP_JSON_RESPONSE=true \
     MCP_REQUIRE_AUTH=true \
-    URL_BLOCK_LIST=EDB_SEARCH_URL,EDB_GET_DATA_URL \
     GTS_SAVE_FILE=False \
     GTS_MCP_ROOT=/opt/mcp \
+    TOOL_URL_DEPS_PATH=/opt/mcp/tool_url_deps.json \
     MCP_ATTACH_MAX_BYTES=${MCP_ATTACH_MAX_BYTES} \
     OBS_ACCESS_KEY=${OBS_ACCESS_KEY} \
     OBS_SECRET_KEY=${OBS_SECRET_KEY} \
@@ -52,6 +52,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY mcp/gangtise_mcp/entrypoint.sh /entrypoint.sh
 COPY api /app/api
 COPY mcp /app/mcp
+COPY scripts/scan_tool_url_deps.py /app/scripts/scan_tool_url_deps.py
 
 RUN set -eux; \
     PIP_OPTS=""; \
@@ -59,6 +60,8 @@ RUN set -eux; \
     if [ -n "${PIP_EXTRA_INDEX_URL}" ]; then PIP_OPTS="${PIP_OPTS} --extra-index-url ${PIP_EXTRA_INDEX_URL}"; fi; \
     if [ -n "${PIP_TRUSTED_HOST}" ]; then PIP_OPTS="${PIP_OPTS} --trusted-host ${PIP_TRUSTED_HOST}"; fi; \
     chmod +x /entrypoint.sh; \
+    mkdir -p /opt/mcp; \
+    python /app/scripts/scan_tool_url_deps.py --mcp-root /app/mcp --out /opt/mcp/tool_url_deps.json; \
     pip install --upgrade pip ${PIP_OPTS}; \
     pip install ${PIP_OPTS} \
         "mcp>=1.0.0" \

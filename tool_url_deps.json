@@ -1,0 +1,600 @@
+{
+  "version": 1,
+  "mcp_root": "/Users/yanxiao/Documents/code/skills-backend/mcps/mcp",
+  "tools": {
+    "earnings_review": [],
+    "hot_topic": [
+      "HOT_TOPIC_LIST_URL"
+    ],
+    "investment_logic": [],
+    "peer_comparison": [],
+    "research_outline": [],
+    "security_clue": [
+      "SECURITIES_SEARCH_URL"
+    ],
+    "stock_one_line_summary": [],
+    "stock_one_pager": [],
+    "theme_tracking": [],
+    "viewpoint_debate": [],
+    "block_constituents": [
+      "SECTOR_CONSTITUENTS_URL",
+      "SECTOR_SEARCH_URL"
+    ],
+    "company_indicator": [
+      "INDICATOR_CROSS_SECTION_URL",
+      "INDICATOR_SEARCH_URL",
+      "INDICATOR_TIME_SERIES_URL",
+      "SECURITIES_SEARCH_URL"
+    ],
+    "concept": [
+      "CONCEPT_SEARCH_URL",
+      "CONCEPT_SECURITIES_URL",
+      "CONCEPT_URL"
+    ],
+    "earning_forecast": [
+      "EARNING_FORECAST_URL",
+      "SECURITIES_SEARCH_URL"
+    ],
+    "financial": [
+      "FINANCIAL_REPORT_BALANCE_URL",
+      "FINANCIAL_REPORT_CASH_FLOW_QUARTERLY_URL",
+      "FINANCIAL_REPORT_CASH_FLOW_URL",
+      "FINANCIAL_REPORT_INCOME_QUARTERLY_URL",
+      "FINANCIAL_REPORT_INCOME_URL",
+      "HK_FINANCIAL_REPORT_BALANCE_URL",
+      "HK_FINANCIAL_REPORT_CASH_FLOW_URL",
+      "HK_FINANCIAL_REPORT_INCOME_URL",
+      "SECURITIES_SEARCH_URL",
+      "US_FINANCIAL_REPORT_BALANCE_URL",
+      "US_FINANCIAL_REPORT_CASH_FLOW_URL",
+      "US_FINANCIAL_REPORT_INCOME_URL"
+    ],
+    "fund_flow": [
+      "FUND_FLOW_DAILY_URL",
+      "SECURITIES_SEARCH_URL"
+    ],
+    "industry_indicator": [
+      "EDB_GET_DATA_URL",
+      "EDB_SEARCH_URL"
+    ],
+    "main_business": [
+      "MAIN_BUSINESS_URL",
+      "SECURITIES_SEARCH_URL"
+    ],
+    "quote": [
+      "QUOTE_ADJUST_FACTOR_URL",
+      "QUOTE_HK_URL",
+      "QUOTE_INDEX_DAILY_URL",
+      "QUOTE_MINUTE_URL",
+      "QUOTE_REALTIME_URL",
+      "QUOTE_URL",
+      "QUOTE_US_DAILY_URL",
+      "SECURITIES_SEARCH_URL"
+    ],
+    "security": [
+      "SECURITIES_SEARCH_URL"
+    ],
+    "shareholder": [
+      "SECURITIES_SEARCH_URL",
+      "TOP_HOLDERS_URL"
+    ],
+    "valuation": [
+      "SECURITIES_SEARCH_URL",
+      "VALUATION_URL"
+    ],
+    "announcement": [
+      "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+      "COMPANY_ANNOUNCEMENT_URL",
+      "FILE_URL",
+      "FOREIGN_REPORT_DOWNLOAD_URL",
+      "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+      "HK_ANNOUNCEMENT_LIST_URL",
+      "INDEPENDENT_OPINION_DOWNLOAD_URL",
+      "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+      "REPORT_DOWNLOAD_URL",
+      "SECURITIES_SEARCH_URL",
+      "SUMMARY_DOWNLOAD_URL",
+      "US_ANNOUNCEMENT_DOWNLOAD_URL",
+      "US_ANNOUNCEMENT_LIST_URL"
+    ],
+    "foreign_opinion": [
+      "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+      "FILE_URL",
+      "FOREIGN_OPINION_URL",
+      "FOREIGN_REPORT_DOWNLOAD_URL",
+      "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+      "INDEPENDENT_OPINION_DOWNLOAD_URL",
+      "INDEPENDENT_OPINION_LIST_URL",
+      "INSTITUTIONS_SEARCH_URL",
+      "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+      "REPORT_DOWNLOAD_URL",
+      "SECURITIES_SEARCH_URL",
+      "SUMMARY_DOWNLOAD_URL",
+      "US_ANNOUNCEMENT_DOWNLOAD_URL"
+    ],
+    "foreign_report": [
+      "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+      "FILE_URL",
+      "FOREIGN_REPORT_DOWNLOAD_URL",
+      "FOREIGN_REPORT_URL",
+      "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+      "INDEPENDENT_OPINION_DOWNLOAD_URL",
+      "INSTITUTIONS_SEARCH_URL",
+      "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+      "REPORT_DOWNLOAD_URL",
+      "SECURITIES_SEARCH_URL",
+      "SUMMARY_DOWNLOAD_URL",
+      "US_ANNOUNCEMENT_DOWNLOAD_URL"
+    ],
+    "get_announcement_types": [],
+    "get_chiefs": [
+      "CHIEFS_SEARCH_URL"
+    ],
+    "get_file": [
+      "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+      "FILE_URL",
+      "FOREIGN_REPORT_DOWNLOAD_URL",
+      "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+      "INDEPENDENT_OPINION_DOWNLOAD_URL",
+      "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+      "REPORT_DOWNLOAD_URL",
+      "SUMMARY_DOWNLOAD_URL",
+      "US_ANNOUNCEMENT_DOWNLOAD_URL"
+    ],
+    "get_industries": [],
+    "get_institutions": [
+      "INSTITUTIONS_SEARCH_URL"
+    ],
+    "get_regions": [],
+    "investment_calendar": [
+      "FORUM_LIST_URL",
+      "INSTITUTIONS_SEARCH_URL",
+      "ROADSHOW_LIST_URL",
+      "SECURITIES_SEARCH_URL",
+      "SITE_VISIT_LIST_URL",
+      "STRATEGY_MEETING_LIST_URL"
+    ],
+    "management_discuss": [
+      "MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL",
+      "MANAGEMENT_DISCUSS_FROM_EARNINGS_CALL_URL",
+      "SECURITIES_SEARCH_URL"
+    ],
+    "official_account": [
+      "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+      "FILE_URL",
+      "FOREIGN_REPORT_DOWNLOAD_URL",
+      "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+      "INDEPENDENT_OPINION_DOWNLOAD_URL",
+      "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+      "OFFICIAL_ACCOUNT_LIST_URL",
+      "OFFICIAL_ACCOUNT_SEARCH_URL",
+      "REPORT_DOWNLOAD_URL",
+      "SECURITIES_SEARCH_URL",
+      "SUMMARY_DOWNLOAD_URL",
+      "US_ANNOUNCEMENT_DOWNLOAD_URL"
+    ],
+    "opinion": [
+      "CHIEFS_SEARCH_URL",
+      "INSTITUTIONS_SEARCH_URL",
+      "OPINION_URL",
+      "SECURITIES_SEARCH_URL"
+    ],
+    "qa": [
+      "QA_DATA_LIST_URL",
+      "SECURITIES_SEARCH_URL"
+    ],
+    "report": [
+      "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+      "FILE_URL",
+      "FOREIGN_REPORT_DOWNLOAD_URL",
+      "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+      "INDEPENDENT_OPINION_DOWNLOAD_URL",
+      "INSTITUTIONS_SEARCH_URL",
+      "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+      "REPORT_DOWNLOAD_URL",
+      "REPORT_URL",
+      "SECURITIES_SEARCH_URL",
+      "SUMMARY_DOWNLOAD_URL",
+      "US_ANNOUNCEMENT_DOWNLOAD_URL"
+    ],
+    "report_image": [
+      "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+      "FILE_URL",
+      "FOREIGN_REPORT_DOWNLOAD_URL",
+      "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+      "INDEPENDENT_OPINION_DOWNLOAD_URL",
+      "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+      "REPORT_DOWNLOAD_URL",
+      "REPORT_IMAGE_DOWNLOAD_URL",
+      "REPORT_IMAGE_URL",
+      "SUMMARY_DOWNLOAD_URL",
+      "US_ANNOUNCEMENT_DOWNLOAD_URL"
+    ],
+    "summary": [
+      "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+      "FILE_URL",
+      "FOREIGN_REPORT_DOWNLOAD_URL",
+      "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+      "INDEPENDENT_OPINION_DOWNLOAD_URL",
+      "INSTITUTIONS_SEARCH_URL",
+      "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+      "REPORT_DOWNLOAD_URL",
+      "SECURITIES_SEARCH_URL",
+      "SUMMARY_DOWNLOAD_URL",
+      "SUMMARY_URL",
+      "US_ANNOUNCEMENT_DOWNLOAD_URL"
+    ],
+    "kb": [
+      "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+      "FILE_URL",
+      "FOREIGN_REPORT_DOWNLOAD_URL",
+      "RAG_URL",
+      "REPORT_DOWNLOAD_URL",
+      "SUMMARY_DOWNLOAD_URL"
+    ],
+    "private_cloud": [
+      "DRIVE_DOWNLOAD_URL",
+      "DRIVE_LIST_URL"
+    ],
+    "private_meeting": [
+      "MY_CONFERENCE_DOWNLOAD_URL",
+      "MY_CONFERENCE_LIST_URL"
+    ],
+    "private_record": [
+      "RECORD_DOWNLOAD_URL",
+      "RECORD_LIST_URL"
+    ],
+    "stockpool": [
+      "GET_POOL_LIST_URL",
+      "GET_STOCK_LIST_URL"
+    ],
+    "wechat_message": [
+      "WECHAT_GROUP_CHATROOM_URL",
+      "WECHAT_GROUP_MSG_LIST_URL"
+    ]
+  },
+  "by_package": {
+    "gangtise_agent": {
+      "earnings_review": [],
+      "hot_topic": [
+        "HOT_TOPIC_LIST_URL"
+      ],
+      "investment_logic": [],
+      "peer_comparison": [],
+      "research_outline": [],
+      "security_clue": [
+        "SECURITIES_SEARCH_URL"
+      ],
+      "stock_one_line_summary": [],
+      "stock_one_pager": [],
+      "theme_tracking": [],
+      "viewpoint_debate": []
+    },
+    "gangtise_data": {
+      "block_constituents": [
+        "SECTOR_CONSTITUENTS_URL",
+        "SECTOR_SEARCH_URL"
+      ],
+      "company_indicator": [
+        "INDICATOR_CROSS_SECTION_URL",
+        "INDICATOR_SEARCH_URL",
+        "INDICATOR_TIME_SERIES_URL",
+        "SECURITIES_SEARCH_URL"
+      ],
+      "concept": [
+        "CONCEPT_SEARCH_URL",
+        "CONCEPT_SECURITIES_URL",
+        "CONCEPT_URL"
+      ],
+      "earning_forecast": [
+        "EARNING_FORECAST_URL",
+        "SECURITIES_SEARCH_URL"
+      ],
+      "financial": [
+        "FINANCIAL_REPORT_BALANCE_URL",
+        "FINANCIAL_REPORT_CASH_FLOW_QUARTERLY_URL",
+        "FINANCIAL_REPORT_CASH_FLOW_URL",
+        "FINANCIAL_REPORT_INCOME_QUARTERLY_URL",
+        "FINANCIAL_REPORT_INCOME_URL",
+        "HK_FINANCIAL_REPORT_BALANCE_URL",
+        "HK_FINANCIAL_REPORT_CASH_FLOW_URL",
+        "HK_FINANCIAL_REPORT_INCOME_URL",
+        "SECURITIES_SEARCH_URL",
+        "US_FINANCIAL_REPORT_BALANCE_URL",
+        "US_FINANCIAL_REPORT_CASH_FLOW_URL",
+        "US_FINANCIAL_REPORT_INCOME_URL"
+      ],
+      "fund_flow": [
+        "FUND_FLOW_DAILY_URL",
+        "SECURITIES_SEARCH_URL"
+      ],
+      "industry_indicator": [
+        "EDB_GET_DATA_URL",
+        "EDB_SEARCH_URL"
+      ],
+      "main_business": [
+        "MAIN_BUSINESS_URL",
+        "SECURITIES_SEARCH_URL"
+      ],
+      "quote": [
+        "QUOTE_ADJUST_FACTOR_URL",
+        "QUOTE_HK_URL",
+        "QUOTE_INDEX_DAILY_URL",
+        "QUOTE_MINUTE_URL",
+        "QUOTE_REALTIME_URL",
+        "QUOTE_URL",
+        "QUOTE_US_DAILY_URL",
+        "SECURITIES_SEARCH_URL"
+      ],
+      "security": [
+        "SECURITIES_SEARCH_URL"
+      ],
+      "shareholder": [
+        "SECURITIES_SEARCH_URL",
+        "TOP_HOLDERS_URL"
+      ],
+      "valuation": [
+        "SECURITIES_SEARCH_URL",
+        "VALUATION_URL"
+      ]
+    },
+    "gangtise_file": {
+      "announcement": [
+        "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+        "COMPANY_ANNOUNCEMENT_URL",
+        "FILE_URL",
+        "FOREIGN_REPORT_DOWNLOAD_URL",
+        "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+        "HK_ANNOUNCEMENT_LIST_URL",
+        "INDEPENDENT_OPINION_DOWNLOAD_URL",
+        "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+        "REPORT_DOWNLOAD_URL",
+        "SECURITIES_SEARCH_URL",
+        "SUMMARY_DOWNLOAD_URL",
+        "US_ANNOUNCEMENT_DOWNLOAD_URL",
+        "US_ANNOUNCEMENT_LIST_URL"
+      ],
+      "foreign_opinion": [
+        "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+        "FILE_URL",
+        "FOREIGN_OPINION_URL",
+        "FOREIGN_REPORT_DOWNLOAD_URL",
+        "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+        "INDEPENDENT_OPINION_DOWNLOAD_URL",
+        "INDEPENDENT_OPINION_LIST_URL",
+        "INSTITUTIONS_SEARCH_URL",
+        "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+        "REPORT_DOWNLOAD_URL",
+        "SECURITIES_SEARCH_URL",
+        "SUMMARY_DOWNLOAD_URL",
+        "US_ANNOUNCEMENT_DOWNLOAD_URL"
+      ],
+      "foreign_report": [
+        "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+        "FILE_URL",
+        "FOREIGN_REPORT_DOWNLOAD_URL",
+        "FOREIGN_REPORT_URL",
+        "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+        "INDEPENDENT_OPINION_DOWNLOAD_URL",
+        "INSTITUTIONS_SEARCH_URL",
+        "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+        "REPORT_DOWNLOAD_URL",
+        "SECURITIES_SEARCH_URL",
+        "SUMMARY_DOWNLOAD_URL",
+        "US_ANNOUNCEMENT_DOWNLOAD_URL"
+      ],
+      "get_announcement_types": [],
+      "get_chiefs": [
+        "CHIEFS_SEARCH_URL"
+      ],
+      "get_file": [
+        "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+        "FILE_URL",
+        "FOREIGN_REPORT_DOWNLOAD_URL",
+        "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+        "INDEPENDENT_OPINION_DOWNLOAD_URL",
+        "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+        "REPORT_DOWNLOAD_URL",
+        "SUMMARY_DOWNLOAD_URL",
+        "US_ANNOUNCEMENT_DOWNLOAD_URL"
+      ],
+      "get_industries": [],
+      "get_institutions": [
+        "INSTITUTIONS_SEARCH_URL"
+      ],
+      "get_regions": [],
+      "investment_calendar": [
+        "FORUM_LIST_URL",
+        "INSTITUTIONS_SEARCH_URL",
+        "ROADSHOW_LIST_URL",
+        "SECURITIES_SEARCH_URL",
+        "SITE_VISIT_LIST_URL",
+        "STRATEGY_MEETING_LIST_URL"
+      ],
+      "management_discuss": [
+        "MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL",
+        "MANAGEMENT_DISCUSS_FROM_EARNINGS_CALL_URL",
+        "SECURITIES_SEARCH_URL"
+      ],
+      "official_account": [
+        "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+        "FILE_URL",
+        "FOREIGN_REPORT_DOWNLOAD_URL",
+        "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+        "INDEPENDENT_OPINION_DOWNLOAD_URL",
+        "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+        "OFFICIAL_ACCOUNT_LIST_URL",
+        "OFFICIAL_ACCOUNT_SEARCH_URL",
+        "REPORT_DOWNLOAD_URL",
+        "SECURITIES_SEARCH_URL",
+        "SUMMARY_DOWNLOAD_URL",
+        "US_ANNOUNCEMENT_DOWNLOAD_URL"
+      ],
+      "opinion": [
+        "CHIEFS_SEARCH_URL",
+        "INSTITUTIONS_SEARCH_URL",
+        "OPINION_URL",
+        "SECURITIES_SEARCH_URL"
+      ],
+      "qa": [
+        "QA_DATA_LIST_URL",
+        "SECURITIES_SEARCH_URL"
+      ],
+      "report": [
+        "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+        "FILE_URL",
+        "FOREIGN_REPORT_DOWNLOAD_URL",
+        "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+        "INDEPENDENT_OPINION_DOWNLOAD_URL",
+        "INSTITUTIONS_SEARCH_URL",
+        "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+        "REPORT_DOWNLOAD_URL",
+        "REPORT_URL",
+        "SECURITIES_SEARCH_URL",
+        "SUMMARY_DOWNLOAD_URL",
+        "US_ANNOUNCEMENT_DOWNLOAD_URL"
+      ],
+      "report_image": [
+        "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+        "FILE_URL",
+        "FOREIGN_REPORT_DOWNLOAD_URL",
+        "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+        "INDEPENDENT_OPINION_DOWNLOAD_URL",
+        "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+        "REPORT_DOWNLOAD_URL",
+        "REPORT_IMAGE_DOWNLOAD_URL",
+        "REPORT_IMAGE_URL",
+        "SUMMARY_DOWNLOAD_URL",
+        "US_ANNOUNCEMENT_DOWNLOAD_URL"
+      ],
+      "summary": [
+        "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+        "FILE_URL",
+        "FOREIGN_REPORT_DOWNLOAD_URL",
+        "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+        "INDEPENDENT_OPINION_DOWNLOAD_URL",
+        "INSTITUTIONS_SEARCH_URL",
+        "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+        "REPORT_DOWNLOAD_URL",
+        "SECURITIES_SEARCH_URL",
+        "SUMMARY_DOWNLOAD_URL",
+        "SUMMARY_URL",
+        "US_ANNOUNCEMENT_DOWNLOAD_URL"
+      ]
+    },
+    "gangtise_kb": {
+      "kb": [
+        "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+        "FILE_URL",
+        "FOREIGN_REPORT_DOWNLOAD_URL",
+        "RAG_URL",
+        "REPORT_DOWNLOAD_URL",
+        "SUMMARY_DOWNLOAD_URL"
+      ]
+    },
+    "gangtise_private": {
+      "private_cloud": [
+        "DRIVE_DOWNLOAD_URL",
+        "DRIVE_LIST_URL"
+      ],
+      "private_meeting": [
+        "MY_CONFERENCE_DOWNLOAD_URL",
+        "MY_CONFERENCE_LIST_URL"
+      ],
+      "private_record": [
+        "RECORD_DOWNLOAD_URL",
+        "RECORD_LIST_URL"
+      ],
+      "stockpool": [
+        "GET_POOL_LIST_URL",
+        "GET_STOCK_LIST_URL"
+      ],
+      "wechat_message": [
+        "WECHAT_GROUP_CHATROOM_URL",
+        "WECHAT_GROUP_MSG_LIST_URL"
+      ]
+    }
+  },
+  "all_urls": [
+    "CHIEFS_SEARCH_URL",
+    "COMPANY_ANNOUNCEMENT_DOWNLOAD_URL",
+    "COMPANY_ANNOUNCEMENT_URL",
+    "CONCEPT_SEARCH_URL",
+    "CONCEPT_SECURITIES_URL",
+    "CONCEPT_URL",
+    "DRIVE_DOWNLOAD_URL",
+    "DRIVE_LIST_URL",
+    "EARNING_FORECAST_URL",
+    "EDB_GET_DATA_URL",
+    "EDB_SEARCH_URL",
+    "FILE_URL",
+    "FINANCIAL_REPORT_BALANCE_URL",
+    "FINANCIAL_REPORT_CASH_FLOW_QUARTERLY_URL",
+    "FINANCIAL_REPORT_CASH_FLOW_URL",
+    "FINANCIAL_REPORT_INCOME_QUARTERLY_URL",
+    "FINANCIAL_REPORT_INCOME_URL",
+    "FOREIGN_OPINION_URL",
+    "FOREIGN_REPORT_DOWNLOAD_URL",
+    "FOREIGN_REPORT_URL",
+    "FORUM_LIST_URL",
+    "FUND_FLOW_DAILY_URL",
+    "GET_POOL_LIST_URL",
+    "GET_STOCK_LIST_URL",
+    "HK_ANNOUNCEMENT_DOWNLOAD_URL",
+    "HK_ANNOUNCEMENT_LIST_URL",
+    "HK_FINANCIAL_REPORT_BALANCE_URL",
+    "HK_FINANCIAL_REPORT_CASH_FLOW_URL",
+    "HK_FINANCIAL_REPORT_INCOME_URL",
+    "HOT_TOPIC_LIST_URL",
+    "INDEPENDENT_OPINION_DOWNLOAD_URL",
+    "INDEPENDENT_OPINION_LIST_URL",
+    "INDICATOR_CROSS_SECTION_URL",
+    "INDICATOR_SEARCH_URL",
+    "INDICATOR_TIME_SERIES_URL",
+    "INSTITUTIONS_SEARCH_URL",
+    "MAIN_BUSINESS_URL",
+    "MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL",
+    "MANAGEMENT_DISCUSS_FROM_EARNINGS_CALL_URL",
+    "MY_CONFERENCE_DOWNLOAD_URL",
+    "MY_CONFERENCE_LIST_URL",
+    "OFFICIAL_ACCOUNT_DOWNLOAD_URL",
+    "OFFICIAL_ACCOUNT_LIST_URL",
+    "OFFICIAL_ACCOUNT_SEARCH_URL",
+    "OPINION_URL",
+    "QA_DATA_LIST_URL",
+    "QUOTE_ADJUST_FACTOR_URL",
+    "QUOTE_HK_URL",
+    "QUOTE_INDEX_DAILY_URL",
+    "QUOTE_MINUTE_URL",
+    "QUOTE_REALTIME_URL",
+    "QUOTE_URL",
+    "QUOTE_US_DAILY_URL",
+    "RAG_URL",
+    "RECORD_DOWNLOAD_URL",
+    "RECORD_LIST_URL",
+    "REPORT_DOWNLOAD_URL",
+    "REPORT_IMAGE_DOWNLOAD_URL",
+    "REPORT_IMAGE_URL",
+    "REPORT_URL",
+    "ROADSHOW_LIST_URL",
+    "SECTOR_CONSTITUENTS_URL",
+    "SECTOR_SEARCH_URL",
+    "SECURITIES_SEARCH_URL",
+    "SITE_VISIT_LIST_URL",
+    "STRATEGY_MEETING_LIST_URL",
+    "SUMMARY_DOWNLOAD_URL",
+    "SUMMARY_URL",
+    "TOP_HOLDERS_URL",
+    "US_ANNOUNCEMENT_DOWNLOAD_URL",
+    "US_ANNOUNCEMENT_LIST_URL",
+    "US_FINANCIAL_REPORT_BALANCE_URL",
+    "US_FINANCIAL_REPORT_CASH_FLOW_URL",
+    "US_FINANCIAL_REPORT_INCOME_URL",
+    "VALUATION_URL",
+    "WECHAT_GROUP_CHATROOM_URL",
+    "WECHAT_GROUP_MSG_LIST_URL"
+  ],
+  "ignore_urls": [
+    "SKILL_CHECK_URL"
+  ]
+}

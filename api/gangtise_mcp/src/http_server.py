@@ -75,6 +75,7 @@ from services import (
 )
 from tool_catalog import DOMAIN_PACKAGES, INTERNAL_PARAMS, load_catalog
 from tool_errors import tool_error
+from url_whitelist import get_white_list, is_tool_allowed, tool_denied_reason
 
 SERVER_NAME = "gangtise-mcp"
 SERVER_VERSION = "0.1.0"
@@ -123,9 +124,12 @@ def _normalize_result(result: Any) -> str:
 @server.list_tools()
 async def list_tools() -> List[Tool]:
     cat = load_catalog()
+    wl = get_white_list()
     tools: List[Tool] = []
     for spec in cat.specs:
         if spec.name not in cat.handlers:
+            continue
+        if not is_tool_allowed(spec.name, wl):
             continue
         tools.append(
             Tool(
@@ -144,6 +148,10 @@ async def call_tool(
     auth_err = _check_auth_env()
     if auth_err:
         return tool_error(auth_err, code="UNAUTHORIZED")
+
+    denied = tool_denied_reason(name)
+    if denied:
+        return tool_error(f"无权限调用工具 {name}: {denied}", code="FORBIDDEN")
 
     cat = load_catalog()
     handler = cat.handlers.get(name)
