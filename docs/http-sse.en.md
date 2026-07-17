@@ -2,7 +2,7 @@
 
 [简体中文](http-sse.md) | **English**
 
-Remote MCP transport and auth (aliyun internal branch). Clients connect with `POST /mcp`.
+Remote MCP transport and auth (main). Clients connect to `POST /mcp`.
 
 ---
 
@@ -15,22 +15,42 @@ Remote MCP transport and auth (aliyun internal branch). Clients connect with `PO
 
 Health: `GET /health`.
 
-Bailian: responses echo `X-DashScope-Request-ID`; with `MCP_REQUIRE_AUTH=true`, missing `Authorization` on `/mcp` returns **401**; tool schemas are flat.
+Responses echo `X-DashScope-Request-ID`. With `MCP_REQUIRE_AUTH=true`, `/mcp` without auth returns **401**. Tool schemas are flattened.
 
 ---
 
 <details>
-<summary><b>Auth (Authorization passthrough)</b></summary>
+<summary><b>Auth (Authorization or AK/SK)</b></summary>
 
-This branch does **not** use AK/SK, loginV2, or Cloud Market SPI.
+Two modes (**Authorization wins** if both present):
 
-HTTP: inbound `Authorization: Bearer <token>` is forwarded as-is to downstream data APIs.
+### 1. Pass Authorization directly
 
-stdio: set `GTS_AUTHORIZATION` (or `AUTHORIZATION`), or a local file `~/.config/gangtise/authorization`:
+HTTP:
+
+```http
+Authorization: Bearer <token>
+```
+
+stdio: `GTS_AUTHORIZATION` / `AUTHORIZATION`, or local file:
 
 ```json
 {"authorization": "Bearer <token>"}
 ```
+
+### 2. AK/SK → loginV2
+
+HTTP credentials header (JSON or Base64), e.g.:
+
+```http
+X-GTS-Credentials: {"accessKey":"<ak>","secretKey":"<sk>"}
+```
+
+Or `accessKey` / `secretKey` headers.
+
+stdio / env: `GTS_ACCESS_KEY` + `GTS_SECRET_KEY`, or local file with the same keys.
+
+The resulting `Authorization` is used for downstream calls and for `get_white_list()`.
 
 </details>
 
