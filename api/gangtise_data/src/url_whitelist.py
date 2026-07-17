@@ -129,9 +129,25 @@ def all_known_urls() -> Set[str]:
 def get_white_list() -> Set[str]:
     """返回当前用户可访问的 URL 常量集合。
 
-    TODO: 用请求 Authorization 调权限接口；用户被 ban 时返回空集。
+    会先解析当前 Authorization（直传头 / 环境变量 / AK·SK loginV2），
+    供后续权限接口使用；AK/SK 路径下此处会触发换票。
+
+    TODO: 用 authorization 调权限接口；用户被 ban 时返回空集。
     当前 stub：返回依赖图中的全量 URL（等价于不按权限裁剪）。
     """
+    authorization: Optional[str] = None
+    try:
+        from authorization import get_authorization_token
+
+        authorization = get_authorization_token()
+    except Exception as e:
+        print(f"[url_whitelist] 解析 Authorization 失败: {e}", file=sys.stderr)
+    return _white_list_for_authorization(authorization)
+
+
+def _white_list_for_authorization(authorization: Optional[str]) -> Set[str]:
+    """按 Authorization 查询白名单；stub 阶段忽略具体 token。"""
+    _ = authorization  # 权限接口就绪后在此发起请求
     return set(all_known_urls())
 
 

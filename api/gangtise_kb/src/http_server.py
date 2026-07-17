@@ -45,7 +45,9 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from authorization import (
     is_auth_configured,
     reset_request_authorization,
+    reset_request_credentials,
     set_request_authorization,
+    set_request_credentials,
 )
 from references_loader import load_all_tool_specs
 from result_attachments import with_path_attachments
@@ -169,6 +171,8 @@ def _wrap_bailian_middleware(app: ASGIApp, *, mcp_paths: set[str]) -> ASGIApp:
         app,
         set_authorization=set_request_authorization,
         reset_authorization=reset_request_authorization,
+        set_credentials=set_request_credentials,
+        reset_credentials=reset_request_credentials,
         mcp_paths=mcp_paths,
     )
 

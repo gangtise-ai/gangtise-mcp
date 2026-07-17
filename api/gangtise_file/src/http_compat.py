@@ -1,10 +1,11 @@
-"""百炼 HTTP 兼容：回传 X-DashScope-Request-ID，透传入站 Authorization。"""
+"""HTTP 兼容中间件：回传 X-DashScope-Request-ID；注入 Authorization 或 AK/SK。"""
 from __future__ import annotations
 
+import base64
 import json
 import os
 import uuid
-from typing import Callable, Dict, Optional, Set
+from typing import Callable, Dict, Optional, Set, Tuple
 
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -16,6 +17,12 @@ _AUTH_SKIP_PREFIXES = (
     "/token",
     "/register",
     "/health",
+)
+
+_CREDENTIALS_HEADER_NAMES = (
+    "x-gts-credentials",
+    "gts-credentials",
+    "x-gangtise-credentials",
 )
 
 
@@ -45,6 +52,48 @@ def path_skips_auth(path: str) -> bool:
         if p == prefix.rstrip("/") or p.startswith(prefix):
             return True
     return False
+
+
+def parse_credentials_payload(raw: str) -> Optional[Tuple[str, str]]:
+    text = (raw or "").strip()
+    if not text:
+        return None
+    if not text.startswith("{"):
+        try:
+            decoded = base64.b64decode(text, validate=True).decode("utf-8")
+            if decoded.strip().startswith("{"):
+                text = decoded.strip()
+        except Exception:
+            pass
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    ak = data.get("accessKey") or data.get("access_key")
+    sk = data.get("secretKey") or data.get("secret_key") or data.get("secretAccessKey")
+    if ak and sk:
+        return str(ak).strip(), str(sk).strip()
+    return None
+
+
+def parse_credentials_from_headers(headers: Dict[str, str]) -> Optional[Tuple[str, str]]:
+    for name in _CREDENTIALS_HEADER_NAMES:
+        if name in headers:
+            parsed = parse_credentials_payload(headers[name])
+            if parsed:
+                return parsed
+    ak = headers.get("accesskey") or headers.get("x-access-key") or headers.get("access-key")
+    sk = (
+        headers.get("secretkey")
+        or headers.get("x-secret-key")
+        or headers.get("secret-key")
+        or headers.get("secretaccesskey")
+    )
+    if ak and sk:
+        return ak.strip(), sk.strip()
+    return None
 
 
 async def send_json_status(
@@ -88,7 +137,7 @@ def wrap_send_with_request_id(send: Send, request_id: str) -> Send:
 
 
 class BailianHttpMiddleware:
-    """回传 X-DashScope-Request-ID；将入站 Authorization 注入请求上下文。"""
+    """回传 Request-ID；注入 Authorization 或 AK/SK（二选一，Authorization 优先）。"""
 
     def __init__(
         self,
@@ -96,11 +145,15 @@ class BailianHttpMiddleware:
         *,
         set_authorization: Callable[[str], object],
         reset_authorization: Callable[[object], None],
+        set_credentials: Optional[Callable[[str, str], object]] = None,
+        reset_credentials: Optional[Callable[[object], None]] = None,
         mcp_paths: Optional[Set[str]] = None,
     ) -> None:
         self.app = app
         self.set_authorization = set_authorization
         self.reset_authorization = reset_authorization
+        self.set_credentials = set_credentials
+        self.reset_credentials = reset_credentials
         self.mcp_paths = mcp_paths or set()
 
     def _is_mcp_path(self, path: str) -> bool:
@@ -127,17 +180,22 @@ class BailianHttpMiddleware:
 
         path = scope.get("path") or "/"
         auth = (headers.get("authorization") or "").strip()
-        token = None
-        if auth:
-            token = self.set_authorization(auth)
+        creds = None if auth else parse_credentials_from_headers(headers)
 
-        if require_auth_enabled() and self._is_mcp_path(path) and not auth:
+        auth_token = None
+        cred_token = None
+        if auth:
+            auth_token = self.set_authorization(auth)
+        elif creds and self.set_credentials is not None:
+            cred_token = self.set_credentials(creds[0], creds[1])
+
+        if require_auth_enabled() and self._is_mcp_path(path) and not auth and not creds:
             await send_json_status(
                 send,
                 401,
                 {
                     "error": "unauthorized",
-                    "message": "Missing Authorization header",
+                    "message": "Missing Authorization or credentials headers",
                     "code": "UNAUTHORIZED",
                 },
                 request_id=request_id,
@@ -147,5 +205,7 @@ class BailianHttpMiddleware:
         try:
             await self.app(scope, receive, send)
         finally:
-            if token is not None:
-                self.reset_authorization(token)
+            if auth_token is not None:
+                self.reset_authorization(auth_token)
+            if cred_token is not None and self.reset_credentials is not None:
+                self.reset_credentials(cred_token)
