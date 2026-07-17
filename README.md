@@ -144,7 +144,7 @@
 
 2. 安装完成后，打开侧边栏 **专家 · 技能 · 连接器** → 顶部 **连接器** → **自定义连接器** / **我的 MCP**：
 
-![定位自定义连接器 / 我的 MCP](assets/connector_locatin.png)
+![定位自定义连接器 / 我的 MCP](assets/connector_location.png)
 
 3. 在 **我的 MCP** 中对 `gangtise_mcp`  **信任** gangtise_mcp（首次信任可能等待数秒拉取依赖）：
 

@@ -10,7 +10,7 @@
 #   Endpoint: https://<host>:8000/mcp
 #   鉴权：请求头 Authorization: Bearer <token>（原样透传下游）
 
-ARG BASE_IMAGE=gangtise-dev-registry.crs-huadong1.ctyun.cn/gangtise-dev/python:3.11.9
+ARG BASE_IMAGE=python:3.11.9
 FROM ${BASE_IMAGE}
 
 WORKDIR /app
