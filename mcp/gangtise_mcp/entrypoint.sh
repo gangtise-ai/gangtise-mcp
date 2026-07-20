@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Docker 入口：stdio → mcp（gangtise-mcp）；HTTP/SSE/gateway → api（gangtise-mcp-api）。
-# 默认（百炼）：MCP_LAYOUT=unified、MCP_TRANSPORT=http、MCP_REQUIRE_AUTH=true。
+# 默认（HTTP 部署）：MCP_LAYOUT=unified、MCP_TRANSPORT=http、MCP_REQUIRE_AUTH=true。
 # 鉴权：透传 Authorization: Bearer <token>；回传 X-DashScope-Request-ID。
 set -euo pipefail
 
@@ -16,7 +16,7 @@ export GTS_SAVE_FILE
 export GTS_MCP_ROOT
 export MCP_LAYOUT
 export MCP_REQUIRE_AUTH
-export MCP_PATH="${MCP_PATH:-/mcp}"
+export MCP_PATH="${MCP_PATH:-/open-mcp}"
 export MCP_STATELESS="${MCP_STATELESS:-true}"
 export MCP_JSON_RESPONSE="${MCP_JSON_RESPONSE:-true}"
 

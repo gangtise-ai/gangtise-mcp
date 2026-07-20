@@ -206,7 +206,7 @@ def start_backend(
         "--port",
         str(spec.port),
         "--path",
-        f"/mcp/{spec.slug}",
+        f"/open-mcp/{spec.slug}",
         "--sse-path",
         f"/sse/{spec.slug}",
         "--message-path",

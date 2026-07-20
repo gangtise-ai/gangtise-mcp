@@ -72,7 +72,7 @@ Prefer sending the MCP JSON to each platform’s agent. Same patterns as the [re
 <summary><b>Remote HTTP / SSE</b></summary>
 
 ```
-https://<host>:<port>/mcp
+https://<host>:<port>/open-mcp
 ```
 
 OAuth or `X-GTS-Credentials`: [http-sse.en.md](../../docs/http-sse.en.md).

@@ -1,4 +1,4 @@
-"""MCP callTool 错误语义（百炼：isError + JSON text）。"""
+"""MCP callTool 错误语义（isError + JSON text）。"""
 from __future__ import annotations
 
 import json

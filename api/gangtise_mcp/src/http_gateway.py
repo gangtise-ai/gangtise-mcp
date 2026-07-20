@@ -1,4 +1,4 @@
-"""按 slug 将 /mcp|/sse|/messages 反代到各 MCP 子进程。"""
+"""按 slug 将 /open-mcp|/sse|/messages 反代到各 MCP 子进程。"""
 from __future__ import annotations
 
 import argparse
@@ -52,7 +52,7 @@ def _parse_backends(raw: Optional[str]) -> Dict[str, int]:
 
 def _resolve_slug(path: str, slugs: Iterable[str]) -> Optional[str]:
     normalized = path if path.startswith("/") else f"/{path}"
-    for prefix in ("/mcp/", "/sse/", "/messages/"):
+    for prefix in ("/open-mcp/", "/sse/", "/messages/"):
         if not normalized.startswith(prefix):
             continue
         rest = normalized[len(prefix) :]
@@ -76,7 +76,7 @@ def create_app(backends: Dict[str, int]) -> Starlette:
                 "services": sorted(backends.keys()),
                 "endpoints": {
                     slug: {
-                        "mcp": f"/mcp/{slug}",
+                        "mcp": f"/open-mcp/{slug}",
                         "sse": f"/sse/{slug}",
                         "messages": f"/messages/{slug}/",
                     }
@@ -93,7 +93,7 @@ def create_app(backends: Dict[str, int]) -> Starlette:
                 {
                     "error": "not_found",
                     "message": (
-                        "未知路径。请使用 /mcp/{slug}、/sse/{slug}、/messages/{slug}/，"
+                        "未知路径。请使用 /open-mcp/{slug}、/sse/{slug}、/messages/{slug}/，"
                         f"slug 为: {', '.join(sorted(backends))}"
                     ),
                 },

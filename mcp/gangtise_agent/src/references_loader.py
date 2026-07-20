@@ -57,11 +57,11 @@ def _append_desc(base: str, note: str) -> str:
 
 
 def _param_to_schema(param: Dict[str, Any]) -> Dict[str, Any]:
-    """生成 JSON Schema；array/object 扁平化为 string（百炼单层参数规范）。"""
+    """生成 JSON Schema；array/object 扁平化为 string（单层参数规范）。"""
     raw_type = str(param.get("type", "string")).lower()
     desc = str(param.get("description") or "")
 
-    # 百炼：禁止嵌套 object / 原生 array，统一为根级基本类型
+    # 禁止嵌套 object / 原生 array，统一为根级基本类型
     if raw_type == "array":
         schema: Dict[str, Any] = {
             "type": "string",

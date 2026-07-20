@@ -2,7 +2,7 @@
 
 **简体中文** | [English](http-sse.en.md)
 
-远程 MCP 传输与鉴权说明（main）。客户端连接整合服务 `POST /mcp`。
+远程 MCP 传输与鉴权说明（main）。客户端连接整合服务 `POST /open-mcp`。
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 模式 | 端点 |
 |------|------|
-| streamable-http | `POST /mcp`（网关可为 `/mcp/{slug}`） |
+| streamable-http | `POST /open-mcp`（网关可为 `/open-mcp/{slug}`） |
 | SSE | `GET /sse` + `POST /messages/` |
 
 健康检查：`GET /health`。
 
-兼容：响应回传 `X-DashScope-Request-ID`；`MCP_REQUIRE_AUTH=true` 时未带鉴权访问 `/mcp` 返回 **401**；工具参数 schema 为单层基本类型。
+兼容：响应回传 `X-DashScope-Request-ID`；`MCP_REQUIRE_AUTH=true` 时未带鉴权访问 `/open-mcp` 返回 **401**；工具参数 schema 为单层基本类型。
 
 ---
 
@@ -65,7 +65,7 @@ stdio / 进程环境：`GTS_ACCESS_KEY` + `GTS_SECRET_KEY`，或本地文件：
 {
   "mcpServers": {
     "gangtise": {
-      "url": "https://<host>:<port>/mcp",
+      "url": "https://<host>:<port>/open-mcp",
       "headers": {
         "Authorization": "Bearer <token>"
       }

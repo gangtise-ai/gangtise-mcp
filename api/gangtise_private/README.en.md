@@ -19,7 +19,7 @@ Remote HTTP/SSE entry for private recordings, meetings, drive, stock pools, and 
 
 | Purpose | URL |
 |---------|-----|
-| MCP (streamable-http) | `https://<host>:<port>/mcp` |
+| MCP (streamable-http) | `https://<host>:<port>/open-mcp` |
 | SSE | `GET /sse` + `POST /messages/` |
 | Health | `GET /health` |
 
@@ -48,7 +48,7 @@ Or:
 X-GTS-Credentials: {"accessKey":"<ak>","secretKey":"<sk>"}
 ```
 
-With `MCP_REQUIRE_AUTH=true` (default), `/mcp` without auth returns **401**.
+With `MCP_REQUIRE_AUTH=true` (default), `/open-mcp` without auth returns **401**.
 
 </details>
 
@@ -61,7 +61,7 @@ Replace host/token, then send to Cursor **Agent** or write `~/.cursor/mcp.json`:
 {
   "mcpServers": {
     "gangtise-private": {
-      "url": "https://<host>:<port>/mcp",
+      "url": "https://<host>:<port>/open-mcp",
       "headers": {
         "Authorization": "Bearer <token>"
       }
@@ -70,7 +70,7 @@ Replace host/token, then send to Cursor **Agent** or write `~/.cursor/mcp.json`:
 }
 ```
 
-Bailian / other URL-only MCP clients: use the same `/mcp` URL and pass `Authorization`.
+URL-based MCP clients: use the same `/open-mcp` URL and pass `Authorization`.
 
 </details>
 
@@ -81,7 +81,7 @@ Bailian / other URL-only MCP clients: use the same `/mcp` URL and pass `Authoriz
 |----------|---------|--------|
 | `MCP_TRANSPORT` | `http` (image) | `http` / `sse` / `both` |
 | `MCP_HOST` / `MCP_PORT` | `0.0.0.0` / `8000` | Bind address |
-| `MCP_PATH` | `/mcp` | MCP path |
+| `MCP_PATH` | `/open-mcp` | MCP path |
 | `MCP_REQUIRE_AUTH` | `true` | 401 without auth |
 | `GTS_ACCESS_KEY` / `GTS_SECRET_KEY` | empty | Process-level AK/SK fallback |
 | `TOOL_URL_DEPS_PATH` | `/opt/mcp/tool_url_deps.json` | Tool URL dependency map (image) |

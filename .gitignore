@@ -9,3 +9,5 @@ mcp/*/workspace
 upload_image.sh
 .gitlab-ci.yml
 _Dockerfile
+gangtise-mcp.yaml
+configmap.yaml

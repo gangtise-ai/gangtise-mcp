@@ -59,10 +59,12 @@ from authorization import (
     is_auth_configured,
     reset_request_authorization,
     reset_request_credentials,
+    reset_request_headers_extra,
     set_request_authorization,
     set_request_credentials,
+    set_request_headers_extra,
 )
-from http_compat import BailianHttpMiddleware
+from http_compat import HttpMiddleware
 from http_gateway import main as gateway_main
 from result_attachments import with_path_attachments
 from services import (
@@ -189,13 +191,15 @@ async def call_tool(
 
 
 
-def _wrap_bailian_middleware(app: ASGIApp, *, mcp_paths: set[str]) -> ASGIApp:
-    return BailianHttpMiddleware(
+def _wrap_http_middleware(app: ASGIApp, *, mcp_paths: set[str]) -> ASGIApp:
+    return HttpMiddleware(
         app,
         set_authorization=set_request_authorization,
         reset_authorization=reset_request_authorization,
         set_credentials=set_request_credentials,
         reset_credentials=reset_request_credentials,
+        set_headers_extra=set_request_headers_extra,
+        reset_headers_extra=reset_request_headers_extra,
         mcp_paths=mcp_paths,
     )
 
@@ -267,7 +271,7 @@ def _build_network_app(
 
     starlette_app = Starlette(routes=routes, lifespan=lifespan)
     mcp_paths = {path, sse_path, message_path.rstrip("/")}
-    return _wrap_bailian_middleware(starlette_app, mcp_paths=mcp_paths)
+    return _wrap_http_middleware(starlette_app, mcp_paths=mcp_paths)
 
 
 def _run_network(**kwargs) -> None:
@@ -282,7 +286,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--transport", choices=("http", "sse", "both"), default=os.getenv("MCP_TRANSPORT", "http"))
     parser.add_argument("--host", default=os.getenv("MCP_HOST", "0.0.0.0"))
     parser.add_argument("--port", type=int, default=int(os.getenv("MCP_PORT", "8000")))
-    parser.add_argument("--path", default=os.getenv("MCP_PATH", "/mcp"))
+    parser.add_argument("--path", default=os.getenv("MCP_PATH", "/open-mcp"))
     parser.add_argument("--sse-path", default=os.getenv("MCP_SSE_PATH", "/sse"))
     parser.add_argument("--message-path", default=os.getenv("MCP_MESSAGE_PATH", "/messages/"))
     parser.add_argument("--stateless", action=argparse.BooleanOptionalAction,
@@ -379,7 +383,7 @@ def _run_gateway(args: argparse.Namespace, transport: str) -> None:
         children.append(proc)
         print(
             f"[gangtise-mcp] started {spec.slug} -> 127.0.0.1:{spec.port} "
-            f"(/mcp/{spec.slug})",
+            f"(/open-mcp/{spec.slug})",
             file=sys.stderr,
         )
 

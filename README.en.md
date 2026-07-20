@@ -26,7 +26,7 @@ Gangtise financial data and research tools over the [Model Context Protocol](htt
 | Mode | Notes |
 |------|--------|
 | **Local stdio** | Run via `uvx`; set AK/SK in env |
-| **Remote HTTP / SSE** | Connect to `/mcp`; use **OAuth consent** (Bearer only) or send AK/SK in headers |
+| **Remote HTTP / SSE** | Connect to `/open-mcp`; use **OAuth consent** (Bearer only) or send AK/SK in headers |
 
 Repository used in examples below: [`https://github.com/XiaoYan3938/gangtise-data-mcp`](https://github.com/XiaoYan3938/gangtise-data-mcp). Chinese docs use Gitee — see [README.md](README.md).
 
@@ -196,7 +196,7 @@ Prefer pasting the JSON below into Copilot Chat / Agent and asking it to write w
 
 </details>
 
-For remote HTTP, set `"type": "http"` and `"url": "https://<host>:<port>/mcp"`.
+For remote HTTP, set `"type": "http"` and `"url": "https://<host>:<port>/open-mcp"`.
 
 </details>
 
@@ -206,7 +206,7 @@ For remote HTTP, set `"type": "http"` and `"url": "https://<host>:<port>/mcp"`.
 Deploy with [docs/docker-deploy.en.md](docs/docker-deploy.en.md). Client URL:
 
 ```
-https://<host>:<port>/mcp
+https://<host>:<port>/open-mcp
 ```
 
 - **OAuth**: set `GTS_JWT_SECRET` / `GTS_CRED_ENC_KEY`; clients open `/authorize`, users submit AK/SK, then use Bearer only (access 1h / refresh 30d).

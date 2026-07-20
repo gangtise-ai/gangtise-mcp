@@ -26,7 +26,7 @@
 | 方式 | 说明 |
 |------|------|
 | **本地 stdio（推荐起步）** | `uvx` 拉起 `gangtise-mcp`，用环境变量配置 AK/SK |
-| **远程 HTTP / SSE** | 部署后连接 `/mcp`；可走 **OAuth 同意页**（客户端只持 Bearer），或请求头带 AK/SK |
+| **远程 HTTP / SSE** | 部署后连接 `/open-mcp`；可走 **OAuth 同意页**（客户端只持 Bearer），或请求头带 AK/SK |
 
 仓库地址（本文安装示例均使用 Gitee）：[`https://gitee.com/yanxi3938/gangtise-data-mcp`](https://gitee.com/yanxi3938/gangtise-data-mcp)。英文文档示例见 [README.en.md](README.en.md)（GitHub）。
 
@@ -150,7 +150,7 @@
 
 ![信任并开启 gangtise_mcp](assets/trust_mcp.png)
 
-远程 HTTP：在支持 URL 的连接器配置中填写 `https://<host>:<port>/mcp`（见 [docs/http-sse.md](docs/http-sse.md)）。
+远程 HTTP：在支持 URL 的连接器配置中填写 `https://<host>:<port>/open-mcp`（见 [docs/http-sse.md](docs/http-sse.md)）。
 
 </details>
 
@@ -260,7 +260,7 @@ claude mcp add gangtise -- uvx \
 
 </details>
 
-HTTP 远程：将 `type` 改为 `http`，并设置 `url` 为 `https://<host>:<port>/mcp`。
+HTTP 远程：将 `type` 改为 `http`，并设置 `url` 为 `https://<host>:<port>/open-mcp`。
 
 </details>
 
@@ -270,7 +270,7 @@ HTTP 远程：将 `type` 改为 `http`，并设置 `url` 为 `https://<host>:<po
 部署见 [docs/docker-deploy.md](docs/docker-deploy.md)。客户端连接示例：
 
 ```
-https://<host>:<port>/mcp
+https://<host>:<port>/open-mcp
 ```
 
 - **OAuth（推荐）**：配置 `GTS_JWT_SECRET` / `GTS_CRED_ENC_KEY` 后，客户端可打开 `/authorize`，用户填写 AK/SK；之后只带 Bearer（access 1h / refresh 30d）。

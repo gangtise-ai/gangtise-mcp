@@ -2,7 +2,7 @@
 
 [简体中文](http-sse.md) | **English**
 
-Remote MCP transport and auth (main). Clients connect to `POST /mcp`.
+Remote MCP transport and auth (main). Clients connect to `POST /open-mcp`.
 
 ---
 
@@ -10,12 +10,12 @@ Remote MCP transport and auth (main). Clients connect to `POST /mcp`.
 
 | Mode | Endpoint |
 |------|----------|
-| streamable-http | `POST /mcp` (gateway may use `/mcp/{slug}`) |
+| streamable-http | `POST /open-mcp` (gateway may use `/open-mcp/{slug}`) |
 | SSE | `GET /sse` + `POST /messages/` |
 
 Health: `GET /health`.
 
-Responses echo `X-DashScope-Request-ID`. With `MCP_REQUIRE_AUTH=true`, `/mcp` without auth returns **401**. Tool schemas are flattened.
+Responses echo `X-DashScope-Request-ID`. With `MCP_REQUIRE_AUTH=true`, `/open-mcp` without auth returns **401**. Tool schemas are flattened.
 
 ---
 
@@ -61,7 +61,7 @@ The resulting `Authorization` is used for downstream calls and for `get_white_li
 {
   "mcpServers": {
     "gangtise": {
-      "url": "https://<host>:<port>/mcp",
+      "url": "https://<host>:<port>/open-mcp",
       "headers": {
         "Authorization": "Bearer <token>"
       }

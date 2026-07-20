@@ -83,7 +83,7 @@
 <summary><b>远程 HTTP / SSE</b></summary>
 
 ```
-https://<host>:<port>/mcp
+https://<host>:<port>/open-mcp
 ```
 
 OAuth 或 `X-GTS-Credentials` 见 [docs/http-sse.md](../../docs/http-sse.md)。

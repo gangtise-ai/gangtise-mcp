@@ -38,8 +38,14 @@ _request_authorization: ContextVar[Optional[str]] = ContextVar(
 _request_credentials: ContextVar[Optional[Tuple[str, str]]] = ContextVar(
     "gts_request_credentials", default=None
 )
+# 网关/上游可能注入的业务头：uid / tenantid / productcode
+_request_headers_extra: ContextVar[Optional[Dict[str, str]]] = ContextVar(
+    "gts_request_headers_extra", default=None
+)
 _request_sessions_lock = threading.Lock()
 _request_sessions: Dict[Tuple[str, str], Dict[str, Optional[str]]] = {}
+
+_EXTRA_HEADER_KEYS = ("uid", "tenantid", "productcode")
 
 
 def get_authorization_path() -> str:
@@ -91,6 +97,27 @@ def reset_request_credentials(token: Token) -> None:
 
 def get_request_credentials() -> Optional[Tuple[str, str]]:
     return _request_credentials.get()
+
+
+def set_request_headers_extra(extra: Dict[str, str]) -> Token:
+    """绑定当前请求要透传给下游的 uid/tenantid/productcode。"""
+    cleaned: Dict[str, str] = {}
+    for key in _EXTRA_HEADER_KEYS:
+        raw = extra.get(key)
+        if raw is None:
+            continue
+        value = str(raw).strip()
+        if value:
+            cleaned[key] = value
+    return _request_headers_extra.set(cleaned or None)
+
+
+def reset_request_headers_extra(token: Token) -> None:
+    _request_headers_extra.reset(token)
+
+
+def get_request_headers_extra() -> Dict[str, str]:
+    return dict(_request_headers_extra.get() or {})
 
 
 def _login(ak: str, sk: str) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
@@ -311,8 +338,8 @@ def get_authorization_token() -> Optional[str]:
     return session.get("authorization")
 
 
-def get_headers_extra() -> Dict[str, str]:
-    # 直传 Authorization 时无 uid/tenant 会话信息
+def _session_headers_extra() -> Dict[str, str]:
+    """从 loginV2 会话取 uid/tenantid/productcode（直传 Authorization 时通常没有）。"""
     if get_request_authorization() or _env_authorization():
         return {}
     if get_request_credentials() is not None:
@@ -329,6 +356,14 @@ def get_headers_extra() -> Dict[str, str]:
         out["tenantid"] = str(session["tenantid"])
     if session.get("productcode"):
         out["productcode"] = str(session["productcode"])
+    return out
+
+
+def get_headers_extra() -> Dict[str, str]:
+    """下游业务头：请求透传优先，其次 loginV2 会话。"""
+    out = get_request_headers_extra()
+    for key, value in _session_headers_extra().items():
+        out.setdefault(key, value)
     return out
 
 

@@ -1,4 +1,4 @@
-# Gangtise MCP 整合镜像（aliyun / 百炼内部部署）
+# Gangtise MCP 整合镜像（内部部署）
 #
 #   cd mcps && docker build -t gangtise-mcp -f Dockerfile \
 #     --build-arg PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
@@ -7,7 +7,7 @@
 #
 # 运行：
 #   docker run -d -p 8000:8000 gangtise-mcp
-#   Endpoint: https://<host>:8000/mcp
+#   Endpoint: https://<host>:8000/open-mcp
 #   鉴权：请求头 Authorization: Bearer <token>（原样透传下游）
 
 ARG BASE_IMAGE=python:3.11.9
@@ -35,7 +35,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     MCP_PORT=8000 \
     MCP_PACKAGE=domains \
     MCP_LAYOUT=unified \
-    MCP_PATH=/mcp \
+    MCP_PATH=/open-mcp \
     MCP_STATELESS=true \
     MCP_JSON_RESPONSE=true \
     MCP_REQUIRE_AUTH=true \

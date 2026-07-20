@@ -25,6 +25,13 @@ _CREDENTIALS_HEADER_NAMES = (
     "x-gangtise-credentials",
 )
 
+# 上游网关可能注入、需透传给下游 OpenAPI 的业务头
+_FORWARD_EXTRA_HEADER_KEYS = (
+    "uid",
+    "tenantid",
+    "productcode",
+)
+
 
 def env_flag(name: str, default: str = "false") -> bool:
     return os.getenv(name, default).lower() in ("1", "true", "yes", "on")
@@ -96,6 +103,19 @@ def parse_credentials_from_headers(headers: Dict[str, str]) -> Optional[Tuple[st
     return None
 
 
+def parse_headers_extra_from_headers(headers: Dict[str, str]) -> Dict[str, str]:
+    """从入站请求提取 uid / tenantid / productcode（大小写不敏感，已 lower）。"""
+    out: Dict[str, str] = {}
+    for key in _FORWARD_EXTRA_HEADER_KEYS:
+        raw = headers.get(key) or headers.get(f"x-{key}")
+        if raw is None:
+            continue
+        value = str(raw).strip()
+        if value:
+            out[key] = value
+    return out
+
+
 async def send_json_status(
     send: Send,
     status: int,
@@ -136,8 +156,8 @@ def wrap_send_with_request_id(send: Send, request_id: str) -> Send:
     return _send
 
 
-class BailianHttpMiddleware:
-    """回传 Request-ID；注入 Authorization 或 AK/SK（二选一，Authorization 优先）。"""
+class HttpMiddleware:
+    """回传 Request-ID；注入 Authorization 或 AK/SK；透传 uid/tenantid/productcode。"""
 
     def __init__(
         self,
@@ -147,6 +167,8 @@ class BailianHttpMiddleware:
         reset_authorization: Callable[[object], None],
         set_credentials: Optional[Callable[[str, str], object]] = None,
         reset_credentials: Optional[Callable[[object], None]] = None,
+        set_headers_extra: Optional[Callable[[Dict[str, str]], object]] = None,
+        reset_headers_extra: Optional[Callable[[object], None]] = None,
         mcp_paths: Optional[Set[str]] = None,
     ) -> None:
         self.app = app
@@ -154,6 +176,8 @@ class BailianHttpMiddleware:
         self.reset_authorization = reset_authorization
         self.set_credentials = set_credentials
         self.reset_credentials = reset_credentials
+        self.set_headers_extra = set_headers_extra
+        self.reset_headers_extra = reset_headers_extra
         self.mcp_paths = mcp_paths or set()
 
     def _is_mcp_path(self, path: str) -> bool:
@@ -164,7 +188,7 @@ class BailianHttpMiddleware:
         for p in self.mcp_paths:
             if path == p or path.startswith(p.rstrip("/") + "/") or path.startswith(p):
                 return True
-        for prefix in ("/mcp", "/sse", "/messages"):
+        for prefix in ("/open-mcp", "/sse", "/messages"):
             if path == prefix or path.startswith(prefix + "/"):
                 return True
         return False
@@ -181,13 +205,17 @@ class BailianHttpMiddleware:
         path = scope.get("path") or "/"
         auth = (headers.get("authorization") or "").strip()
         creds = None if auth else parse_credentials_from_headers(headers)
+        extra = parse_headers_extra_from_headers(headers)
 
         auth_token = None
         cred_token = None
+        extra_token = None
         if auth:
             auth_token = self.set_authorization(auth)
         elif creds and self.set_credentials is not None:
             cred_token = self.set_credentials(creds[0], creds[1])
+        if extra and self.set_headers_extra is not None:
+            extra_token = self.set_headers_extra(extra)
 
         if require_auth_enabled() and self._is_mcp_path(path) and not auth and not creds:
             await send_json_status(
@@ -209,3 +237,5 @@ class BailianHttpMiddleware:
                 self.reset_authorization(auth_token)
             if cred_token is not None and self.reset_credentials is not None:
                 self.reset_credentials(cred_token)
+            if extra_token is not None and self.reset_headers_extra is not None:
+                self.reset_headers_extra(extra_token)
