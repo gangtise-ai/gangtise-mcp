@@ -1,0 +1,43 @@
+image: dongchedi/docker:18.09
+variables:
+  DOCKER_DRIVER: overlay2
+  version: "1.0.0"
+  APP: gangtise-mcp
+  # 已打包好的基础镜像，避免重新安装依赖
+  BASE_IMAGE: gangtise-dev-registry.crs-huadong1.ctyun.cn/gangtise-dev/gangtise-mcp:0.0.1
+  REGISTRY: gangtise-dev-registry.crs-huadong1.ctyun.cn/gangtise-dev
+
+stages:
+  - Build
+  - Staging
+
+build:
+  when: manual
+  tags:
+    - centos-crawlab
+  only:
+    - main
+    - dev
+  stage: Build
+  script:
+    - echo ">>>>>>>>>>>>>>>>>>>>>>>基于现有镜像构建 ${APP}>>>>>>>>>>>>>>>>>>>>>>>"
+    - docker build -t $APP
+        --build-arg BASE_IMAGE=$BASE_IMAGE
+        -f _Dockerfile .
+    - echo ">>>>>>>>>>>>>>>>>>>>>>>构建完成, 分支:$CI_COMMIT_REF_NAME>>>>>>>>>>>>>>>>>>>>>>>"
+
+staging:
+  when: manual
+  tags:
+    - centos-crawlab
+  stage: Staging
+  script:
+    - echo ">>>>>>>>>>>>>>>>>>>>>>>基于现有镜像打包推送 ${APP}>>>>>>>>>>>>>>>>>>>>>>>"
+    - docker build -t $APP
+        --build-arg BASE_IMAGE=$BASE_IMAGE
+        -f _Dockerfile .
+    - vertag="${BASE_IMAGE##*:}"
+    - docker tag $APP $REGISTRY/$APP:$vertag
+    - echo $REGISTRY/$APP:$vertag
+    - docker push $REGISTRY/$APP:$vertag
+    - echo ">>>>>>>>>>>>>>>>>>>>>>>完成镜像推送, 分支:$CI_COMMIT_REF_NAME, tag:$vertag>>>>>>>>>>>>>>>>>>>>>>>"
