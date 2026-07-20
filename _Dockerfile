@@ -1,0 +1,3 @@
+# 基于已打包镜像，跳过 pip / OBS 等依赖安装，直接创建可启动镜像
+ARG BASE_IMAGE=gangtise-dev-registry.crs-huadong1.ctyun.cn/gangtise-dev/gangtise-mcp:0.0.1
+FROM ${BASE_IMAGE}
