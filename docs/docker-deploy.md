@@ -2,7 +2,7 @@
 
 **简体中文** | [English](docker-deploy.en.md)
 
-仅提供 **整合镜像**（`mcps/Dockerfile`）：`api/*` + `mcp/*`，默认 HTTP 部署（`MCP_LAYOUT=unified`、`MCP_TRANSPORT=http`、Authorization 透传、参数扁平化）。客户端连 **`/open-mcp`**。协议与鉴权见 [http-sse.md](http-sse.md)。入口：[`mcp/gangtise_mcp/entrypoint.sh`](../mcp/gangtise_mcp/entrypoint.sh)。
+仅提供 **整合镜像**（`mcps/Dockerfile`）：`api/*` + `mcp/*`，默认 HTTP 部署（`MCP_LAYOUT=unified`、`MCP_TRANSPORT=http`、Authorization 透传、参数扁平化）。客户端默认连 **`/`**（`MCP_PATH`）；线上网关可再加前缀如 `/application/open-mcp`。协议与鉴权见 [http-sse.md](http-sse.md)。入口：[`mcp/gangtise_mcp/entrypoint.sh`](../mcp/gangtise_mcp/entrypoint.sh)。
 
 构建时分两类「源」：
 
@@ -29,7 +29,7 @@ docker run -d --name gangtise-mcp -p 8000:8000 gangtise-mcp
 curl -sS http://127.0.0.1:8000/health
 ```
 
-客户端连接 `http://127.0.0.1:8000/open-mcp`，请求头携带 `Authorization: Bearer <token>`（原样透传下游数据接口）。
+客户端连接 `http://127.0.0.1:8000/`，请求头携带 `Authorization: Bearer <token>`（原样透传下游数据接口）。
 
 </details>
 
@@ -41,7 +41,8 @@ curl -sS http://127.0.0.1:8000/health
 | `MCP_TRANSPORT` | `http` | `http` / `sse` / `both` |
 | `MCP_LAYOUT` | `unified` | `unified`（单进程全量叶子）/ `gateway` |
 | `MCP_PACKAGE` | `domains` | `domains` / `all` / 单域 slug |
-| `MCP_REQUIRE_AUTH` | `true` | `/open-mcp` 缺少 `Authorization` 时返回 401 |
+| `MCP_PATH` | `/` | 服务内 MCP 挂载路径；空或不配=根路径 |
+| `MCP_REQUIRE_AUTH` | `true` | MCP 路径缺少 `Authorization` 时返回 401 |
 | `TOOL_URL_DEPS_PATH` | `/opt/mcp/tool_url_deps.json` | 构建期扫描生成的 tool→URL 依赖图 |
 | `GTS_MCP_ROOT` | `/opt/mcp` | 下含 `api/` 与 `mcp/` |
 | `MCP_ATTACH_MAX_BYTES` | `33554432` | 嵌入附件上限 |

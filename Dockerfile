@@ -7,7 +7,8 @@
 #
 # 运行：
 #   docker run -d -p 8000:8000 gangtise-mcp
-#   Endpoint: https://<host>:8000/open-mcp
+#   Endpoint: https://<host>:8000/  （默认挂根路径；网关可再加 /application/open-mcp 前缀）
+#   可选：-e MCP_PATH=/open-mcp 自定义服务内挂载路径
 #   鉴权：请求头 Authorization: Bearer <token>（原样透传下游）
 
 ARG BASE_IMAGE=python:3.11.9
@@ -35,7 +36,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     MCP_PORT=8000 \
     MCP_PACKAGE=domains \
     MCP_LAYOUT=unified \
-    MCP_PATH=/open-mcp \
+    MCP_PATH=/ \
     MCP_STATELESS=true \
     MCP_JSON_RESPONSE=true \
     MCP_REQUIRE_AUTH=true \

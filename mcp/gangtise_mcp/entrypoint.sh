@@ -16,10 +16,14 @@ export GTS_SAVE_FILE
 export GTS_MCP_ROOT
 export MCP_LAYOUT
 export MCP_REQUIRE_AUTH
-export MCP_PATH="${MCP_PATH:-/open-mcp}"
+export MCP_PATH="${MCP_PATH:-/}"
 export MCP_STATELESS="${MCP_STATELESS:-true}"
 export MCP_JSON_RESPONSE="${MCP_JSON_RESPONSE:-true}"
 
+# 空字符串视为根路径
+if [[ -z "${MCP_PATH// }" ]]; then
+  export MCP_PATH=/
+fi
 if [[ "${MCP_LAYOUT}" == "hub" ]]; then
   MCP_LAYOUT=unified
   export MCP_LAYOUT

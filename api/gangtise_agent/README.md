@@ -19,7 +19,7 @@
 
 | 用途 | 地址 |
 |------|------|
-| MCP（streamable-http） | `https://<host>:<port>/open-mcp` |
+| MCP（streamable-http） | `https://<host>:<port>/`（默认根路径；外网常经网关加前缀，如 `/application/open-mcp`） |
 | SSE | `GET /sse` + `POST /messages/` |
 | 健康检查 | `GET /health` |
 
@@ -48,7 +48,7 @@ Authorization: Bearer <token>
 X-GTS-Credentials: {"accessKey":"<ak>","secretKey":"<sk>"}
 ```
 
-`MCP_REQUIRE_AUTH=true`（默认）时，访问 `/open-mcp` 必须带鉴权，否则返回 **401**。
+`MCP_REQUIRE_AUTH=true`（默认）时，访问 MCP 路径必须带鉴权，否则返回 **401**。
 
 </details>
 
@@ -61,7 +61,7 @@ X-GTS-Credentials: {"accessKey":"<ak>","secretKey":"<sk>"}
 {
   "mcpServers": {
     "gangtise-agent": {
-      "url": "https://<host>:<port>/open-mcp",
+      "url": "https://<host>:<port>/",
       "headers": {
         "Authorization": "Bearer <token>"
       }
@@ -70,7 +70,7 @@ X-GTS-Credentials: {"accessKey":"<ak>","secretKey":"<sk>"}
 }
 ```
 
-仅支持 URL 的 MCP 客户端：填写同一 `/open-mcp` 地址，并在请求头携带 `Authorization`。
+仅支持 URL 的 MCP 客户端：填写同一 MCP 地址（根路径或经网关后的前缀路径），并在请求头携带 `Authorization`。
 
 </details>
 
@@ -81,7 +81,7 @@ X-GTS-Credentials: {"accessKey":"<ak>","secretKey":"<sk>"}
 |------|------|------|
 | `MCP_TRANSPORT` | `http`（镜像）/ 启动参数 | `http` / `sse` / `both` |
 | `MCP_HOST` / `MCP_PORT` | `0.0.0.0` / `8000` | 监听地址 |
-| `MCP_PATH` | `/open-mcp` | MCP 路径 |
+| `MCP_PATH` | `/` | 服务内挂载路径；空或不配=根路径。线上由网关加 `open-mcp` 等前缀时保持 `/` |
 | `MCP_REQUIRE_AUTH` | `true` | 缺鉴权返回 401 |
 | `GTS_ACCESS_KEY` / `GTS_SECRET_KEY` | 空 | 进程级 AK/SK（无请求头时的兜底） |
 | `TOOL_URL_DEPS_PATH` | `/opt/mcp/tool_url_deps.json` | 工具 URL 白名单依赖图（镜像内） |

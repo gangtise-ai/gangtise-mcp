@@ -295,7 +295,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--host", default=os.getenv("MCP_HOST", "0.0.0.0"))
     parser.add_argument("--port", type=int, default=int(os.getenv("MCP_PORT", "8000")))
-    parser.add_argument("--path", default=os.getenv("MCP_PATH", "/open-mcp"))
+    parser.add_argument("--path", default=(os.getenv("MCP_PATH") or "/").strip() or "/")
     parser.add_argument("--sse-path", default=os.getenv("MCP_SSE_PATH", "/sse"))
     parser.add_argument("--message-path", default=os.getenv("MCP_MESSAGE_PATH", "/messages/"))
     parser.add_argument(

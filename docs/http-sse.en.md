@@ -2,7 +2,7 @@
 
 [简体中文](http-sse.md) | **English**
 
-Remote MCP transport and auth (main). Clients connect to `POST /open-mcp`.
+Remote MCP transport and auth (main). Default mount is root `POST /`; gateways often add a prefix (e.g. `/application/open-mcp`). Set `MCP_PATH` to change the in-process path.
 
 ---
 
@@ -10,12 +10,12 @@ Remote MCP transport and auth (main). Clients connect to `POST /open-mcp`.
 
 | Mode | Endpoint |
 |------|----------|
-| streamable-http | `POST /open-mcp` (gateway may use `/open-mcp/{slug}`) |
+| streamable-http | `POST /` (default; override with `MCP_PATH`). Gateway layout uses `{MCP_PATH}/{slug}` |
 | SSE | `GET /sse` + `POST /messages/` |
 
 Health: `GET /health`.
 
-Responses echo `X-DashScope-Request-ID`. With `MCP_REQUIRE_AUTH=true`, `/open-mcp` without auth returns **401**. Tool schemas are flattened.
+Responses echo `X-DashScope-Request-ID`. With `MCP_REQUIRE_AUTH=true`, the MCP path without auth returns **401**. Tool schemas are flattened.
 
 ---
 
@@ -61,7 +61,7 @@ The resulting `Authorization` is used for downstream calls and for `get_white_li
 {
   "mcpServers": {
     "gangtise": {
-      "url": "https://<host>:<port>/open-mcp",
+      "url": "https://<host>:<port>/",
       "headers": {
         "Authorization": "Bearer <token>"
       }

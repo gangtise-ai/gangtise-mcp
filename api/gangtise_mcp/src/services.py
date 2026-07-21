@@ -191,6 +191,16 @@ def _pythonpath_for_mcp(package_dir: str) -> str:
     return os.pathsep.join(ordered)
 
 
+def mcp_path_base() -> str:
+    """挂载前缀：未配置或空 → 根路径 /。"""
+    return (os.getenv("MCP_PATH") or "").strip() or "/"
+
+
+def backend_mcp_path(slug: str) -> str:
+    base = mcp_path_base().rstrip("/")
+    return f"/{slug}" if not base else f"{base}/{slug}"
+
+
 def start_backend(
     spec: ServiceSpec,
     *,
@@ -206,7 +216,7 @@ def start_backend(
         "--port",
         str(spec.port),
         "--path",
-        f"/open-mcp/{spec.slug}",
+        backend_mcp_path(spec.slug),
         "--sse-path",
         f"/sse/{spec.slug}",
         "--message-path",

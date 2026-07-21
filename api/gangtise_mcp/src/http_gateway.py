@@ -1,4 +1,7 @@
-"""按 slug 将 /open-mcp|/sse|/messages 反代到各 MCP 子进程。"""
+"""按 slug 将 MCP_PATH|/sse|/messages 反代到各 MCP 子进程。
+
+MCP_PATH 未配置时挂在根路径（/{slug}）；配置如 /open-mcp 则为 /open-mcp/{slug}。
+"""
 from __future__ import annotations
 
 import argparse
@@ -17,7 +20,7 @@ from http_compat import (
     DASHSCOPE_REQUEST_ID,
     resolve_request_id,
 )
-from services import ALL_SERVICES
+from services import ALL_SERVICES, backend_mcp_path, mcp_path_base
 
 DEFAULT_BACKENDS = {s.slug: s.port for s in ALL_SERVICES}
 
@@ -50,9 +53,16 @@ def _parse_backends(raw: Optional[str]) -> Dict[str, int]:
     return out or dict(DEFAULT_BACKENDS)
 
 
+def _mcp_route_prefix() -> str:
+    """对外 MCP 路径前缀，末尾带 /，根挂载时为 /。"""
+    base = mcp_path_base().rstrip("/")
+    return f"{base}/" if base else "/"
+
+
 def _resolve_slug(path: str, slugs: Iterable[str]) -> Optional[str]:
     normalized = path if path.startswith("/") else f"/{path}"
-    for prefix in ("/open-mcp/", "/sse/", "/messages/"):
+    prefixes = (_mcp_route_prefix(), "/sse/", "/messages/")
+    for prefix in prefixes:
         if not normalized.startswith(prefix):
             continue
         rest = normalized[len(prefix) :]
@@ -67,16 +77,20 @@ def _resolve_slug(path: str, slugs: Iterable[str]) -> Optional[str]:
 def create_app(backends: Dict[str, int]) -> Starlette:
     timeout = httpx.Timeout(None)
     limits = httpx.Limits(max_connections=200, max_keepalive_connections=50)
+    mcp_examples = ", ".join(backend_mcp_path(s) for s in sorted(backends)[:3])
+    if len(backends) > 3:
+        mcp_examples += ", ..."
 
     async def health(_: Request) -> JSONResponse:
         return JSONResponse(
             {
                 "status": "ok",
                 "layout": "gateway",
+                "mcp_path": mcp_path_base(),
                 "services": sorted(backends.keys()),
                 "endpoints": {
                     slug: {
-                        "mcp": f"/open-mcp/{slug}",
+                        "mcp": backend_mcp_path(slug),
                         "sse": f"/sse/{slug}",
                         "messages": f"/messages/{slug}/",
                     }
@@ -93,7 +107,7 @@ def create_app(backends: Dict[str, int]) -> Starlette:
                 {
                     "error": "not_found",
                     "message": (
-                        "未知路径。请使用 /open-mcp/{slug}、/sse/{slug}、/messages/{slug}/，"
+                        f"未知路径。请使用 {mcp_examples}、/sse/{{slug}}、/messages/{{slug}}/，"
                         f"slug 为: {', '.join(sorted(backends))}"
                     ),
                 },
