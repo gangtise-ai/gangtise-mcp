@@ -123,6 +123,17 @@ def _decrypt_creds(token: str) -> Optional[Tuple[str, str]]:
     return None
 
 
+def _decode_mcp_jwt(token: str) -> Dict[str, Any]:
+    """解码本服务签发的 JWT；必须传 audience，否则 PyJWT 对含 aud 的 token 直接 InvalidAudienceError。"""
+    return jwt.decode(
+        token,
+        _jwt_secret(),
+        algorithms=[JWT_ALG],
+        audience=JWT_ISS_CLAIM,
+        options={"require": ["exp", "iat", "typ"]},
+    )
+
+
 def try_mcp_oauth_to_credentials(authorization: str) -> Optional[Tuple[str, str]]:
     """若 Authorization 为本服务签发的 access JWT，返回 (ak, sk)；否则 None。"""
     if not oauth_enabled():
@@ -133,15 +144,10 @@ def try_mcp_oauth_to_credentials(authorization: str) -> Optional[Tuple[str, str]
     if not token or token.count(".") != 2:
         return None
     try:
-        claims = jwt.decode(
-            token,
-            _jwt_secret(),
-            algorithms=[JWT_ALG],
-            options={"require": ["exp", "iat", "typ"]},
-        )
+        claims = _decode_mcp_jwt(token)
     except jwt.PyJWTError:
         return None
-    if claims.get("typ") != "access" or claims.get("aud") != JWT_ISS_CLAIM:
+    if claims.get("typ") != "access":
         return None
     cred = claims.get("cred")
     if not isinstance(cred, str):
@@ -489,18 +495,13 @@ async def token(request: Request) -> Response:
     if grant == "refresh_token":
         refresh = (data.get("refresh_token") or "").strip()
         try:
-            claims = jwt.decode(
-                refresh,
-                _jwt_secret(),
-                algorithms=[JWT_ALG],
-                options={"require": ["exp", "iat", "typ"]},
-            )
+            claims = _decode_mcp_jwt(refresh)
         except jwt.PyJWTError:
             return JSONResponse(
                 {"error": "invalid_grant", "error_description": "refresh_token invalid or expired"},
                 status_code=400,
             )
-        if claims.get("typ") != "refresh" or claims.get("aud") != JWT_ISS_CLAIM:
+        if claims.get("typ") != "refresh":
             return JSONResponse({"error": "invalid_grant"}, status_code=400)
         cred = claims.get("cred")
         if not isinstance(cred, str) or not _decrypt_creds(cred):
