@@ -20,11 +20,13 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import html
 import json
 import os
 import secrets
 import time
 import uuid
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlencode, urlparse
 
@@ -41,6 +43,39 @@ REFRESH_TTL_SEC = int(os.getenv("GTS_OAUTH_REFRESH_TTL", str(30 * 24 * 3600)))
 CODE_TTL_SEC = 600
 JWT_ALG = "HS256"
 JWT_ISS_CLAIM = "gts_mcp"
+
+_CONSENT_TEMPLATE_PATH = Path(__file__).resolve().parent / "oauth_consent.html"
+_consent_template_cache: Optional[str] = None
+
+
+def _load_consent_template() -> str:
+    global _consent_template_cache
+    if _consent_template_cache is None:
+        _consent_template_cache = _CONSENT_TEMPLATE_PATH.read_text(encoding="utf-8")
+    return _consent_template_cache
+
+
+def _consent_html(
+    *,
+    error: str = "",
+    client_id: str = "",
+    redirect_uri: str = "",
+    state: str = "",
+    code_challenge: str = "",
+    code_challenge_method: str = "S256",
+    scope: str = "mcp",
+) -> str:
+    err_block = f'<p class="err">{html.escape(error)}</p>' if error else ""
+    return (
+        _load_consent_template()
+        .replace("{{ERROR_BLOCK}}", err_block)
+        .replace("{{CLIENT_ID}}", html.escape(client_id, quote=True))
+        .replace("{{REDIRECT_URI}}", html.escape(redirect_uri, quote=True))
+        .replace("{{STATE}}", html.escape(state, quote=True))
+        .replace("{{CODE_CHALLENGE}}", html.escape(code_challenge, quote=True))
+        .replace("{{CODE_CHALLENGE_METHOD}}", html.escape(code_challenge_method, quote=True))
+        .replace("{{SCOPE}}", html.escape(scope, quote=True))
+    )
 
 
 def oauth_enabled() -> bool:
@@ -221,61 +256,7 @@ async def register_client(request: Request) -> Response:
     )
 
 
-def _consent_html(
-    *,
-    error: str = "",
-    client_id: str = "",
-    redirect_uri: str = "",
-    state: str = "",
-    code_challenge: str = "",
-    code_challenge_method: str = "S256",
-    scope: str = "mcp",
-) -> str:
-    err_block = f'<p class="err">{error}</p>' if error else ""
-    return f"""<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Gangtise MCP 授权</title>
-  <style>
-    body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-           background: #f4f6f8; margin: 0; padding: 40px 16px; color: #1a1a1a; }}
-    .card {{ max-width: 420px; margin: 0 auto; background: #fff; border-radius: 12px;
-             padding: 28px 24px; box-shadow: 0 8px 24px rgba(0,0,0,.08); }}
-    h1 {{ font-size: 1.25rem; margin: 0 0 8px; }}
-    p {{ font-size: .9rem; color: #555; line-height: 1.5; }}
-    label {{ display: block; font-size: .85rem; margin: 14px 0 6px; font-weight: 600; }}
-    input {{ width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #d0d7de;
-             border-radius: 8px; font-size: .95rem; }}
-    button {{ margin-top: 20px; width: 100%; padding: 12px; border: 0; border-radius: 8px;
-              background: #0b5fff; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }}
-    .err {{ color: #b42318; background: #fef3f2; padding: 10px 12px; border-radius: 8px; }}
-    a {{ color: #0b5fff; }}
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Gangtise MCP 授权</h1>
-    <p>请填写开放平台 Access Key / Secret Key。凭证仅用于本次授权，签发后由客户端安全保存。</p>
-    <p><a href="https://open-platform.gangtise.com/" target="_blank" rel="noopener">打开开放平台</a></p>
-    {err_block}
-    <form method="post" action="">
-      <input type="hidden" name="client_id" value="{client_id}"/>
-      <input type="hidden" name="redirect_uri" value="{redirect_uri}"/>
-      <input type="hidden" name="state" value="{state}"/>
-      <input type="hidden" name="code_challenge" value="{code_challenge}"/>
-      <input type="hidden" name="code_challenge_method" value="{code_challenge_method}"/>
-      <input type="hidden" name="scope" value="{scope}"/>
-      <label for="access_key">Access Key</label>
-      <input id="access_key" name="access_key" type="password" required autocomplete="off"/>
-      <label for="secret_key">Secret Key</label>
-      <input id="secret_key" name="secret_key" type="password" required autocomplete="off"/>
-      <button type="submit">授权并继续</button>
-    </form>
-  </div>
-</body>
-</html>"""
+
 
 
 async def authorize(request: Request) -> Response:

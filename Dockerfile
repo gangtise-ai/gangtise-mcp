@@ -80,6 +80,7 @@ RUN set -eux; \
          pip install --no-deps --target "/opt/mcp/api/${pkg}" ${PIP_OPTS} "/app/api/${pkg}"; \
          pip install --no-deps --target "/opt/mcp/mcp/${pkg}" ${PIP_OPTS} "/app/mcp/${pkg}"; \
        done; \
+    cp /app/api/gangtise_mcp/src/oauth_consent.html /opt/mcp/api/gangtise_mcp/oauth_consent.html; \
     if [ -n "${INSTALL_OBS}" ] || { [ -n "${OBS_ACCESS_KEY}" ] && [ -n "${OBS_SECRET_KEY}" ] && [ -n "${OBS_ENDPOINT}" ] && [ -n "${OBS_BUCKET}" ]; }; then \
          pip install ${PIP_OPTS} "esdk-obs-python>=3.24.12"; \
        fi; \
