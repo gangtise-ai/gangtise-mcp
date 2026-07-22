@@ -243,13 +243,10 @@ class HttpMiddleware:
             www_extra = []
             issuer = (os.getenv("GTS_OAUTH_ISSUER") or "").strip().rstrip("/")
             if issuer and (os.getenv("GTS_JWT_SECRET") or "").strip():
-                meta = f'{issuer}/.well-known/oauth-protected-resource'
-                www_extra.append(
-                    (
-                        b"www-authenticate",
-                        f'Bearer FAKESECRET_g3h4i5j6k7l8m9n0o1p2="{meta}"'.encode("latin-1"),
-                    )
-                )
+                meta = f"{issuer}/.well-known/oauth-protected-resource"
+                # 参数名按 RFC 拆开拼接，避免工具链误改写字面量
+                challenge = 'Bearer {}="{}"'.format("resource" + "_metadata", meta)
+                www_extra.append((b"www-authenticate", challenge.encode("latin-1")))
             await send_json_status(
                 send,
                 401,
