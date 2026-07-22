@@ -82,11 +82,82 @@ def oauth_enabled() -> bool:
     return bool((os.getenv("GTS_JWT_SECRET") or "").strip())
 
 
-def get_issuer() -> str:
+def _is_cluster_or_pod_host(host: str) -> bool:
+    """K8s 内网 Host，不能当作对外 issuer。"""
+    h = (host or "").split(":")[0].strip().lower()
+    if not h:
+        return True
+    return (
+        h.endswith(".svc")
+        or h.endswith(".cluster.local")
+        or h.endswith(".svc.cluster.local")
+        or h == "gangtise-mcp"
+    )
+
+
+def resolve_public_base(request: Optional[Request] = None) -> str:
+    """对外 issuer / resource 基址（无尾斜杠）。
+
+    优先用请求 Host（避免 localhost vs 127.0.0.1 不一致）；
+    反代场景用 X-Forwarded-*；内网 Host 则回退 GTS_OAUTH_ISSUER。
+    """
+    if request is not None:
+        headers = {k.decode("latin-1").lower() if isinstance(k, bytes) else k.lower(): (
+            v.decode("latin-1") if isinstance(v, bytes) else v
+        ) for k, v in (request.scope.get("headers") or [])}
+        # Starlette also exposes .headers
+        try:
+            headers = {k.lower(): v for k, v in request.headers.items()}
+        except Exception:
+            pass
+        return resolve_public_base_from_headers(headers, scheme_default=request.url.scheme or "http")
+    return resolve_public_base_from_headers({})
+
+
+def resolve_public_base_from_headers(
+    headers: Dict[str, str],
+    *,
+    scheme_default: str = "http",
+) -> str:
     explicit = (os.getenv("GTS_OAUTH_ISSUER") or "").strip().rstrip("/")
-    if explicit:
-        return explicit
-    return "http://127.0.0.1:8000"
+    h = {str(k).lower(): str(v) for k, v in (headers or {}).items()}
+    xf_proto = (h.get("x-forwarded-proto") or "").split(",")[0].strip()
+    xf_host = (h.get("x-forwarded-host") or "").split(",")[0].strip()
+    xf_prefix = (
+        h.get("x-forwarded-prefix") or os.getenv("GTS_OAUTH_PATH_PREFIX") or ""
+    ).strip().rstrip("/")
+    host = xf_host or (h.get("host") or "").strip()
+    proto = xf_proto or scheme_default or "http"
+
+    if host and not _is_cluster_or_pod_host(host):
+        path = ""
+        if explicit:
+            path = (urlparse(explicit).path or "").rstrip("/")
+        elif xf_prefix:
+            path = xf_prefix
+        return f"{proto}://{host}{path}".rstrip("/")
+
+    return explicit or "http://localhost:8000"
+
+
+def get_issuer(request: Optional[Request] = None) -> str:
+    """兼容旧调用；新代码请传 request。"""
+    return resolve_public_base(request)
+
+
+def public_resource_url(request: Optional[Request] = None) -> str:
+    """MCP resource 标识，须与客户端配置的 MCP URL 一致（通常带尾 /）。"""
+    return resolve_public_base(request).rstrip("/") + "/"
+
+
+def resource_metadata_url(request: Optional[Request] = None) -> str:
+    return resolve_public_base(request).rstrip("/") + "/.well-known/oauth-protected-resource"
+
+
+def resource_metadata_url_from_headers(headers: Dict[str, str], *, scheme_default: str = "http") -> str:
+    return resolve_public_base_from_headers(headers, scheme_default=scheme_default).rstrip("/") + (
+        "/.well-known/oauth-protected-resource"
+    )
 
 
 def _jwt_secret() -> str:
@@ -184,13 +255,14 @@ def _disabled() -> JSONResponse:
     )
 
 
-async def oauth_protected_resource(_: Request) -> Response:
+async def oauth_protected_resource(request: Request) -> Response:
     if not oauth_enabled():
         return _disabled()
-    issuer = get_issuer()
+    issuer = resolve_public_base(request)
+    resource = public_resource_url(request)
     return JSONResponse(
         {
-            "resource": f"{issuer}/",
+            "resource": resource,
             "authorization_servers": [issuer],
             "bearer_methods_supported": ["header"],
             "scopes_supported": ["mcp"],
@@ -198,10 +270,10 @@ async def oauth_protected_resource(_: Request) -> Response:
     )
 
 
-async def oauth_authorization_server(_: Request) -> Response:
+async def oauth_authorization_server(request: Request) -> Response:
     if not oauth_enabled():
         return _disabled()
-    issuer = get_issuer()
+    issuer = resolve_public_base(request)
     return JSONResponse(
         {
             "issuer": issuer,
@@ -391,11 +463,13 @@ def _issue_tokens(
     tenantid: Optional[str],
     productcode: Optional[str],
     scope: str,
+    issuer: Optional[str] = None,
 ) -> Dict[str, Any]:
     now = int(time.time())
+    iss = (issuer or resolve_public_base()).rstrip("/")
     access = jwt.encode(
         {
-            "iss": get_issuer(),
+            "iss": iss,
             "aud": JWT_ISS_CLAIM,
             "sub": uid or client_id,
             "typ": "access",
@@ -413,7 +487,7 @@ def _issue_tokens(
     )
     refresh = jwt.encode(
         {
-            "iss": get_issuer(),
+            "iss": iss,
             "aud": JWT_ISS_CLAIM,
             "sub": uid or client_id,
             "typ": "refresh",
@@ -489,6 +563,7 @@ async def token(request: Request) -> Response:
                 tenantid=entry.get("tenantid"),
                 productcode=entry.get("productcode"),
                 scope=entry.get("scope") or "mcp",
+                issuer=resolve_public_base(request),
             )
         )
 
@@ -523,6 +598,7 @@ async def token(request: Request) -> Response:
                 tenantid=tenantid or claims.get("tenantid"),
                 productcode=productcode or claims.get("productcode"),
                 scope=str(claims.get("scope") or "mcp"),
+                issuer=resolve_public_base(request),
             )
         )
 
@@ -532,13 +608,13 @@ async def token(request: Request) -> Response:
     )
 
 
-async def health(_: Request) -> Response:
+async def health(request: Request) -> Response:
     return JSONResponse(
         {
             "status": "ok",
             "layout": "unified",
             "oauth": oauth_enabled(),
-            "issuer": get_issuer() if oauth_enabled() else None,
+            "issuer": resolve_public_base(request) if oauth_enabled() else None,
         }
     )
 

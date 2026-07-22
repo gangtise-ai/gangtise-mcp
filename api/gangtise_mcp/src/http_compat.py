@@ -241,12 +241,17 @@ class HttpMiddleware:
         has_auth = bool(auth or creds or oauth_creds)
         if require_auth_enabled() and self._is_mcp_path(path) and not has_auth:
             www_extra = []
-            issuer = (os.getenv("GTS_OAUTH_ISSUER") or "").strip().rstrip("/")
-            if issuer and (os.getenv("GTS_JWT_SECRET") or "").strip():
-                meta = f"{issuer}/.well-known/oauth-protected-resource"
-                # 参数名按 RFC 拆开拼接，避免工具链误改写字面量
-                challenge = 'Bearer {}="{}"'.format("resource" + "_metadata", meta)
-                www_extra.append((b"www-authenticate", challenge.encode("latin-1")))
+            if (os.getenv("GTS_JWT_SECRET") or "").strip():
+                try:
+                    from oauth_server import resource_metadata_url_from_headers
+
+                    meta = resource_metadata_url_from_headers(headers)
+                except Exception:
+                    issuer = (os.getenv("GTS_OAUTH_ISSUER") or "").strip().rstrip("/")
+                    meta = f"{issuer}/.well-known/oauth-protected-resource" if issuer else ""
+                if meta:
+                    challenge = 'Bearer {}="{}"'.format("resource" + "_metadata", meta)
+                    www_extra.append((b"www-authenticate", challenge.encode("latin-1")))
             await send_json_status(
                 send,
                 401,
