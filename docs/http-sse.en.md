@@ -20,48 +20,62 @@ Responses echo `X-DashScope-Request-ID`. With `MCP_REQUIRE_AUTH=true`, the MCP p
 ---
 
 <details>
-<summary><b>Auth (Authorization or AK/SK)</b></summary>
+<summary><b>Auth (OAuth / Authorization / X-GTS-Credentials)</b></summary>
 
-Two modes (**Authorization wins** if both present):
+Three modes can be enabled together (**priority: MCP OAuth JWT → raw Authorization → X-GTS-Credentials**):
 
-### 1. Pass Authorization directly
+### 1. OAuth 2.1 (WorkBuddy / browser consent)
 
-HTTP:
+| Env | Notes |
+|-----|--------|
+| `GTS_JWT_SECRET` | Required to enable OAuth |
+| `GTS_CRED_ENC_KEY` | Optional Fernet key; derived from JWT secret if omitted |
+| `GTS_OAUTH_ISSUER` | Public issuer URL (no trailing slash), e.g. `https://openapi.gangtise.com/application/open-mcp` |
+
+Endpoints: `/.well-known/oauth-protected-resource`, `/.well-known/oauth-authorization-server`, `/oauth/register`, `/oauth/authorize`, `/oauth/token` (aliases `/register`, `/authorize`, `/token`).
+
+Unauthenticated MCP calls return **401** with `WWW-Authenticate` `resource_metadata`. Access JWTs are resolved to AK/SK inside the gateway, then **loginV2** for downstream APIs.
+
+### 2. Pass Authorization (business Bearer)
 
 ```http
 Authorization: Bearer <token>
 ```
 
-stdio: `GTS_AUTHORIZATION` / `AUTHORIZATION`, or local file:
+Pass-through. stdio: `GTS_AUTHORIZATION` or local file.
 
-```json
-{"authorization": "Bearer <token>"}
-```
-
-### 2. AK/SK → loginV2
-
-HTTP credentials header (JSON or Base64), e.g.:
+### 3. AK/SK → loginV2
 
 ```http
 X-GTS-Credentials: {"accessKey":"<ak>","secretKey":"<sk>"}
 ```
 
-Or `accessKey` / `secretKey` headers.
-
-stdio / env: `GTS_ACCESS_KEY` + `GTS_SECRET_KEY`, or local file with the same keys.
-
-The resulting `Authorization` is used for downstream calls and for `get_white_list()`.
+Or `accessKey` / `secretKey` headers. stdio: `GTS_ACCESS_KEY` + `GTS_SECRET_KEY`.
 
 </details>
 
 <details>
 <summary><b>Client example</b></summary>
 
+OAuth (no headers; client runs the flow):
+
 ```json
 {
   "mcpServers": {
     "gangtise": {
-      "url": "https://<host>:<port>/",
+      "url": "https://openapi.gangtise.com/application/open-mcp/"
+    }
+  }
+}
+```
+
+Bearer pass-through:
+
+```json
+{
+  "mcpServers": {
+    "gangtise": {
+      "url": "https://openapi.gangtise.com/application/open-mcp/",
       "headers": {
         "Authorization": "Bearer <token>"
       }

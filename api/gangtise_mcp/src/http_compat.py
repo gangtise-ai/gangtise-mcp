@@ -13,6 +13,7 @@ DASHSCOPE_REQUEST_ID = "x-dashscope-request-id"
 
 _AUTH_SKIP_PREFIXES = (
     "/.well-known/",
+    "/oauth/",
     "/authorize",
     "/token",
     "/register",
@@ -122,17 +123,21 @@ async def send_json_status(
     body: dict,
     *,
     request_id: str,
+    extra_headers: Optional[list] = None,
 ) -> None:
     payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
+    headers = [
+        (b"content-type", b"application/json"),
+        (DASHSCOPE_REQUEST_ID.encode("latin-1"), request_id.encode("latin-1")),
+        (b"content-length", str(len(payload)).encode("latin-1")),
+    ]
+    if extra_headers:
+        headers.extend(extra_headers)
     await send(
         {
             "type": "http.response.start",
             "status": status,
-            "headers": [
-                (b"content-type", b"application/json"),
-                (DASHSCOPE_REQUEST_ID.encode("latin-1"), request_id.encode("latin-1")),
-                (b"content-length", str(len(payload)).encode("latin-1")),
-            ],
+            "headers": headers,
         }
     )
     await send({"type": "http.response.body", "body": payload})
@@ -207,20 +212,44 @@ class HttpMiddleware:
 
         path = scope.get("path") or "/"
         auth = (headers.get("authorization") or "").strip()
-        creds = None if auth else parse_credentials_from_headers(headers)
+        creds = parse_credentials_from_headers(headers)
         extra = parse_headers_extra_from_headers(headers)
+
+        # Authorization 优先：若为本服务 OAuth access JWT → 解出 AK/SK 走 loginV2；
+        # 否则原样透传业务 Bearer；无 Authorization 时用 X-GTS-Credentials。
+        oauth_creds = None
+        if auth:
+            try:
+                from oauth_server import try_mcp_oauth_to_credentials
+
+                oauth_creds = try_mcp_oauth_to_credentials(auth)
+            except Exception:
+                oauth_creds = None
 
         auth_token = None
         cred_token = None
         extra_token = None
-        if auth:
+        if oauth_creds and self.set_credentials is not None:
+            cred_token = self.set_credentials(oauth_creds[0], oauth_creds[1])
+        elif auth:
             auth_token = self.set_authorization(auth)
         elif creds and self.set_credentials is not None:
             cred_token = self.set_credentials(creds[0], creds[1])
         if extra and self.set_headers_extra is not None:
             extra_token = self.set_headers_extra(extra)
 
-        if require_auth_enabled() and self._is_mcp_path(path) and not auth and not creds:
+        has_auth = bool(auth or creds or oauth_creds)
+        if require_auth_enabled() and self._is_mcp_path(path) and not has_auth:
+            www_extra = []
+            issuer = (os.getenv("GTS_OAUTH_ISSUER") or "").strip().rstrip("/")
+            if issuer and (os.getenv("GTS_JWT_SECRET") or "").strip():
+                meta = f'{issuer}/.well-known/oauth-protected-resource'
+                www_extra.append(
+                    (
+                        b"www-authenticate",
+                        f'Bearer FAKESECRET_g3h4i5j6k7l8m9n0o1p2="{meta}"'.encode("latin-1"),
+                    )
+                )
             await send_json_status(
                 send,
                 401,
@@ -230,6 +259,7 @@ class HttpMiddleware:
                     "code": "UNAUTHORIZED",
                 },
                 request_id=request_id,
+                extra_headers=www_extra,
             )
             return
 

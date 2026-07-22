@@ -66,6 +66,7 @@ from authorization import (
 )
 from http_compat import HttpMiddleware
 from http_gateway import main as gateway_main
+from oauth_server import oauth_routes
 from result_attachments import with_path_attachments
 from services import (
     backend_mcp_path,
@@ -90,9 +91,10 @@ server = Server(SERVER_NAME)
 
 def _auth_missing_message() -> str:
     return (
-        "未配置 Authorization。\n"
-        "HTTP：请在请求头携带 Authorization: Bearer <token>\n"
-        "stdio：设置环境变量 GTS_AUTHORIZATION 或本地 authorization 文件"
+        "未配置鉴权。\n"
+        "HTTP：Authorization: Bearer <token>，或 X-GTS-Credentials（AK/SK），"
+        "或通过 OAuth 同意页（/oauth/authorize）授权后使用客户端持有的 Bearer。\n"
+        "stdio：设置 GTS_ACCESS_KEY/GTS_SECRET_KEY 或 GTS_AUTHORIZATION"
     )
 
 
@@ -238,6 +240,8 @@ def _build_network_app(
 
     routes: list[Any] = []
     session_manager: StreamableHTTPSessionManager | None = None
+
+    routes.extend(oauth_routes())
 
     if enable_http:
         session_manager = StreamableHTTPSessionManager(

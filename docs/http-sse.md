@@ -20,52 +20,73 @@
 ---
 
 <details>
-<summary><b>鉴权（Authorization 或 AK/SK）</b></summary>
+<summary><b>鉴权（OAuth / Authorization / X-GTS-Credentials）</b></summary>
 
-支持两种方式（**Authorization 优先**）：
+三种方式可同时启用（**优先级：本服务 OAuth JWT → 直传 Authorization → X-GTS-Credentials**）：
 
-### 1. 直接传入 Authorization
+### 1. OAuth 2.1（WorkBuddy / 浏览器同意页）
 
-HTTP：
+配置环境变量后启用：
+
+| 变量 | 说明 |
+|------|------|
+| `GTS_JWT_SECRET` | 必填；JWT 签名密钥 |
+| `GTS_CRED_ENC_KEY` | 可选；Fernet key，缺省由 JWT secret 派生 |
+| `GTS_OAUTH_ISSUER` | 对外 issuer（反代完整 URL，无尾斜杠），如 `https://openapi.gangtise.com/application/open-mcp` |
+
+端点：
+
+| 路径 | 说明 |
+|------|------|
+| `GET /.well-known/oauth-protected-resource` | 资源元数据 |
+| `GET /.well-known/oauth-authorization-server` | AS 元数据 |
+| `POST /oauth/register`（别名 `/register`） | 动态客户端注册 |
+| `GET/POST /oauth/authorize`（别名 `/authorize`） | 同意页：用户填 AK/SK，loginV2 校验后发 code |
+| `POST /oauth/token`（别名 `/token`） | code / refresh_token 换 access（1h）+ refresh（30d） |
+
+未带鉴权访问 MCP 路径时返回 **401**，并带 `WWW-Authenticate: Bearer FAKESECRET_g3h4i5j6k7l8m9n0o1p2="…"`。  
+客户端持有的 access JWT 在网关内解出 AK/SK，再 **loginV2** 调下游（不会把 MCP JWT 透传给业务 API）。
+
+### 2. 直接传入 Authorization（业务 Bearer）
 
 ```http
 Authorization: Bearer <token>
 ```
 
-stdio：环境变量 `GTS_AUTHORIZATION` / `AUTHORIZATION`，或本地文件：
+原样透传下游。stdio：`GTS_AUTHORIZATION` / 本地 authorization 文件。
 
-```json
-{"authorization": "Bearer <token>"}
-```
-
-### 2. AK/SK → loginV2 换票
-
-HTTP：请求头传入凭证（JSON 或 Base64），例如：
+### 3. AK/SK → loginV2
 
 ```http
 X-GTS-Credentials: {"accessKey":"<ak>","secretKey":"<sk>"}
 ```
 
-亦可使用 `accessKey` / `secretKey` 头。
-
-stdio / 进程环境：`GTS_ACCESS_KEY` + `GTS_SECRET_KEY`，或本地文件：
-
-```json
-{"accessKey":"<ak>","secretKey":"<sk>"}
-```
-
-换得的 `Authorization` 用于下游请求，以及 `get_white_list()` 权限查询。
+亦可 `accessKey` / `secretKey` 头。stdio：`GTS_ACCESS_KEY` + `GTS_SECRET_KEY`。
 
 </details>
 
 <details>
 <summary><b>客户端连接示例</b></summary>
 
+OAuth（客户端自动完成，无需 headers）：
+
 ```json
 {
   "mcpServers": {
     "gangtise": {
-      "url": "https://<host>:<port>/",
+      "url": "https://openapi.gangtise.com/application/open-mcp/"
+    }
+  }
+}
+```
+
+直传 Token：
+
+```json
+{
+  "mcpServers": {
+    "gangtise": {
+      "url": "https://openapi.gangtise.com/application/open-mcp/",
       "headers": {
         "Authorization": "Bearer <token>"
       }

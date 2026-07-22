@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "gangtise-mcp": {
+      "type": "streamableHttp",
+      "url": "https://openapi.gangtise.com/application/open-mcp/",
+      "timeout": 60000
+    }
+  }
+}

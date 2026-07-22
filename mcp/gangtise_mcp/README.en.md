@@ -62,6 +62,13 @@ Prefer: send JSON to the Cursor **Agent** → **Accept** when prompted → **Cur
 
 
 <details>
+<summary><b>Install in WorkBuddy</b></summary>
+
+Marketplace Connector package (OAuth): [`connectors/workbuddy/gangtise-mcp/`](../../connectors/workbuddy/gangtise-mcp/). For ad-hoc install, send the same MCP JSON as Cursor (server key may be `gangtise_mcp`) to the WorkBuddy agent, then **trust** and **enable** the connector.
+
+</details>
+
+<details>
 <summary><b>Install in Claude Desktop / Claude Code / VS Code</b></summary>
 
 Prefer sending the MCP JSON to each platform’s agent. Same patterns as the [repo README “Install by platform”](../../README.en.md#install-by-platform-recommended-gangtise_mcp): command `gangtise-mcp`, subdirectories `api/gangtise_mcp` + `mcp/gangtise_mcp` (GitHub).

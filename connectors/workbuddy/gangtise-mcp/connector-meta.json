@@ -1,0 +1,25 @@
+{
+  "name": "Gangtise MCP",
+  "name_zh": "Gangtise MCP",
+  "name_en": "Gangtise MCP",
+  "description": "Gangtise financial MCP: quotes, research reports, knowledge base, stock pools, and related tools.",
+  "description_zh": "港天士金融 MCP：远程接入行情、研报、知识库、股票池等约 45 个工具，通过 OAuth 浏览器授权（开放平台 AK/SK）。",
+  "description_en": "Gangtise financial MCP: remote access to quotes, research, knowledge base, and stock pools via OAuth (open-platform AK/SK consent).",
+  "source": "gangtise-mcp",
+  "type": "mcp",
+  "minWorkbuddyVersion": "4.20.0",
+  "examples_zh": [
+    "查询贵州茅台最近一周的行情和成交量",
+    "搜索新能源相关的最新研报并摘要要点",
+    "把这份 PDF 研报导入知识库并回答其中的估值假设",
+    "查看我的股票池今日涨跌与持仓摘要",
+    "生成某只股票的一页纸公司概况"
+  ],
+  "examples_en": [
+    "Get last week's price and volume for a China A-share ticker",
+    "Search recent research reports on EVs and summarize key points",
+    "Ingest a PDF report into the knowledge base and answer valuation questions",
+    "Show today's moves for my stock pool",
+    "Generate a one-pager company overview for a ticker"
+  ]
+}

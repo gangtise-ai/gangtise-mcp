@@ -34,7 +34,7 @@ Repository used in examples below: [`https://github.com/XiaoYan3938/gangtise-dat
 
 ## Install by platform (recommended: `gangtise_mcp`)
 
-> **Tip**: On clients with an agent (Cursor, Claude, VS Code Copilot/Agent, etc.), prefer pasting the MCP JSON below into the agent and letting it install. You can also write the same JSON into the client config file manually.
+> **Tip**: On clients with an agent (Cursor, Claude, VS Code Copilot/Agent, WorkBuddy, etc.), prefer pasting the MCP JSON below into the agent and letting it install. You can also write the same JSON into the client config file manually.
 
 <details>
 <summary><b>Install in Cursor</b></summary>
@@ -94,6 +94,14 @@ You can also edit `~/.cursor/mcp.json` or project `.cursor/mcp.json` manually (s
 
 </details>
 
+<details>
+<summary><b>Install in WorkBuddy</b></summary>
+
+Official guide: [WorkBuddy MCP](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide). Prefer **`gangtise_mcp`**.
+
+**Marketplace Connector package** (spec v3.0 · OAuth): [`connectors/workbuddy/gangtise-mcp/`](connectors/workbuddy/gangtise-mcp/), endpoint `https://openapi.gangtise.com/application/open-mcp/`. After listing, users authorize in the browser (AK/SK on consent page); for local testing, paste the same MCP JSON as Cursor into the WorkBuddy agent, then **trust** and **enable**.
+
+</details>
 
 <details>
 <summary><b>Install in Claude Desktop</b></summary>
@@ -209,10 +217,11 @@ Deploy with [docs/docker-deploy.en.md](docs/docker-deploy.en.md). Client URL:
 https://<host>:<port>/open-mcp
 ```
 
-- **OAuth**: set `GTS_JWT_SECRET` / `GTS_CRED_ENC_KEY`; clients open `/authorize`, users submit AK/SK, then use Bearer only (access 1h / refresh 30d).
-- **Headers**: `X-GTS-Credentials: {"accessKey":"...","secretKey":"..."}`.
+- **OAuth**: set `GTS_JWT_SECRET` (optional `GTS_CRED_ENC_KEY`) and `GTS_OAUTH_ISSUER`; clients use `/oauth/authorize` consent (AK/SK), then Bearer only (access 1h / refresh 30d); business calls use loginV2.
+- **Authorization**: pass-through business Bearer.
+- **X-GTS-Credentials**: AK/SK JSON header → loginV2.
 
-Details: [docs/http-sse.en.md](docs/http-sse.en.md).
+All three can be enabled together; the WorkBuddy marketplace package uses OAuth only. Details: [docs/http-sse.en.md](docs/http-sse.en.md).
 
 </details>
 

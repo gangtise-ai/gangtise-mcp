@@ -9,7 +9,8 @@
 #   docker run -d -p 8000:8000 gangtise-mcp
 #   Endpoint: https://<host>:8000/  （默认挂根路径；网关可再加 /application/open-mcp 前缀）
 #   可选：-e MCP_PATH=/open-mcp 自定义服务内挂载路径
-#   鉴权：请求头 Authorization: Bearer <token>（原样透传下游）
+#   鉴权：Authorization Bearer（业务 token 或 MCP OAuth JWT）/
+#         X-GTS-Credentials AK·SK / OAuth 同意页（需 GTS_JWT_SECRET）
 
 ARG BASE_IMAGE=python:3.11.9
 FROM ${BASE_IMAGE}
@@ -71,7 +72,9 @@ RUN set -eux; \
         "requests>=2.32.5" \
         "pandas>=2.2.3" \
         "pyyaml>=6.0" \
-        "starlette>=0.37.0"; \
+        "starlette>=0.37.0" \
+        "PyJWT>=2.8.0" \
+        "cryptography>=42.0.0"; \
     for pkg in gangtise_agent gangtise_data gangtise_file gangtise_kb gangtise_private gangtise_hub gangtise_mcp; do \
          mkdir -p "/opt/mcp/api/${pkg}" "/opt/mcp/mcp/${pkg}"; \
          pip install --no-deps --target "/opt/mcp/api/${pkg}" ${PIP_OPTS} "/app/api/${pkg}"; \

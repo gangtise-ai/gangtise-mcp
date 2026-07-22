@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Gangtise MCP">
+  <defs>
+    <linearGradient id="g" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0B5FFF"/>
+      <stop offset="100%" stop-color="#0033A0"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="12" fill="url(#g)"/>
+  <path fill="#FFFFFF" d="M18 40V24h6.2c4.4 0 7.1 2.2 7.1 5.8 0 2.4-1.2 4.2-3.3 5.1L34 40h-5.2l-5.1-7.2H23.2V40H18zm5.2-11.2h1c1.9 0 3-0.9 3-2.4s-1.1-2.3-3-2.3h-1v4.7z"/>
+  <path fill="#FFFFFF" d="M36.5 40l7.2-16h5.4l7.2 16h-5.5l-1.2-2.9H43.2L42 40h-5.5zm8.2-7.1h4.8l-2.4-5.7-2.4 5.7z"/>
+  <rect x="14" y="44" width="36" height="3" rx="1.5" fill="#FFFFFF" opacity="0.35"/>
+  <rect x="14" y="44" width="22" height="3" rx="1.5" fill="#7EC8FF"/>
+</svg>

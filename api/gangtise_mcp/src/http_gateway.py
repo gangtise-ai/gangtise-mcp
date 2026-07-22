@@ -20,6 +20,7 @@ from http_compat import (
     DASHSCOPE_REQUEST_ID,
     resolve_request_id,
 )
+from oauth_server import oauth_routes
 from services import ALL_SERVICES, backend_mcp_path, mcp_path_base
 
 DEFAULT_BACKENDS = {s.slug: s.port for s in ALL_SERVICES}
@@ -170,6 +171,7 @@ def create_app(backends: Dict[str, int]) -> Starlette:
     return Starlette(
         routes=[
             Route("/health", endpoint=health, methods=["GET"]),
+            *[r for r in oauth_routes() if getattr(r, "path", None) != "/health"],
             Route(
                 "/{path:path}",
                 endpoint=proxy,

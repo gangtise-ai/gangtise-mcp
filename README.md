@@ -102,6 +102,8 @@
 
 官方说明见 [WorkBuddy MCP 指南](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide)。推荐接入 **`gangtise_mcp`**。
 
+**市场 Connector 提交包**（规范 v3.0 · OAuth）：[`connectors/workbuddy/gangtise-mcp/`](connectors/workbuddy/gangtise-mcp/)，端点 `https://openapi.gangtise.com/application/open-mcp/`。上架后用户浏览器授权（同意页填 AK/SK）；开发自测仍可用下方「发给智能体」stdio 方式。
+
 1. 将下方 MCP 配置 JSON 发给 WorkBuddy **智能体**（可附带真实 `GTS_ACCESS_KEY` / `GTS_SECRET_KEY`），请其完成 MCP 安装：
 
 <details>
@@ -273,10 +275,11 @@ HTTP 远程：将 `type` 改为 `http`，并设置 `url` 为 `https://<host>:<po
 https://<host>:<port>/open-mcp
 ```
 
-- **OAuth（推荐）**：配置 `GTS_JWT_SECRET` / `GTS_CRED_ENC_KEY` 后，客户端可打开 `/authorize`，用户填写 AK/SK；之后只带 Bearer（access 1h / refresh 30d）。
-- **请求头**：`X-GTS-Credentials: {"accessKey":"...","secretKey":"..."}`。
+- **OAuth（推荐远程）**：配置 `GTS_JWT_SECRET`（可选 `GTS_CRED_ENC_KEY`）与 `GTS_OAUTH_ISSUER` 后，客户端走 `/oauth/authorize` 同意页（填 AK/SK），之后只带本服务签发的 Bearer（access 1h / refresh 30d）；调业务时自动 loginV2。
+- **Authorization**：请求头直接带业务 `Bearer`（透传下游）。
+- **X-GTS-Credentials**：请求头带 AK/SK JSON，服务端 loginV2。
 
-协议与端点细节：[docs/http-sse.md](docs/http-sse.md)。
+三种方式可同时开启；WorkBuddy 上架包仅使用 OAuth。协议细节：[docs/http-sse.md](docs/http-sse.md)。
 
 </details>
 
