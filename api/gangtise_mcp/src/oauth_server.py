@@ -1,7 +1,7 @@
 """MCP OAuth 2.1 Authorization Server（WorkBuddy / Cursor 等客户端）。
 
 环境变量：
-  GTS_JWT_SECRET     — 必填（启用 OAuth）；JWT 签名密钥
+  GTS_JWT_SECRET     — 必填（启用 OAuth）；任意长度字符串，内部 SHA-256 后作 HMAC 密钥
   GTS_CRED_ENC_KEY   — 可选；Fernet key，缺省由 JWT secret 派生
   GTS_OAUTH_ISSUER   — 对外 issuer（反代后完整 URL，无尾斜杠）
                        例：https://openapi.gangtise.com/application/open-mcp
@@ -160,20 +160,20 @@ def resource_metadata_url_from_headers(headers: Dict[str, str], *, scheme_defaul
     )
 
 
-def _jwt_secret() -> str:
+def _jwt_secret() -> bytes:
+    """HMAC 密钥：对配置串做 SHA-256，固定 32 字节，避免 PyJWT InsecureKeyLengthWarning。"""
     secret = (os.getenv("GTS_JWT_SECRET") or "").strip()
     if not secret:
         raise RuntimeError("GTS_JWT_SECRET is not set")
-    return secret
+    return hashlib.sha256(secret.encode("utf-8")).digest()
 
 
 def _fernet() -> Fernet:
     raw = (os.getenv("GTS_CRED_ENC_KEY") or "").strip()
     if raw:
         return Fernet(raw.encode("utf-8"))
-    # 从 JWT secret 派生 url-safe 32-byte Fernet key
-    digest = hashlib.sha256(_jwt_secret().encode("utf-8")).digest()
-    return Fernet(base64.urlsafe_b64encode(digest))
+    # 与 JWT 同源派生，保证未单独配置 CRED_ENC_KEY 时行为稳定
+    return Fernet(base64.urlsafe_b64encode(_jwt_secret()))
 
 
 def _encrypt_creds(ak: str, sk: str) -> str:
