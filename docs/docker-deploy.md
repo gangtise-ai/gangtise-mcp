@@ -2,7 +2,7 @@
 
 [简体中文](docker-deploy.cn.md) | **English**
 
-All-in-one image (`mcps/Dockerfile`): `api/*` + `mcp/*`, HTTP deployment defaults (`MCP_LAYOUT=unified`, `MCP_TRANSPORT=http`, Authorization passthrough, flat schemas). Clients use **`/`** by default (`MCP_PATH`); gateways may prefix e.g. `/application/open-mcp`. Protocol/auth: [http-sse.md](http-sse.md). Entrypoint: [`mcp/gangtise_mcp/entrypoint.sh`](../mcp/gangtise_mcp/entrypoint.sh).
+All-in-one image (`mcps/Dockerfile`): `api/*` + `mcp/*`, HTTP deployment defaults (`MCP_LAYOUT=unified`, `MCP_TRANSPORT=http`, Authorization passthrough, flat schemas). Clients use **`/`** by default (`MCP_PATH`); gateways may prefix e.g. `/application/mcp`. Protocol/auth: [http-sse.md](http-sse.md). Entrypoint: [`mcp/gangtise_mcp/entrypoint.sh`](../mcp/gangtise_mcp/entrypoint.sh).
 
 ---
 

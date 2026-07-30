@@ -28,9 +28,9 @@ Gangtise financial data and research tools over the [Model Context Protocol](htt
 |------|--------|
 | **Local stdio** | Run via `uvx`; set AK/SK in env |
 | **CLI** | Full command `gangtise` via `uvx` (see [docs/cli.md](docs/cli.md)) |
-| **Remote HTTP / SSE** | Connect to `/open-mcp`; prefer AK/SK headers (or Authorization) |
+| **Remote HTTP / SSE** | HTTP `…/application/mcp/` · SSE `…/application/mcp/sse`; prefer AK/SK headers (or Authorization) |
 
-Repository used in examples below: [`https://github.com/XiaoYan3938/gangtise-data-mcp`](https://github.com/XiaoYan3938/gangtise-data-mcp). Chinese docs use Gitee — see [README.md](README.md).
+Repository used in examples below: [`https://github.com/XiaoYan3938/gangtise-data-mcp`](https://github.com/XiaoYan3938/gangtise-data-mcp). Chinese docs use Gitee — see [README.cn.md](README.cn.md).
 
 ---
 
@@ -101,7 +101,7 @@ You can also edit `~/.cursor/mcp.json` or project `.cursor/mcp.json` manually (s
 
 Official guide: [WorkBuddy MCP](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide). Prefer **`gangtise_mcp`**.
 
-**Marketplace Connector package** (spec v3.0 · OAuth): [`connectors/workbuddy/gangtise-mcp/`](connectors/workbuddy/gangtise-mcp/), endpoint `https://openapi.gangtise.com/application/open-mcp/`. After listing, users authorize in the browser (AK/SK on consent page); for local testing, paste the same MCP JSON as Cursor into the WorkBuddy agent, then **trust** and **enable**.
+**Marketplace Connector package** (spec v3.0 · user-supplied token): [`connectors/workbuddy/gangtise-mcp/`](connectors/workbuddy/gangtise-mcp/), endpoint `https://openapi.gangtise.com/application/open-mcp/` (WorkBuddy-only; shields WeChat / official-account traffic). Users enter open-platform AK/SK; for local testing, paste the same MCP JSON as Cursor into the WorkBuddy agent, then **trust** and **enable**.
 
 </details>
 
@@ -206,24 +206,26 @@ Prefer pasting the JSON below into Copilot Chat / Agent and asking it to write w
 
 </details>
 
-For remote HTTP, set `"type": "http"` and `"url": "https://<host>:<port>/open-mcp"`.
+For remote HTTP, set `"type": "http"` and `"url": "https://openapi.gangtise.com/application/mcp/"`.
 
 </details>
 
 <details>
-<summary><b>Remote HTTP / SSE (OAuth or headers)</b></summary>
+<summary><b>Remote HTTP / SSE</b></summary>
 
-Deploy with [docs/docker-deploy.md](docs/docker-deploy.md). Client URL:
+Production endpoints:
 
 ```
-https://<host>:<port>/open-mcp
+HTTP  https://openapi.gangtise.com/application/mcp/
+SSE   https://openapi.gangtise.com/application/mcp/sse
 ```
 
-- **OAuth**: set `GTS_JWT_SECRET` (optional `GTS_CRED_ENC_KEY`) and `GTS_OAUTH_ISSUER`; clients use `/oauth/authorize` consent (AK/SK), then Bearer only (access 1h / refresh 7d); business calls use loginV2.
+Self-host: [docs/docker-deploy.md](docs/docker-deploy.md). Auth via request headers:
+
 - **Authorization**: pass-through business Bearer.
-- **X-GTS-Credentials**: AK/SK JSON header → loginV2.
+- **accessKey / secretKey** (or **X-GTS-Credentials**): AK/SK → loginV2.
 
-All three can be enabled together; the WorkBuddy marketplace package uses OAuth only. Details: [docs/http-sse.md](docs/http-sse.md).
+Details: [docs/http-sse.md](docs/http-sse.md).
 
 </details>
 
@@ -251,7 +253,7 @@ Prefer `gangtise_mcp` unless you need a single domain or the hub router.
 | Path | Role |
 |------|------|
 | [`mcp/`](mcp/) | Business scripts + **stdio** MCP (Cursor / local) |
-| [`api/`](api/) | **HTTP/SSE** MCP + OAuth/auth (depends on the matching mcp package) |
+| [`api/`](api/) | **HTTP/SSE** MCP + auth (depends on the matching mcp package) |
 | [`cli/`](cli/) | CLI (depends on mcp; all-tools command: `gangtise`) |
 
 `gangtise_hub` / `gangtise_mcp` do **not** vendor domain code; they depend on the five domain packages.  
@@ -268,8 +270,6 @@ Sync: `python3 sync_skills_to_mcp.py` (business → `mcps/mcp/`; auth SSOT → `
 |----------|--------|
 | `GTS_ACCESS_KEY` / `GTS_SECRET_KEY` | Process credentials for stdio |
 | `GTS_AUTHORIZATION_PATH` | Optional credentials file |
-| `GTS_JWT_SECRET` / `GTS_CRED_ENC_KEY` | Remote OAuth (Fernet key via `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`) |
-| `GTS_OAUTH_ISSUER` | Public issuer URL behind a reverse proxy |
 | `GTS_SAVE_FILE` / `WORK_PATH` | Persist outputs / workspace |
 | `GTS_MCP_ROOT` | Gateway root (default `/opt/mcp` in containers) |
 | `MCP_ATTACH_MAX_BYTES` / `OBS_*` | Attachment size / optional OBS — see [docs/docker-deploy.md](docs/docker-deploy.md) |
@@ -284,10 +284,7 @@ Without credentials you can still handshake and `tools/list`; tool calls prompt 
 ```bash
 cd gangtise-data-mcp
 docker build -t gangtise-mcp -f Dockerfile .
-docker run -d -p 8000:8000 \
-  -e GTS_JWT_SECRET='change-me' \
-  -e GTS_CRED_ENC_KEY="$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" \
-  gangtise-mcp
+docker run -d -p 8000:8000 gangtise-mcp
 ```
 
 See [docs/docker-deploy.md](docs/docker-deploy.md).

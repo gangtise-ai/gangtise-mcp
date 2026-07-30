@@ -2,7 +2,7 @@
 
 **简体中文** | [English](http-sse.md)
 
-远程 MCP 传输与鉴权说明（main）。服务默认挂在根路径 `POST /`；线上网关常再加前缀（如 `/application/open-mcp`）。可用环境变量 `MCP_PATH` 改服务内挂载路径。
+远程 MCP 传输与鉴权说明（main）。生产 HTTP：`https://openapi.gangtise.com/application/mcp/` · SSE：`https://openapi.gangtise.com/application/mcp/sse`。服务内默认挂在根路径 `POST /`；网关前缀如 `/application/mcp`。可用 `MCP_PATH` 改服务内挂载路径。
 
 ---
 
@@ -10,8 +10,8 @@
 
 | 模式 | 端点 |
 |------|------|
-| streamable-http | `POST /`（默认；`MCP_PATH` 可改，如 `/open-mcp`）。网关 layout 为 `{MCP_PATH}/{slug}` |
-| SSE | `GET /sse` + `POST /messages/` |
+| streamable-http | 生产：`https://openapi.gangtise.com/application/mcp/` · 进程内：`POST /`（`MCP_PATH`） |
+| SSE | 生产：`https://openapi.gangtise.com/application/mcp/sse` · 进程内：`GET /sse` + `POST /messages/` |
 
 健康检查：`GET /health`。
 
@@ -62,7 +62,7 @@ Authorization: Bearer <token>
 {
   "mcpServers": {
     "gangtise": {
-      "url": "https://openapi.gangtise.com/application/open-mcp/",
+      "url": "https://openapi.gangtise.com/application/mcp/",
       "headers": {
         "accessKey": "<ak>",
         "secretKey": "<sk>"
@@ -78,7 +78,7 @@ Authorization: Bearer <token>
 {
   "mcpServers": {
     "gangtise": {
-      "url": "https://openapi.gangtise.com/application/open-mcp/",
+      "url": "https://openapi.gangtise.com/application/mcp/",
       "headers": {
         "X-GTS-Credentials": "{\"accessKey\":\"<ak>\",\"secretKey\":\"<sk>\"}"
       }
@@ -93,7 +93,7 @@ Authorization: Bearer <token>
 {
   "mcpServers": {
     "gangtise": {
-      "url": "https://openapi.gangtise.com/application/open-mcp/",
+      "url": "https://openapi.gangtise.com/application/mcp/",
       "headers": {
         "Authorization": "Bearer <token>"
       }

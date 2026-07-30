@@ -28,7 +28,7 @@
 |------|------|
 | **本地 stdio（推荐起步）** | `uvx` 拉起 `gangtise-mcp`，用环境变量配置 AK/SK |
 | **命令行 CLI** | `uvx` 拉起全量命令 `gangtise`（见 [docs/cli.cn.md](docs/cli.cn.md)） |
-| **远程 HTTP / SSE** | 部署后连接 `/open-mcp`；请求头带 AK/SK（推荐）或 Authorization |
+| **远程 HTTP / SSE** | HTTP `…/application/mcp/` · SSE `…/application/mcp/sse`；请求头带 AK/SK（推荐）或 Authorization |
 
 仓库地址（本文安装示例均使用 Gitee）：[`https://gitee.com/yanxi3938/gangtise-data-mcp`](https://gitee.com/yanxi3938/gangtise-data-mcp)。英文文档示例见 [README.md](README.md)（GitHub）。
 
@@ -104,7 +104,7 @@
 
 官方说明见 [WorkBuddy MCP 指南](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide)。推荐接入 **`gangtise_mcp`**。
 
-**市场 Connector 提交包**（规范 v3.0 · OAuth）：[`connectors/workbuddy/gangtise-mcp/`](connectors/workbuddy/gangtise-mcp/)，端点 `https://openapi.gangtise.com/application/open-mcp/`。上架后用户浏览器授权（同意页填 AK/SK）；开发自测仍可用下方「发给智能体」stdio 方式。
+**市场 Connector 提交包**（规范 v3.0 · 用户自填 Token）：[`connectors/workbuddy/gangtise-mcp/`](connectors/workbuddy/gangtise-mcp/)，端点 `https://openapi.gangtise.com/application/open-mcp/`（专供 WorkBuddy，屏蔽微信/公众号流量）。用户填写开放平台 AK/SK；开发自测仍可用「发给智能体」stdio 方式。
 
 1. 将下方 MCP 配置 JSON 发给 WorkBuddy **智能体**（可附带真实 `GTS_ACCESS_KEY` / `GTS_SECRET_KEY`），请其完成 MCP 安装：
 
@@ -154,7 +154,7 @@
 
 ![信任并开启 gangtise_mcp](assets/trust_mcp.png)
 
-远程 HTTP：在支持 URL 的连接器配置中填写 `https://<host>:<port>/open-mcp`（见 [docs/http-sse.cn.md](docs/http-sse.cn.md)）。
+远程 HTTP：WorkBuddy 上架端点为 `https://openapi.gangtise.com/application/open-mcp/`（见 [docs/http-sse.cn.md](docs/http-sse.cn.md)）；通用客户端见下方「远程 HTTP / SSE」。
 
 </details>
 
@@ -264,24 +264,26 @@ claude mcp add gangtise -- uvx \
 
 </details>
 
-HTTP 远程：将 `type` 改为 `http`，并设置 `url` 为 `https://<host>:<port>/open-mcp`。
+HTTP 远程：将 `type` 改为 `http`，并设置 `url` 为 `https://openapi.gangtise.com/application/mcp/`。
 
 </details>
 
 <details>
-<summary><b>远程 HTTP / SSE（OAuth 或请求头）</b></summary>
+<summary><b>远程 HTTP / SSE</b></summary>
 
-部署见 [docs/docker-deploy.cn.md](docs/docker-deploy.cn.md)。客户端连接示例：
+生产端点：
 
 ```
-https://<host>:<port>/open-mcp
+HTTP  https://openapi.gangtise.com/application/mcp/
+SSE   https://openapi.gangtise.com/application/mcp/sse
 ```
 
-- **OAuth（推荐远程）**：配置 `GTS_JWT_SECRET`（可选 `GTS_CRED_ENC_KEY`）与 `GTS_OAUTH_ISSUER` 后，客户端走 `/oauth/authorize` 同意页（填 AK/SK），之后只带本服务签发的 Bearer（access 1h / refresh 7d）；调业务时自动 loginV2。
-- **Authorization**：请求头直接带业务 `Bearer`（透传下游）。
-- **X-GTS-Credentials**：请求头带 AK/SK JSON，服务端 loginV2。
+自建部署见 [docs/docker-deploy.cn.md](docs/docker-deploy.cn.md)。鉴权走请求头：
 
-三种方式可同时开启；WorkBuddy 上架包仅使用 OAuth。协议细节：[docs/http-sse.cn.md](docs/http-sse.cn.md)。
+- **Authorization**：业务 `Bearer` 透传下游。
+- **accessKey / secretKey**（或 **X-GTS-Credentials**）：AK/SK → loginV2。
+
+协议细节：[docs/http-sse.cn.md](docs/http-sse.cn.md)。
 
 </details>
 
@@ -310,7 +312,7 @@ https://<host>:<port>/open-mcp
 | 目录 | 职责 |
 |------|------|
 | [`mcp/`](mcp/) | 业务脚本真源 + **stdio** MCP（Cursor / 本地） |
-| [`api/`](api/) | **HTTP/SSE** MCP + OAuth/鉴权（依赖对应 mcp 业务包） |
+| [`api/`](api/) | **HTTP/SSE** MCP + 鉴权（依赖对应 mcp 业务包） |
 | [`cli/`](cli/) | 命令行（依赖对应 mcp；全量命令 `gangtise`） |
 
 `gangtise_hub` / `gangtise_mcp` **不内嵌**五域代码，运行时依赖五个域包。  
@@ -327,13 +329,6 @@ HTTP：`cd gangtise-data-mcp/api/<pkg> && uv sync && uv run <api 命令>`。
 |------|------|
 | `GTS_ACCESS_KEY` / `GTS_SECRET_KEY` | stdio / 进程级凭证 |
 | `GTS_AUTHORIZATION_PATH` | 凭证文件路径（可选） |
-| `GTS_JWT_SECRET` / `GTS_CRED_ENC_KEY` | 远程 OAuth（Fernet key：`python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`） |
-| `GTS_OAUTH_ISSUER` | 反代后的对外 issuer URL |
-| `GTS_OAUTH_REFRESH_TTL` | refresh 有效期（秒），默认 7 天 |
-| `GTS_OAUTH_RATE_LIMIT` / `GTS_OAUTH_RATE_WINDOW` | 同意页 POST 限流（默认 10 次 / 300 秒，LIMIT=0 关闭） |
-| `GTS_OAUTH_CAPTCHA` | 同意页算术验证码，默认 `true` |
-| `GTS_OAUTH_PENDING_TTL` | 未完成授权的 client 超时清理（秒），默认 `600` |
-| `GTS_OAUTH_PENDING_MAX` | 未完成授权最大同时数，默认 `10000` |
 | `MCP_CLEANUP_LOCAL_AFTER_ATTACH` | 附件嵌入或 OBS 上传成功后删除 `WORK_PATH` 下对应本地文件，默认 `true` |
 | `GTS_SAVE_FILE` / `WORK_PATH` | 是否落盘 / 工作区 |
 | `GTS_MCP_ROOT` | gateway 根（容器默认 `/opt/mcp`，含 `api/`+`mcp/`） |
@@ -352,10 +347,7 @@ docker build -t gangtise-mcp -f Dockerfile \
   --build-arg PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
   --build-arg PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn \
   .
-docker run -d -p 8000:8000 \
-  -e GTS_JWT_SECRET='change-me' \
-  -e GTS_CRED_ENC_KEY="$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" \
-  gangtise-mcp
+docker run -d -p 8000:8000 gangtise-mcp
 ```
 
 详见 [docs/docker-deploy.cn.md](docs/docker-deploy.cn.md)。

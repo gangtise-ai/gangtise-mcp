@@ -2,7 +2,7 @@
 
 **简体中文** | [English](docker-deploy.md)
 
-仅提供 **整合镜像**（`mcps/Dockerfile`）：`api/*` + `mcp/*`，默认 HTTP 部署（`MCP_LAYOUT=unified`、`MCP_TRANSPORT=http`、Authorization 透传、参数扁平化）。客户端默认连 **`/`**（`MCP_PATH`）；线上网关可再加前缀如 `/application/open-mcp`。协议与鉴权见 [http-sse.cn.md](http-sse.cn.md)。入口：[`mcp/gangtise_mcp/entrypoint.sh`](../mcp/gangtise_mcp/entrypoint.sh)。
+仅提供 **整合镜像**（`mcps/Dockerfile`）：`api/*` + `mcp/*`，默认 HTTP 部署（`MCP_LAYOUT=unified`、`MCP_TRANSPORT=http`、Authorization 透传、参数扁平化）。客户端默认连 **`/`**（`MCP_PATH`）；线上网关可再加前缀如 `/application/mcp`。协议与鉴权见 [http-sse.cn.md](http-sse.cn.md)。入口：[`mcp/gangtise_mcp/entrypoint.sh`](../mcp/gangtise_mcp/entrypoint.sh)。
 
 构建时分两类「源」：
 

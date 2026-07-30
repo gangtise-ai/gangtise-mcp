@@ -2,7 +2,7 @@
 
 [简体中文](http-sse.cn.md) | **English**
 
-Remote MCP transport and auth (main). Default mount is root `POST /`; gateways often add a prefix (e.g. `/application/open-mcp`). Set `MCP_PATH` to change the in-process path.
+Remote MCP transport and auth (main). Production HTTP base: `https://openapi.gangtise.com/application/mcp/` · SSE: `https://openapi.gangtise.com/application/mcp/sse`. In-process default is root `POST /`; gateways add a prefix (e.g. `/application/mcp`). Set `MCP_PATH` to change the in-process path.
 
 ---
 
@@ -10,8 +10,8 @@ Remote MCP transport and auth (main). Default mount is root `POST /`; gateways o
 
 | Mode | Endpoint |
 |------|----------|
-| streamable-http | `POST /` (default; override with `MCP_PATH`). Gateway layout uses `{MCP_PATH}/{slug}` |
-| SSE | `GET /sse` + `POST /messages/` |
+| streamable-http | Production: `https://openapi.gangtise.com/application/mcp/` · In-process: `POST /` (`MCP_PATH`) |
+| SSE | Production: `https://openapi.gangtise.com/application/mcp/sse` · In-process: `GET /sse` + `POST /messages/` |
 
 Health: `GET /health`.
 
@@ -62,7 +62,7 @@ Pass-through. stdio: `GTS_AUTHORIZATION` or local file.
 {
   "mcpServers": {
     "gangtise": {
-      "url": "https://openapi.gangtise.com/application/open-mcp/",
+      "url": "https://openapi.gangtise.com/application/mcp/",
       "headers": {
         "accessKey": "<ak>",
         "secretKey": "<sk>"
@@ -78,7 +78,7 @@ Or `X-GTS-Credentials`:
 {
   "mcpServers": {
     "gangtise": {
-      "url": "https://openapi.gangtise.com/application/open-mcp/",
+      "url": "https://openapi.gangtise.com/application/mcp/",
       "headers": {
         "X-GTS-Credentials": "{\"accessKey\":\"<ak>\",\"secretKey\":\"<sk>\"}"
       }
@@ -93,7 +93,7 @@ Bearer pass-through:
 {
   "mcpServers": {
     "gangtise": {
-      "url": "https://openapi.gangtise.com/application/open-mcp/",
+      "url": "https://openapi.gangtise.com/application/mcp/",
       "headers": {
         "Authorization": "Bearer <token>"
       }
