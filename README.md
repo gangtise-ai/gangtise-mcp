@@ -8,7 +8,8 @@
 **推荐使用 [`gangtise_mcp`](mcp/gangtise_mcp/)**：一次挂载五域全部工具。
 
 [账号申请](https://open-platform.gangtise.com/) ·
-[HTTP / SSE / OAuth](docs/http-sse.md) ·
+[HTTP / SSE](docs/http-sse.md) ·
+[CLI](docs/cli.md) ·
 [Docker](docs/docker-deploy.md)
 
 </div>
@@ -26,7 +27,8 @@
 | 方式 | 说明 |
 |------|------|
 | **本地 stdio（推荐起步）** | `uvx` 拉起 `gangtise-mcp`，用环境变量配置 AK/SK |
-| **远程 HTTP / SSE** | 部署后连接 `/open-mcp`；可走 **OAuth 同意页**（客户端只持 Bearer），或请求头带 AK/SK |
+| **命令行 CLI** | `uvx` 拉起全量命令 `gangtise`（见 [docs/cli.md](docs/cli.md)） |
+| **远程 HTTP / SSE** | 部署后连接 `/open-mcp`；请求头带 AK/SK（推荐）或 Authorization |
 
 仓库地址（本文安装示例均使用 Gitee）：[`https://gitee.com/yanxi3938/gangtise-data-mcp`](https://gitee.com/yanxi3938/gangtise-data-mcp)。英文文档示例见 [README.en.md](README.en.md)（GitHub）。
 

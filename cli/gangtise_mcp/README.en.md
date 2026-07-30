@@ -38,4 +38,4 @@ uvx --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mc
 
 ---
 
-Chinese: [README.md](README.md) · Overview: [../../README.en.md](../../README.en.md)
+Chinese: [README.md](README.md) · Install guide: [../../docs/cli.en.md](../../docs/cli.en.md) · Overview: [../../README.en.md](../../README.en.md)

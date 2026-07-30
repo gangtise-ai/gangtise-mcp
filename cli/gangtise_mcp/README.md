@@ -67,4 +67,4 @@ uv run gangtise list
 
 ---
 
-English: [README.en.md](README.en.md) · 总览: [../../README.md](../../README.md)
+English: [README.en.md](README.en.md) · 安装说明: [../../docs/cli.md](../../docs/cli.md) · 总览: [../../README.md](../../README.md)

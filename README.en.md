@@ -8,7 +8,8 @@ Gangtise financial data and research tools over the [Model Context Protocol](htt
 **Recommended package: [`gangtise_mcp`](mcp/gangtise_mcp/)** — all leaf tools from five domains in one server.
 
 [Get credentials](https://open-platform.gangtise.com/) ·
-[HTTP / SSE / OAuth](docs/http-sse.en.md) ·
+[HTTP / SSE](docs/http-sse.en.md) ·
+[CLI](docs/cli.en.md) ·
 [Docker](docs/docker-deploy.en.md)
 
 </div>
@@ -26,7 +27,8 @@ Gangtise financial data and research tools over the [Model Context Protocol](htt
 | Mode | Notes |
 |------|--------|
 | **Local stdio** | Run via `uvx`; set AK/SK in env |
-| **Remote HTTP / SSE** | Connect to `/open-mcp`; use **OAuth consent** (Bearer only) or send AK/SK in headers |
+| **CLI** | Full command `gangtise` via `uvx` (see [docs/cli.en.md](docs/cli.en.md)) |
+| **Remote HTTP / SSE** | Connect to `/open-mcp`; prefer AK/SK headers (or Authorization) |
 
 Repository used in examples below: [`https://github.com/XiaoYan3938/gangtise-data-mcp`](https://github.com/XiaoYan3938/gangtise-data-mcp). Chinese docs use Gitee — see [README.md](README.md).
 

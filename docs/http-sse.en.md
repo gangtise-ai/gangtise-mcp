@@ -106,4 +106,4 @@ Bearer pass-through:
 
 ---
 
-[Docker deploy](docker-deploy.en.md) · [Overview](../README.en.md)
+[Docker](docker-deploy.en.md) · [CLI](cli.en.md) · [Overview](../README.en.md)

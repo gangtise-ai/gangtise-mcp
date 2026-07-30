@@ -106,4 +106,4 @@ Authorization: Bearer <token>
 
 ---
 
-[Docker 部署](docker-deploy.md) · [总览](../README.md)
+[HTTP / SSE](http-sse.md) · [CLI](cli.md) · [总览](../README.md)
