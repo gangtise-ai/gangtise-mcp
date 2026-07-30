@@ -19,22 +19,29 @@ Responses echo `X-DashScope-Request-ID`. With `MCP_REQUIRE_AUTH=true`, the MCP p
 
 ---
 
-<details>
-<summary><b>Auth (OAuth / Authorization / X-GTS-Credentials)</b></summary>
+<details open>
+<summary><b>Auth (prefer AK/SK; Authorization also supported)</b></summary>
 
-Three modes can be enabled together (**priority: MCP OAuth JWT → raw Authorization → X-GTS-Credentials**):
+Two modes can be enabled together. **For everyday remote use, prefer passing AK/SK** (`accessKey` / `secretKey` headers, or `X-GTS-Credentials`).
 
-### 1. OAuth 2.1 (WorkBuddy / browser consent)
+Server resolution order: **raw Authorization → AK/SK (incl. X-GTS-Credentials)**.
 
-| Env | Notes |
-|-----|--------|
-| `GTS_JWT_SECRET` | Required to enable OAuth |
-| `GTS_CRED_ENC_KEY` | Optional Fernet key; derived from JWT secret if omitted |
-| `GTS_OAUTH_ISSUER` | Public issuer URL (no trailing slash), e.g. `https://openapi.gangtise.com/application/open-mcp` |
+### 1. AK/SK → loginV2 (recommended)
 
-Endpoints: `/.well-known/oauth-protected-resource`, `/.well-known/oauth-authorization-server`, `/oauth/register`, `/oauth/authorize`, `/oauth/token` (aliases `/register`, `/authorize`, `/token`).
+After obtaining Access Key / Secret Key from the open platform, set request headers in the MCP client:
 
-Unauthenticated MCP calls return **401** with `WWW-Authenticate` `resource_metadata`. Access JWTs are resolved to AK/SK inside the gateway, then **loginV2** for downstream APIs.
+```http
+accessKey: <ak>
+secretKey: <sk>
+```
+
+Or:
+
+```http
+X-GTS-Credentials: {"accessKey":"<ak>","secretKey":"<sk>"}
+```
+
+stdio: `GTS_ACCESS_KEY` + `GTS_SECRET_KEY` (or local `~/.config/gangtise/authorization`).
 
 ### 2. Pass Authorization (business Bearer)
 
@@ -44,26 +51,37 @@ Authorization: Bearer <token>
 
 Pass-through. stdio: `GTS_AUTHORIZATION` or local file.
 
-### 3. AK/SK → loginV2
-
-```http
-X-GTS-Credentials: {"accessKey":"<ak>","secretKey":"<sk>"}
-```
-
-Or `accessKey` / `secretKey` headers. stdio: `GTS_ACCESS_KEY` + `GTS_SECRET_KEY`.
-
 </details>
 
-<details>
+<details open>
 <summary><b>Client example</b></summary>
 
-OAuth (no headers; client runs the flow):
+**Recommended: AK/SK headers**
 
 ```json
 {
   "mcpServers": {
     "gangtise": {
-      "url": "https://openapi.gangtise.com/application/open-mcp/"
+      "url": "https://openapi.gangtise.com/application/open-mcp/",
+      "headers": {
+        "accessKey": "<ak>",
+        "secretKey": "<sk>"
+      }
+    }
+  }
+}
+```
+
+Or `X-GTS-Credentials`:
+
+```json
+{
+  "mcpServers": {
+    "gangtise": {
+      "url": "https://openapi.gangtise.com/application/open-mcp/",
+      "headers": {
+        "X-GTS-Credentials": "{\"accessKey\":\"<ak>\",\"secretKey\":\"<sk>\"}"
+      }
     }
   }
 }
