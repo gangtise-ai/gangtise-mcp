@@ -38,6 +38,7 @@ curl -sS http://127.0.0.1:8000/health
 
 | 变量 | 默认 | 说明 |
 |------|------|------|
+| `GANGTISE_AUTH_DOMAIN` | `https://openapi.gangtise.com/application/auth` | loginV2 基址；实际请求 `{GANGTISE_AUTH_DOMAIN}/oauth/open/loginV2` |
 | `MCP_TRANSPORT` | `http` | `http` / `sse` / `both` |
 | `MCP_LAYOUT` | `unified` | `unified`（单进程全量叶子）/ `gateway` |
 | `MCP_PACKAGE` | `domains` | `domains` / `all` / 单域 slug |

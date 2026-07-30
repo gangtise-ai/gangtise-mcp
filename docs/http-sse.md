@@ -13,6 +13,8 @@ Remote MCP transport and auth (main). Production HTTP base: `https://openapi.gan
 | streamable-http | Production: `https://openapi.gangtise.com/application/mcp/` · In-process: `POST /` (`MCP_PATH`) |
 | SSE | Production: `https://openapi.gangtise.com/application/mcp/sse` · In-process: `GET /sse` + `POST /messages/` |
 
+Requires `MCP_TRANSPORT=sse` or `both`. Behind a path-stripping gateway the server advertises a **relative** `messages/?session_id=…` so clients resolve it under the same prefix as `/sse`.
+
 Health: `GET /health`.
 
 Responses echo `X-DashScope-Request-ID`. With `MCP_REQUIRE_AUTH=true`, the MCP path without auth returns **401**. Tool schemas are flattened.
@@ -54,14 +56,17 @@ Pass-through. stdio: `GTS_AUTHORIZATION` or local file.
 </details>
 
 <details open>
-<summary><b>Client example</b></summary>
+<summary><b>Client example</b> (`~/.cursor/mcp.json`)</summary>
 
-**Recommended: AK/SK headers**
+Set **`type`** to match the URL: `streamableHttp` for the HTTP base, `sse` for `/sse`. Do not point `streamableHttp` at `/sse`.
+
+**Streamable HTTP (recommended) + AK/SK**
 
 ```json
 {
   "mcpServers": {
     "gangtise": {
+      "type": "streamableHttp",
       "url": "https://openapi.gangtise.com/application/mcp/",
       "headers": {
         "accessKey": "<ak>",
@@ -72,12 +77,30 @@ Pass-through. stdio: `GTS_AUTHORIZATION` or local file.
 }
 ```
 
-Or `X-GTS-Credentials`:
+**SSE + AK/SK**
+
+```json
+{
+  "mcpServers": {
+    "gangtise-sse": {
+      "type": "sse",
+      "url": "https://openapi.gangtise.com/application/mcp/sse",
+      "headers": {
+        "accessKey": "<ak>",
+        "secretKey": "<sk>"
+      }
+    }
+  }
+}
+```
+
+Or `X-GTS-Credentials` (same `type` / `url` as above):
 
 ```json
 {
   "mcpServers": {
     "gangtise": {
+      "type": "streamableHttp",
       "url": "https://openapi.gangtise.com/application/mcp/",
       "headers": {
         "X-GTS-Credentials": "{\"accessKey\":\"<ak>\",\"secretKey\":\"<sk>\"}"
@@ -93,6 +116,7 @@ Bearer pass-through:
 {
   "mcpServers": {
     "gangtise": {
+      "type": "streamableHttp",
       "url": "https://openapi.gangtise.com/application/mcp/",
       "headers": {
         "Authorization": "Bearer <token>"
@@ -101,6 +125,8 @@ Bearer pass-through:
   }
 }
 ```
+
+WorkBuddy marketplace uses `https://openapi.gangtise.com/application/open-mcp/` (streamableHttp); see [`connectors/workbuddy/gangtise-mcp/`](../connectors/workbuddy/gangtise-mcp/).
 
 </details>
 

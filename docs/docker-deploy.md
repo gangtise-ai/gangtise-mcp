@@ -27,6 +27,7 @@ Connect to `http://127.0.0.1:8000/` with `Authorization: Bearer <token>` (forwar
 
 | Variable | Default | Notes |
 |----------|---------|--------|
+| `GANGTISE_AUTH_DOMAIN` | `https://openapi.gangtise.com/application/auth` | loginV2 base; requests go to `{GANGTISE_AUTH_DOMAIN}/oauth/open/loginV2` |
 | `MCP_TRANSPORT` | `http` | `http` / `sse` / `both` |
 | `MCP_LAYOUT` | `unified` | `unified` / `gateway` |
 | `MCP_PACKAGE` | `domains` | `domains` / `all` / single-domain slug |

@@ -13,6 +13,8 @@
 | streamable-http | 生产：`https://openapi.gangtise.com/application/mcp/` · 进程内：`POST /`（`MCP_PATH`） |
 | SSE | 生产：`https://openapi.gangtise.com/application/mcp/sse` · 进程内：`GET /sse` + `POST /messages/` |
 
+需 `MCP_TRANSPORT=sse` 或 `both`。经网关剥离前缀时，服务端下发**相对路径** `messages/?session_id=…`，客户端会解析到与 `/sse` 相同前缀下。
+
 健康检查：`GET /health`。
 
 兼容：响应回传 `X-DashScope-Request-ID`；`MCP_REQUIRE_AUTH=true` 时未带鉴权访问 MCP 路径返回 **401**；工具参数 schema 为单层基本类型。
@@ -54,14 +56,17 @@ Authorization: Bearer <token>
 </details>
 
 <details open>
-<summary><b>客户端连接示例</b></summary>
+<summary><b>客户端连接示例</b>（`~/.cursor/mcp.json`）</summary>
 
-**推荐：请求头传 AK/SK**
+`type` 需与 URL 一致：HTTP 基址用 `streamableHttp`，`/sse` 用 `sse`。不要把 `streamableHttp` 指到 `/sse`。
+
+**Streamable HTTP（推荐）+ AK/SK**
 
 ```json
 {
   "mcpServers": {
     "gangtise": {
+      "type": "streamableHttp",
       "url": "https://openapi.gangtise.com/application/mcp/",
       "headers": {
         "accessKey": "<ak>",
@@ -72,12 +77,30 @@ Authorization: Bearer <token>
 }
 ```
 
-亦可使用 `X-GTS-Credentials`：
+**SSE + AK/SK**
+
+```json
+{
+  "mcpServers": {
+    "gangtise-sse": {
+      "type": "sse",
+      "url": "https://openapi.gangtise.com/application/mcp/sse",
+      "headers": {
+        "accessKey": "<ak>",
+        "secretKey": "<sk>"
+      }
+    }
+  }
+}
+```
+
+亦可使用 `X-GTS-Credentials`（`type` / `url` 同上）：
 
 ```json
 {
   "mcpServers": {
     "gangtise": {
+      "type": "streamableHttp",
       "url": "https://openapi.gangtise.com/application/mcp/",
       "headers": {
         "X-GTS-Credentials": "{\"accessKey\":\"<ak>\",\"secretKey\":\"<sk>\"}"
@@ -93,6 +116,7 @@ Authorization: Bearer <token>
 {
   "mcpServers": {
     "gangtise": {
+      "type": "streamableHttp",
       "url": "https://openapi.gangtise.com/application/mcp/",
       "headers": {
         "Authorization": "Bearer <token>"
@@ -102,8 +126,10 @@ Authorization: Bearer <token>
 }
 ```
 
+WorkBuddy 上架端点为 `https://openapi.gangtise.com/application/open-mcp/`（`streamableHttp`），见 [`connectors/workbuddy/gangtise-mcp/`](../connectors/workbuddy/gangtise-mcp/)。
+
 </details>
 
 ---
 
-[HTTP / SSE](http-sse.cn.md) · [CLI](cli.cn.md) · [总览](../README.cn.md)
+[Docker 部署](docker-deploy.cn.md) · [CLI](cli.cn.md) · [总览](../README.cn.md)

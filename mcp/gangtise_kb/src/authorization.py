@@ -21,11 +21,10 @@ import requests
 GTS_ACCESS_KEY = os.getenv("GTS_ACCESS_KEY")
 GTS_SECRET_KEY = os.getenv("GTS_SECRET_KEY")
 
-DEPLOY_ENV = os.getenv("DEPLOY_ENV", "local")
-if DEPLOY_ENV in ("prod", "local"):
-    AUTHORIZATION_URL = "https://openapi.gangtise.com/application/auth/oauth/open/loginV2"
-else:
-    AUTHORIZATION_URL = "http://10.78.10.43:30901/application/auth/oauth/open/loginV2"
+GANGTISE_AUTH_DOMAIN = os.getenv(
+    "GANGTISE_AUTH_DOMAIN", "https://openapi.gangtise.com/application/auth"
+).rstrip("/")
+AUTHORIZATION_URL = f"{GANGTISE_AUTH_DOMAIN}/oauth/open/loginV2"
 
 AUTH_EXPIRED_CODES = frozenset({"8000014", "8000013", 8000014, 8000013, "999002", 999002})
 LOGIN_TIMEOUT = 30
