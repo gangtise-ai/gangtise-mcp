@@ -144,24 +144,6 @@ def _search_items_to_config_records(items: List[dict]) -> List[dict]:
     return records
 
 
-def _indicator_params_config_records(indicator_meta: List[Dict[str, Any]]) -> List[dict]:
-    records = []
-    for item in indicator_meta:
-        code = str(item.get("code", "")).strip()
-        if not code:
-            continue
-        name = str(item.get("name") or code).strip()
-        params = item.get("params") if isinstance(item.get("params"), dict) else {}
-        records.append(
-            {
-                "indicator_code": code,
-                "indicator_name": name,
-                "indicator_params": json.dumps(params, ensure_ascii=False),
-            }
-        )
-    return records
-
-
 def _params_dict_from_file_entries(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
     for entry in entries:
@@ -1005,12 +987,7 @@ def company_indicator_get(
     if errors:
         msg += f"\n部分请求异常：{'；'.join(errors[:3])}"
 
-    meta = indicator_meta or [{"code": c, "name": c, "params": {}} for c in indicators]
-    meta_by_code = {str(m["code"]): m for m in meta}
-    params_records = _indicator_params_config_records(
-        [meta_by_code.get(c, {"code": c, "name": c, "params": {}}) for c in indicators]
-    )
-
+    # get 成功只返回时序/截面数据；参数模板仅 search（company_indicator_search）产出
     parts = [
         {
             "data": data.to_dict(orient="records"),
@@ -1018,15 +995,6 @@ def company_indicator_get(
             "type": "data",
         }
     ]
-    if params_records:
-        parts.append(
-            {
-                "data": params_records,
-                "module": "company_indicator_params",
-                "type": "data",
-                "footer": INDICATORS_FILE_HINT,
-            }
-        )
     return format_response(
         {
             "state": "success",
@@ -1044,52 +1012,13 @@ def company_indicator_data(
     securities: Optional[Any] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    params: Optional[Any] = None,
+    params: Optional[Dict[str, Any]] = None,
 ):
     """检索公司指标元信息，或在提供 indicator_codes + securities 时拉取时序/截面数据。
 
     优先级：有 indicator_codes → get；否则有 keyword → search。
     仅有 securities 不会进入 get。
     """
-    if isinstance(params, str):
-        text = params.strip()
-        if not text:
-            params = None
-        else:
-            try:
-                parsed = json.loads(text)
-            except json.JSONDecodeError as e:
-                return format_response(
-                    {
-                        "state": "error",
-                        "message": f"params 须为 JSON object 字符串: {e}",
-                        "data": [],
-                        "usage": {},
-                    },
-                    "company_indicator",
-                )
-            if not isinstance(parsed, dict):
-                return format_response(
-                    {
-                        "state": "error",
-                        "message": "params JSON 须解析为 object",
-                        "data": [],
-                        "usage": {},
-                    },
-                    "company_indicator",
-                )
-            params = parsed
-    elif params is not None and not isinstance(params, dict):
-        return format_response(
-            {
-                "state": "error",
-                "message": f"params 类型无效: {type(params).__name__}",
-                "data": [],
-                "usage": {},
-            },
-            "company_indicator",
-        )
-
     indicators_raw = (indicator_codes or "").strip()
     sec_list = normalize_securities_arg(securities)
 

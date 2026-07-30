@@ -32,12 +32,18 @@ Connect to `http://127.0.0.1:8000/` with `Authorization: Bearer <token>` (forwar
 | `MCP_PACKAGE` | `domains` | `domains` / `all` / single-domain slug |
 | `MCP_PATH` | `/` | In-process MCP mount; empty = root |
 | `MCP_REQUIRE_AUTH` | `true` | HTTP 401 if MCP path lacks `Authorization` |
-| `TOOL_URL_DEPS_PATH` | `/opt/mcp/tool_url_deps.json` | Build-time tool→URL dependency map |
+| `MCP_TOOL_BLACKLIST` | empty | Comma-separated tool names; hidden from `tools/list` and rejected on `call` |
+| `TOOL_URL_DEPS_PATH` | `/opt/mcp/tool_url_deps.json` | Build-time tool→API path dependency map |
+| `MCP_API_GETLIST_PATH` | `/api/getList` | User API whitelist path (appended to `GANGTISE_DATA_DOMAIN`) |
+| `MCP_WHITELIST_CACHE_SEC` | `300` | getList cache TTL seconds |
+| `MCP_WHITELIST_STRICT` | `false` | If `true`, getList failure yields empty whitelist; default falls back to all paths |
 | `GTS_MCP_ROOT` | `/opt/mcp` | contains `api/` and `mcp/` |
-| `MCP_ATTACH_MAX_BYTES` | `33554432` | Inline attachment limit |
-| `OBS_*` | empty | Optional large-attachment offload |
+| `MCP_ATTACH_MAX_BYTES` | `33554432` | Inline attachment limit; larger files use OBS when configured |
+| `MCP_ATTACH_OBS_ALWAYS` | `false` | When `true`, always upload to OBS and put download URLs in text (no embedded blobs; for WorkBuddy) |
+| `OBS_*` | empty | Optional OBS offload: `OBS_ACCESS_KEY` / `SECRET_KEY` / `ENDPOINT` / `BUCKET` / `PATH` |
+| `OBS_EXPIRE_DAYS` | `1` | OBS object lifetime in days (auto-delete) |
 
-Tool visibility: build scans `*_URL` deps per tool; runtime `get_white_list()` (stub = all URLs) filters `tools/list` and `call`. Tools with no URL deps always stay; empty whitelist (banned user) hides every tool that has URL deps.
+Tool visibility: `MCP_TOOL_BLACKLIST` wins first (absolute hide). Then build-time API-path deps + runtime `get_white_list()` (`GET {GANGTISE_DATA_DOMAIN}/api/getList`) filter `tools/list` and `call`. Tools with no path deps (and not blacklisted) stay; empty whitelist (banned user / strict getList failure) hides every tool that has path deps.
 
 Responses echo `X-DashScope-Request-ID`. Tool schemas are flattened. No SPI / AK·SK / OAuth in this branch.
 

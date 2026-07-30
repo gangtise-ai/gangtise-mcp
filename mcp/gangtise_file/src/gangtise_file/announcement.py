@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (ANNOUNCEMENT_CATEGORY_MAP, COMPANY_ANNOUNCEMENT_URL, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, HK_ANNOUNCEMENT_CATEGORY_MAP, HK_ANNOUNCEMENT_LIST_URL, US_ANNOUNCEMENT_CATEGORY_MAP, US_ANNOUNCEMENT_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags)
+from .utils import (ANNOUNCEMENT_CATEGORY_MAP, check_version, COMPANY_ANNOUNCEMENT_URL, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, HK_ANNOUNCEMENT_CATEGORY_MAP, HK_ANNOUNCEMENT_LIST_URL, match_best, remove_html_tags, resolve_result_limit, US_ANNOUNCEMENT_CATEGORY_MAP, US_ANNOUNCEMENT_LIST_URL)
 from .get_file import download_files
 from .security import batch_security_search
 
@@ -429,12 +429,13 @@ def announcement_finder(
     category_list: Optional[List[str]] = None,
     search_type: int = 1,
     rank_type: int = 1,
-    limit: int = FILE_DEFAULT_LIMIT["announcement"],
+    limit: Optional[int] = None,
     download: bool = False,
     output_dir: Optional[str] = None,
     download_types: Optional[List[str]] = None,
 ):
     try:
+        limit = resolve_result_limit(limit, download, "announcement")
         headers = get_authorization_headers()
         
         securities_input = list(securities) if securities else []
@@ -593,9 +594,9 @@ def main():
     parser.add_argument(
         "-l",
         "--limit",
-        default=FILE_DEFAULT_LIMIT["announcement"],
+        default=None,
         type=int,
-        help="返回文件数量上限",
+        help="返回条数上限；不传时用检索默认，开启 -d 下载时默认 5",
     )
     parser.add_argument(
         "--securities",
@@ -650,7 +651,7 @@ def main():
     category_list = _parse_str_list(args.category_list)
     start_date = args.start_date or None
     end_date = args.end_date or None
-    limit = int(args.limit)
+    limit = resolve_result_limit(args.limit, bool(args.download), "announcement")
     search_type = int(args.search_type or 1)
     rank_type = int(args.rank_type or 1)
     download = args.download or False

@@ -3,6 +3,10 @@
     "gangtise-mcp": {
       "type": "streamableHttp",
       "url": "https://openapi.gangtise.com/application/open-mcp/",
+      "headers": {
+        "accessKey": "${gangtiseAccessKey}",
+        "secretKey": "${gangtiseSecretKey}"
+      },
       "timeout": 60000
     }
   }

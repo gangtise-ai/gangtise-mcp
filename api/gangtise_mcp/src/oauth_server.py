@@ -5,6 +5,13 @@
   GTS_CRED_ENC_KEY   — 可选；Fernet key，缺省由 JWT secret 派生
   GTS_OAUTH_ISSUER   — 对外 issuer（反代后完整 URL，无尾斜杠）
                        例：https://openapi.gangtise.com/application/open-mcp
+  GTS_OAUTH_ACCESS_TTL   — access 秒数，默认 3600
+  GTS_OAUTH_REFRESH_TTL  — refresh 秒数，默认 7 天
+  GTS_OAUTH_RATE_LIMIT   — 同意页 POST 每 IP 窗口内最大次数，默认 10（0=关闭）
+  GTS_OAUTH_RATE_WINDOW  — 限流窗口秒数，默认 300
+  GTS_OAUTH_CAPTCHA      — 同意页算术验证码，默认 true
+  GTS_OAUTH_PENDING_TTL  — 未完成授权的 client 保留秒数，默认 600；超时主动清理
+  GTS_OAUTH_PENDING_MAX  — 未完成授权（注册页进行中）最大同时数，默认 10000
 
 端点（规范路径 + README 回退别名）：
   GET  /.well-known/oauth-protected-resource
@@ -13,7 +20,7 @@
   GET/POST /oauth/authorize | /authorize
   POST /oauth/token     | /token
 
-同意页收集开放平台 AK/SK，校验 loginV2 后签发 access（1h）/ refresh（30d）。
+同意页收集开放平台 AK/SK，校验 loginV2 后签发 access（1h）/ refresh（7d）。
 客户端携带的 MCP access JWT 由 http_compat 解出 AK/SK，再走现有 loginV2 调业务。
 """
 from __future__ import annotations
@@ -26,8 +33,9 @@ import os
 import secrets
 import time
 import uuid
+from collections import defaultdict, deque
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Deque, Dict, List, Optional, Tuple
 from urllib.parse import urlencode, urlparse
 
 import jwt
@@ -39,13 +47,99 @@ from starlette.routing import Route
 from authorization import AUTHORIZATION_URL, _login
 
 ACCESS_TTL_SEC = int(os.getenv("GTS_OAUTH_ACCESS_TTL", "3600"))
-REFRESH_TTL_SEC = int(os.getenv("GTS_OAUTH_REFRESH_TTL", str(30 * 24 * 3600)))
+REFRESH_TTL_SEC = int(os.getenv("GTS_OAUTH_REFRESH_TTL", str(7 * 24 * 3600)))
 CODE_TTL_SEC = 600
+CAPTCHA_TTL_SEC = 600
 JWT_ALG = "HS256"
 JWT_ISS_CLAIM = "gts_mcp"
 
 _CONSENT_TEMPLATE_PATH = Path(__file__).resolve().parent / "oauth_consent.html"
 _consent_template_cache: Optional[str] = None
+
+# captcha_id -> {answer, exp}
+_captchas: Dict[str, Dict[str, Any]] = {}
+# rate key -> timestamps
+_rate_hits: Dict[str, Deque[float]] = defaultdict(deque)
+
+
+def _env_flag(name: str, default: str = "false") -> bool:
+    return os.getenv(name, default).lower() in ("1", "true", "yes", "on")
+
+
+def captcha_enabled() -> bool:
+    return _env_flag("GTS_OAUTH_CAPTCHA", "true")
+
+
+def _rate_limit_max() -> int:
+    try:
+        return max(0, int(os.getenv("GTS_OAUTH_RATE_LIMIT", "10")))
+    except ValueError:
+        return 10
+
+
+def _rate_window_sec() -> int:
+    try:
+        return max(1, int(os.getenv("GTS_OAUTH_RATE_WINDOW", "300")))
+    except ValueError:
+        return 300
+
+
+def _client_ip(request: Request) -> str:
+    xff = (request.headers.get("x-forwarded-for") or "").strip()
+    if xff:
+        return xff.split(",")[0].strip() or "unknown"
+    if request.client and request.client.host:
+        return request.client.host
+    return "unknown"
+
+
+def _rate_allow(bucket: str, *, cost: int = 1) -> bool:
+    """滑动窗口限流；返回是否允许。max=0 表示关闭。"""
+    limit = _rate_limit_max()
+    if limit <= 0:
+        return True
+    now = time.time()
+    window = float(_rate_window_sec())
+    q = _rate_hits[bucket]
+    while q and now - q[0] > window:
+        q.popleft()
+    if len(q) + cost > limit:
+        return False
+    for _ in range(cost):
+        q.append(now)
+    return True
+
+
+def _prune_captchas(now: Optional[float] = None) -> None:
+    t = now if now is not None else time.time()
+    dead = [k for k, v in _captchas.items() if float(v.get("exp") or 0) < t]
+    for k in dead:
+        _captchas.pop(k, None)
+
+
+def _issue_captcha() -> Tuple[str, str]:
+    """返回 (captcha_id, question_text)。"""
+    _prune_captchas()
+    a = secrets.randbelow(8) + 2
+    b = secrets.randbelow(8) + 2
+    cid = secrets.token_urlsafe(18)
+    _captchas[cid] = {"answer": str(a + b), "exp": time.time() + CAPTCHA_TTL_SEC}
+    return cid, f"{a} + {b} = ?"
+
+
+def _verify_captcha(captcha_id: str, answer: str) -> bool:
+    if not captcha_enabled():
+        return True
+    cid = (captcha_id or "").strip()
+    ans = (answer or "").strip()
+    if not cid or not ans:
+        return False
+    entry = _captchas.pop(cid, None)
+    if not entry:
+        return False
+    if float(entry.get("exp") or 0) < time.time():
+        return False
+    return str(entry.get("answer")) == ans
 
 
 def _load_consent_template() -> str:
@@ -64,7 +158,23 @@ def _consent_html(
     code_challenge: str = "",
     code_challenge_method: str = "S256",
     scope: str = "mcp",
+    captcha_id: str = "",
+    captcha_question: str = "",
 ) -> str:
+    if captcha_enabled():
+        if not captcha_id:
+            captcha_id, captcha_question = _issue_captcha()
+        captcha_block = (
+            '<label for="captcha_answer">验证码</label>'
+            '<div class="captcha-row">'
+            f'<div class="captcha-q" aria-hidden="true">{html.escape(captcha_question)}</div>'
+            '<input id="captcha_answer" name="captcha_answer" type="text" inputmode="numeric" '
+            'required autocomplete="off" placeholder="计算结果" style="flex:1"/>'
+            "</div>"
+        )
+    else:
+        captcha_id = ""
+        captcha_block = ""
     err_block = f'<p class="err">{html.escape(error)}</p>' if error else ""
     return (
         _load_consent_template()
@@ -75,6 +185,8 @@ def _consent_html(
         .replace("{{CODE_CHALLENGE}}", html.escape(code_challenge, quote=True))
         .replace("{{CODE_CHALLENGE_METHOD}}", html.escape(code_challenge_method, quote=True))
         .replace("{{SCOPE}}", html.escape(scope, quote=True))
+        .replace("{{CAPTCHA_ID}}", html.escape(captcha_id, quote=True))
+        .replace("{{CAPTCHA_BLOCK}}", captcha_block)
     )
 
 
@@ -207,6 +319,29 @@ def _decode_mcp_jwt(token: str) -> Dict[str, Any]:
 
 def try_mcp_oauth_to_credentials(authorization: str) -> Optional[Tuple[str, str]]:
     """若 Authorization 为本服务签发的 access JWT，返回 (ak, sk)；否则 None。"""
+    claims = _try_decode_access_claims(authorization)
+    if not claims:
+        return None
+    cred = claims.get("cred")
+    if not isinstance(cred, str):
+        return None
+    return _decrypt_creds(cred)
+
+
+def try_mcp_oauth_identity(authorization: str) -> Optional[Dict[str, str]]:
+    """从本服务 access JWT 取出 uid/tenantid/productcode（若有）。"""
+    claims = _try_decode_access_claims(authorization)
+    if not claims:
+        return None
+    out: Dict[str, str] = {}
+    for key in ("uid", "tenantid", "productcode"):
+        val = claims.get(key)
+        if val is not None and str(val).strip():
+            out[key] = str(val).strip()
+    return out or None
+
+
+def _try_decode_access_claims(authorization: str) -> Optional[Dict[str, Any]]:
     if not oauth_enabled():
         return None
     token = (authorization or "").strip()
@@ -220,15 +355,126 @@ def try_mcp_oauth_to_credentials(authorization: str) -> Optional[Tuple[str, str]
         return None
     if claims.get("typ") != "access":
         return None
-    cred = claims.get("cred")
-    if not isinstance(cred, str):
-        return None
-    return _decrypt_creds(cred)
+    return claims
 
 
 # --- in-memory stores (单副本部署足够；多副本需外置) ---
+# client: status=pending|completed；completed 永久保留，pending 超时清理且有上限
 _clients: Dict[str, Dict[str, Any]] = {}
 _auth_codes: Dict[str, Dict[str, Any]] = {}
+
+
+def _pending_ttl_sec() -> int:
+    try:
+        return max(1, int(os.getenv("GTS_OAUTH_PENDING_TTL", "600")))
+    except ValueError:
+        return 600
+
+
+def _pending_max() -> int:
+    try:
+        return max(1, int(os.getenv("GTS_OAUTH_PENDING_MAX", "10000")))
+    except ValueError:
+        return 10000
+
+
+def _prune_pending_clients(now: Optional[float] = None) -> int:
+    """清理超时未完成授权的 client；顺带丢掉过期 auth code。返回清理的 client 数。"""
+    t = now if now is not None else time.time()
+    ttl = float(_pending_ttl_sec())
+    dead = [
+        cid
+        for cid, c in _clients.items()
+        if c.get("status", "pending") != "completed"
+        and t - float(c.get("touch_at") or c.get("created_at") or 0) > ttl
+    ]
+    for cid in dead:
+        _clients.pop(cid, None)
+    expired_codes = [c for c, e in _auth_codes.items() if float(e.get("exp") or 0) < t]
+    for c in expired_codes:
+        _auth_codes.pop(c, None)
+    return len(dead)
+
+
+def _pending_client_count() -> int:
+    return sum(1 for c in _clients.values() if c.get("status", "pending") != "completed")
+
+
+def _touch_client(client_id: str) -> None:
+    entry = _clients.get(client_id)
+    if entry and entry.get("status") != "completed":
+        entry["touch_at"] = time.time()
+
+
+def _mark_client_completed(client_id: str) -> None:
+    """同意页 AK/SK 成功并签发 authorization code 后标记完成，永久保留。"""
+    if not client_id:
+        return
+    entry = _clients.get(client_id)
+    if not entry:
+        return
+    entry["status"] = "completed"
+    entry["completed_at"] = time.time()
+    entry["touch_at"] = entry["completed_at"]
+
+
+def _put_pending_client(
+    *,
+    client_id: str,
+    redirect_uris: List[str],
+    client_name: str = "mcp-client",
+) -> Optional[str]:
+    """登记或刷新 pending client。超额返回 None（调用方应拒绝）。已 completed 的只更新 redirect。"""
+    _prune_pending_clients()
+    now = time.time()
+    existing = _clients.get(client_id)
+    if existing and existing.get("status") == "completed":
+        uris = existing.setdefault("redirect_uris", [])
+        for u in redirect_uris:
+            if u and u not in uris:
+                uris.append(u)
+        return client_id
+
+    if existing:
+        # 已有 pending：刷新活跃时间，必要时补 redirect
+        existing["touch_at"] = now
+        uris = existing.setdefault("redirect_uris", [])
+        for u in redirect_uris:
+            if u and u not in uris:
+                uris.append(u)
+        if client_name:
+            existing["client_name"] = client_name
+        return client_id
+
+    if _pending_client_count() >= _pending_max():
+        return None
+
+    _clients[client_id] = {
+        "client_id": client_id,
+        "redirect_uris": list(redirect_uris),
+        "client_name": client_name or "mcp-client",
+        "token_endpoint_auth_method": "none",
+        "status": "pending",
+        "created_at": now,
+        "touch_at": now,
+    }
+    return client_id
+
+
+def _client_capacity_error(*, as_html: bool = False) -> Response:
+    desc = (
+        f"pending OAuth registrations full (max {_pending_max()}); "
+        f"incomplete entries expire after {_pending_ttl_sec()}s"
+    )
+    if as_html:
+        return HTMLResponse(
+            _consent_html(error="授权通道繁忙，请稍后再试（未完成注册会在超时后自动释放）"),
+            status_code=503,
+        )
+    return JSONResponse(
+        {"error": "temporarily_unavailable", "error_description": desc},
+        status_code=503,
+    )
 
 
 def _pkce_s256(verifier: str) -> str:
@@ -237,15 +483,45 @@ def _pkce_s256(verifier: str) -> str:
 
 
 def _validate_redirect_uri(uri: str) -> bool:
+    """允许的回调：
+
+    - WorkBuddy / 规范本机：http://127.0.0.1|localhost:{port}/oauth/callback
+    - Cursor 桌面：http://127.0.0.1|localhost:{port}/callback（常见 8787）
+    - Cursor 自定义协议 / Web Agents（DCR 常一并提交）
+    """
     try:
         p = urlparse(uri)
     except Exception:
         return False
-    if p.scheme != "http" or p.hostname not in ("127.0.0.1", "localhost"):
+    host = (p.hostname or "").lower()
+    path = (p.path or "").rstrip("/") or "/"
+
+    # Cursor / 部分客户端在 DCR 时会带多条 redirect_uris，需全部通过校验
+    if p.scheme == "cursor" and host in ("anysphere.cursor-mcp",) and path == "/oauth/callback":
+        return True
+    if (
+        p.scheme == "https"
+        and host in ("www.cursor.com", "cursor.com")
+        and path == "/agents/mcp/oauth/callback"
+    ):
+        return True
+
+    if p.scheme != "http" or host not in ("127.0.0.1", "localhost"):
         return False
-    if p.path.rstrip("/") != "/oauth/callback":
+    if path not in ("/oauth/callback", "/callback"):
+        return False
+    # 本机回调应带端口（Cursor 固定 8787；WorkBuddy 动态端口）
+    if p.port is None:
         return False
     return True
+
+
+def _redirect_uri_error_description() -> str:
+    return (
+        "redirect_uri must be loopback http://127.0.0.1|localhost:{port}/oauth/callback|/callback, "
+        "or cursor://anysphere.cursor-mcp/oauth/callback, "
+        "or https://www.cursor.com/agents/mcp/oauth/callback"
+    )
 
 
 def _disabled() -> JSONResponse:
@@ -309,18 +585,17 @@ async def register_client(request: Request) -> Response:
             return JSONResponse(
                 {
                     "error": "invalid_redirect_uri",
-                    "error_description": "redirect_uri must be http://127.0.0.1:{port}/oauth/callback",
+                    "error_description": _redirect_uri_error_description(),
                 },
                 status_code=400,
             )
     client_id = str(uuid.uuid4())
-    _clients[client_id] = {
-        "client_id": client_id,
-        "redirect_uris": list(redirect_uris),
-        "client_name": body.get("client_name") or "mcp-client",
-        "token_endpoint_auth_method": "none",
-        "created_at": int(time.time()),
-    }
+    if _put_pending_client(
+        client_id=client_id,
+        redirect_uris=list(redirect_uris),
+        client_name=str(body.get("client_name") or "mcp-client"),
+    ) is None:
+        return _client_capacity_error(as_html=False)
     return JSONResponse(
         {
             "client_id": client_id,
@@ -354,20 +629,36 @@ async def authorize(request: Request) -> Response:
         err = ""
         if response_type != "code":
             err = "仅支持 response_type=code"
-        elif not client_id or client_id not in _clients:
+        elif not client_id:
+            err = "缺少 client_id"
+        elif client_id not in _clients:
             # 允许未注册 client（部分客户端跳过 DCR）；仍校验 redirect
-            if not client_id:
-                err = "缺少 client_id"
+            if (
+                _put_pending_client(
+                    client_id=client_id,
+                    redirect_uris=[redirect_uri] if redirect_uri else [],
+                    client_name="dynamic",
+                )
+                is None
+            ):
+                return _client_capacity_error(as_html=True)
+        else:
+            _prune_pending_clients()
+            if client_id not in _clients:
+                # 刚被超时清理
+                if (
+                    _put_pending_client(
+                        client_id=client_id,
+                        redirect_uris=[redirect_uri] if redirect_uri else [],
+                        client_name="dynamic",
+                    )
+                    is None
+                ):
+                    return _client_capacity_error(as_html=True)
             else:
-                _clients[client_id] = {
-                    "client_id": client_id,
-                    "redirect_uris": [redirect_uri] if redirect_uri else [],
-                    "client_name": "dynamic",
-                    "token_endpoint_auth_method": "none",
-                    "created_at": int(time.time()),
-                }
+                _touch_client(client_id)
         if not err and not _validate_redirect_uri(redirect_uri):
-            err = "redirect_uri 必须是 http://127.0.0.1:{{port}}/oauth/callback"
+            err = "redirect_uri 不符合白名单（本机 /oauth/callback|/callback，或 Cursor 回调）"
         if not err and method.upper() != "S256":
             err = "仅支持 code_challenge_method=S256"
         if not err and not code_challenge:
@@ -389,6 +680,14 @@ async def authorize(request: Request) -> Response:
         )
 
     # POST
+    ip = _client_ip(request)
+    rate_key = f"authorize:{ip}"
+    if not _rate_allow(rate_key):
+        return HTMLResponse(
+            _consent_html(error=f"尝试过于频繁，请 {_rate_window_sec()} 秒后再试"),
+            status_code=429,
+        )
+
     form = await request.form()
     client_id = str(form.get("client_id") or "")
     redirect_uri = str(form.get("redirect_uri") or "")
@@ -398,8 +697,10 @@ async def authorize(request: Request) -> Response:
     scope = str(form.get("scope") or "mcp")
     ak = str(form.get("access_key") or "").strip()
     sk = str(form.get("secret_key") or "").strip()
+    captcha_id = str(form.get("captcha_id") or "")
+    captcha_answer = str(form.get("captcha_answer") or "")
 
-    def _redisplay(msg: str) -> HTMLResponse:
+    def _redisplay(msg: str, *, status: int = 400) -> HTMLResponse:
         return HTMLResponse(
             _consent_html(
                 error=msg,
@@ -410,11 +711,13 @@ async def authorize(request: Request) -> Response:
                 code_challenge_method=method,
                 scope=scope,
             ),
-            status_code=400,
+            status_code=status,
         )
 
     if not _validate_redirect_uri(redirect_uri):
         return _redisplay("非法 redirect_uri")
+    if captcha_enabled() and not _verify_captcha(captcha_id, captcha_answer):
+        return _redisplay("验证码错误或已过期，请重试")
     if not ak or not sk:
         return _redisplay("请填写 Access Key 与 Secret Key")
 
@@ -423,13 +726,15 @@ async def authorize(request: Request) -> Response:
         return _redisplay(f"鉴权失败，请检查 AK/SK（loginV2: {AUTHORIZATION_URL}）")
 
     if client_id and client_id not in _clients:
-        _clients[client_id] = {
-            "client_id": client_id,
-            "redirect_uris": [redirect_uri],
-            "client_name": "dynamic",
-            "token_endpoint_auth_method": "none",
-            "created_at": int(time.time()),
-        }
+        if (
+            _put_pending_client(
+                client_id=client_id,
+                redirect_uris=[redirect_uri],
+                client_name="dynamic",
+            )
+            is None
+        ):
+            return _client_capacity_error(as_html=True)
     elif client_id in _clients:
         uris = _clients[client_id].setdefault("redirect_uris", [])
         if redirect_uri not in uris:
@@ -448,6 +753,7 @@ async def authorize(request: Request) -> Response:
         "productcode": productcode,
         "exp": time.time() + CODE_TTL_SEC,
     }
+    _mark_client_completed(client_id)
     params = {"code": code}
     if state:
         params["state"] = state

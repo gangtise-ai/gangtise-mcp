@@ -14,6 +14,9 @@
     label { display: block; font-size: .85rem; margin: 14px 0 6px; font-weight: 600; }
     input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #d0d7de;
              border-radius: 8px; font-size: .95rem; }
+    .captcha-row { display: flex; gap: 10px; align-items: center; }
+    .captcha-q { flex: 1; padding: 10px 12px; background: #f6f8fa; border: 1px solid #d0d7de;
+                  border-radius: 8px; font-weight: 600; letter-spacing: .02em; }
     button { margin-top: 20px; width: 100%; padding: 12px; border: 0; border-radius: 8px;
               background: #0b5fff; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }
     .err { color: #b42318; background: #fef3f2; padding: 10px 12px; border-radius: 8px; }
@@ -33,10 +36,12 @@
       <input type="hidden" name="code_challenge" value="{{CODE_CHALLENGE}}"/>
       <input type="hidden" name="code_challenge_method" value="{{CODE_CHALLENGE_METHOD}}"/>
       <input type="hidden" name="scope" value="{{SCOPE}}"/>
+      <input type="hidden" name="captcha_id" value="{{CAPTCHA_ID}}"/>
       <label for="access_key">Access Key</label>
       <input id="access_key" name="access_key" type="password" required autocomplete="off"/>
       <label for="secret_key">Secret Key</label>
       <input id="secret_key" name="secret_key" type="password" required autocomplete="off"/>
+      {{CAPTCHA_BLOCK}}
       <button type="submit">授权并继续</button>
     </form>
   </div>

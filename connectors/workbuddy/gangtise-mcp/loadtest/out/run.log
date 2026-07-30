@@ -1,0 +1,7 @@
+目标: https://openapi.gangtise.com/application/open-mcp/
+混合 50.0 QPS × 600.0s | 突发 100.0 QPS × 30.0s @ 300.0s | 长连接 200 × 600.0s
+场景 1/2: 混合调用 + 突发 …
+场景 2/2: 长连接保持 …
+压测结束，耗时 1200.9s，样本 55498
+报告: out/LOADTEST_REPORT.md
+EXIT:0

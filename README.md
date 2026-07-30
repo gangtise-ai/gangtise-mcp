@@ -275,7 +275,7 @@ HTTP 远程：将 `type` 改为 `http`，并设置 `url` 为 `https://<host>:<po
 https://<host>:<port>/open-mcp
 ```
 
-- **OAuth（推荐远程）**：配置 `GTS_JWT_SECRET`（可选 `GTS_CRED_ENC_KEY`）与 `GTS_OAUTH_ISSUER` 后，客户端走 `/oauth/authorize` 同意页（填 AK/SK），之后只带本服务签发的 Bearer（access 1h / refresh 30d）；调业务时自动 loginV2。
+- **OAuth（推荐远程）**：配置 `GTS_JWT_SECRET`（可选 `GTS_CRED_ENC_KEY`）与 `GTS_OAUTH_ISSUER` 后，客户端走 `/oauth/authorize` 同意页（填 AK/SK），之后只带本服务签发的 Bearer（access 1h / refresh 7d）；调业务时自动 loginV2。
 - **Authorization**：请求头直接带业务 `Bearer`（透传下游）。
 - **X-GTS-Credentials**：请求头带 AK/SK JSON，服务端 loginV2。
 
@@ -296,6 +296,7 @@ https://<host>:<port>/open-mcp
 | [mcp/gangtise_file](mcp/gangtise_file/) | `gangtise-file-mcp` | 研报 / 公告 / 纪要等 |
 | [mcp/gangtise_kb](mcp/gangtise_kb/) | `gangtise-kb-mcp` | 知识库 |
 | [mcp/gangtise_private](mcp/gangtise_private/) | `gangtise-private-mcp` | 云盘 / 会议 / 股池等 |
+| [mcp/gangtise_pdf](mcp/gangtise_pdf/) | `gangtise-pdf-mcp` | PDF 高精度解析（submit / result） |
 
 单域用法见各包 README；日常优先 `gangtise_mcp`。
 
@@ -326,6 +327,12 @@ HTTP：`cd gangtise-data-mcp/api/<pkg> && uv sync && uv run <api 命令>`。
 | `GTS_AUTHORIZATION_PATH` | 凭证文件路径（可选） |
 | `GTS_JWT_SECRET` / `GTS_CRED_ENC_KEY` | 远程 OAuth（Fernet key：`python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`） |
 | `GTS_OAUTH_ISSUER` | 反代后的对外 issuer URL |
+| `GTS_OAUTH_REFRESH_TTL` | refresh 有效期（秒），默认 7 天 |
+| `GTS_OAUTH_RATE_LIMIT` / `GTS_OAUTH_RATE_WINDOW` | 同意页 POST 限流（默认 10 次 / 300 秒，LIMIT=0 关闭） |
+| `GTS_OAUTH_CAPTCHA` | 同意页算术验证码，默认 `true` |
+| `GTS_OAUTH_PENDING_TTL` | 未完成授权的 client 超时清理（秒），默认 `600` |
+| `GTS_OAUTH_PENDING_MAX` | 未完成授权最大同时数，默认 `10000` |
+| `MCP_CLEANUP_LOCAL_AFTER_ATTACH` | 附件嵌入或 OBS 上传成功后删除 `WORK_PATH` 下对应本地文件，默认 `true` |
 | `GTS_SAVE_FILE` / `WORK_PATH` | 是否落盘 / 工作区 |
 | `GTS_MCP_ROOT` | gateway 根（容器默认 `/opt/mcp`，含 `api/`+`mcp/`） |
 | `MCP_ATTACH_MAX_BYTES` / `OBS_*` | 附件上限与可选 OBS，见 [docs/docker-deploy.md](docs/docker-deploy.md) |

@@ -13,6 +13,7 @@ DASHSCOPE_REQUEST_ID = "x-dashscope-request-id"
 
 _AUTH_SKIP_PREFIXES = (
     "/.well-known/",
+    "/oauth/",
     "/authorize",
     "/token",
     "/register",
@@ -91,9 +92,15 @@ def parse_credentials_from_headers(headers: Dict[str, str]) -> Optional[Tuple[st
             parsed = parse_credentials_payload(headers[name])
             if parsed:
                 return parsed
-    ak = headers.get("accesskey") or headers.get("x-access-key") or headers.get("access-key")
+    ak = (
+        headers.get("accesskey")
+        or headers.get("access_key")
+        or headers.get("x-access-key")
+        or headers.get("access-key")
+    )
     sk = (
         headers.get("secretkey")
+        or headers.get("secret_key")
         or headers.get("x-secret-key")
         or headers.get("secret-key")
         or headers.get("secretaccesskey")
@@ -122,17 +129,21 @@ async def send_json_status(
     body: dict,
     *,
     request_id: str,
+    extra_headers: Optional[list] = None,
 ) -> None:
     payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
+    headers = [
+        (b"content-type", b"application/json"),
+        (DASHSCOPE_REQUEST_ID.encode("latin-1"), request_id.encode("latin-1")),
+        (b"content-length", str(len(payload)).encode("latin-1")),
+    ]
+    if extra_headers:
+        headers.extend(extra_headers)
     await send(
         {
             "type": "http.response.start",
             "status": status,
-            "headers": [
-                (b"content-type", b"application/json"),
-                (DASHSCOPE_REQUEST_ID.encode("latin-1"), request_id.encode("latin-1")),
-                (b"content-length", str(len(payload)).encode("latin-1")),
-            ],
+            "headers": headers,
         }
     )
     await send({"type": "http.response.body", "body": payload})
@@ -157,7 +168,14 @@ def wrap_send_with_request_id(send: Send, request_id: str) -> Send:
 
 
 class HttpMiddleware:
-    """回传 Request-ID；注入 Authorization 或 AK/SK；透传 uid/tenantid/productcode。"""
+    """回传 Request-ID；注入 Authorization 或 AK/SK；透传 uid/tenantid/productcode。
+
+    鉴权优先级：
+    1. 本服务 OAuth access JWT → 解 AK/SK 走 loginV2，并用 JWT claims 补 uid 等
+       （内部域名下游需要 uid；网关未强制鉴权时不会再注入）
+    2. 其它 Authorization → 原样透传（公网 open-* 下游通常不依赖 uid）
+    3. X-GTS-Credentials → AK/SK loginV2
+    """
 
     def __init__(
         self,
@@ -207,20 +225,55 @@ class HttpMiddleware:
 
         path = scope.get("path") or "/"
         auth = (headers.get("authorization") or "").strip()
-        creds = None if auth else parse_credentials_from_headers(headers)
+        creds = parse_credentials_from_headers(headers)
         extra = parse_headers_extra_from_headers(headers)
+
+        # Authorization 优先：若为本服务 OAuth access JWT → 解出 AK/SK 走 loginV2；
+        # 否则原样透传业务 Bearer；无 Authorization 时用 X-GTS-Credentials。
+        # oauth_server 仅整合包存在；其它 api 包 import 失败则走透传/凭证。
+        oauth_creds = None
+        oauth_identity: Optional[Dict[str, str]] = None
+        if auth:
+            try:
+                from oauth_server import try_mcp_oauth_identity, try_mcp_oauth_to_credentials
+
+                oauth_creds = try_mcp_oauth_to_credentials(auth)
+                oauth_identity = try_mcp_oauth_identity(auth)
+            except Exception:
+                oauth_creds = None
+                oauth_identity = None
+
+        # 内部域名下游需要 uid：网关未鉴权时不会注入，从 OAuth JWT claims 补齐
+        if oauth_identity:
+            for key, value in oauth_identity.items():
+                extra.setdefault(key, value)
 
         auth_token = None
         cred_token = None
         extra_token = None
-        if auth:
+        if oauth_creds and self.set_credentials is not None:
+            cred_token = self.set_credentials(oauth_creds[0], oauth_creds[1])
+        elif auth:
             auth_token = self.set_authorization(auth)
         elif creds and self.set_credentials is not None:
             cred_token = self.set_credentials(creds[0], creds[1])
         if extra and self.set_headers_extra is not None:
             extra_token = self.set_headers_extra(extra)
 
-        if require_auth_enabled() and self._is_mcp_path(path) and not auth and not creds:
+        has_auth = bool(auth or creds or oauth_creds)
+        if require_auth_enabled() and self._is_mcp_path(path) and not has_auth:
+            www_extra = []
+            if (os.getenv("GTS_JWT_SECRET") or "").strip():
+                try:
+                    from oauth_server import resource_metadata_url_from_headers
+
+                    meta = resource_metadata_url_from_headers(headers)
+                except Exception:
+                    issuer = (os.getenv("GTS_OAUTH_ISSUER") or "").strip().rstrip("/")
+                    meta = f"{issuer}/.well-known/oauth-protected-resource" if issuer else ""
+                if meta:
+                    challenge = 'Bearer {}="{}"'.format("resource" + "_metadata", meta)
+                    www_extra.append((b"www-authenticate", challenge.encode("latin-1")))
             await send_json_status(
                 send,
                 401,
@@ -230,6 +283,7 @@ class HttpMiddleware:
                     "code": "UNAUTHORIZED",
                 },
                 request_id=request_id,
+                extra_headers=www_extra,
             )
             return
 

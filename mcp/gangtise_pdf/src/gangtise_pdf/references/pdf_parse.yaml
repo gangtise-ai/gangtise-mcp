@@ -1,0 +1,31 @@
+name: pdf_parse
+title: PDF Parse
+description: >
+  高精度 PDF 解析为 Markdown（含图片）。一个工具两个 action：
+  submit 提交任务并返回预估耗时（约 5s 启动 + 1s/页）；
+  result 按 taskId 下载结果。勿在结果未就绪时重复 submit（会再次扣积分）。
+parameters:
+  action:
+    type: string
+    description: >
+      必填。submit — 上传 PDF 并创建异步任务，返回 taskId 与预估耗时；
+      result — 用 taskId 下载并解压 Markdown/图片。未完成时提示稍后重试。
+    required: true
+  pdf_path:
+    type: string
+    description: PDF 绝对路径。action=submit 必填；action=result 可选（仅用于命名输出目录）。
+  task_id:
+    type: string
+    description: 任务 ID。action=result 必填；来自 submit 返回或 output_dir/task_id.txt。
+  output_dir:
+    type: string
+    description: 输出目录绝对路径；默认 workspace/files/<stem>_parsed/。
+  poll_interval:
+    type: integer
+    description: action=result 时轮询间隔秒数，默认 10。
+  timeout:
+    type: integer
+    description: action=result 单次调用最长等待秒数，默认 60；超时未完成可再次 result。
+  keep_zip:
+    type: boolean
+    description: 是否保留原始 ZIP，默认 false。

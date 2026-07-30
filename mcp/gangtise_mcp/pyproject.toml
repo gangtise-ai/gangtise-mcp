@@ -7,7 +7,7 @@ requires-python = ">=3.10"
 license = "MIT"
 authors = [{ name = "Gangtise" }]
 dependencies = [
-    "mcp>=1.0.0",
+    "mcp>=1.0.0,<2",
     "requests>=2.32.5",
     "pandas>=2.2.3",
     "pyyaml>=6.0",
@@ -16,6 +16,7 @@ dependencies = [
     "gangtise-file-mcp",
     "gangtise-kb-mcp",
     "gangtise-private-mcp",
+    "gangtise-pdf-mcp",
 ]
 
 [project.scripts]
@@ -40,3 +41,4 @@ gangtise-data-mcp = { path = "../gangtise_data", editable = true }
 gangtise-file-mcp = { path = "../gangtise_file", editable = true }
 gangtise-kb-mcp = { path = "../gangtise_kb", editable = true }
 gangtise-private-mcp = { path = "../gangtise_private", editable = true }
+gangtise-pdf-mcp = { path = "../gangtise_pdf", editable = true }

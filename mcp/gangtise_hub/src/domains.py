@@ -62,6 +62,16 @@ DOMAINS: Tuple[DomainDef, ...] = (
         summary="自选股池、微信群消息、我的会议、录音速记、AI 云盘等（仅当前授权用户本人数据）。",
         when_to_use="需要读取终端个人侧数据并与公开 data/file 能力衔接时。",
     ),
+    DomainDef(
+        tool_name="gangtise-pdf",
+        package_dir="gangtise_pdf",
+        title="PDF 高精度解析",
+        summary=(
+            "将 PDF 异步解析为 Markdown（含图片）。工具 pdf_parse："
+            "action=submit 提交并返回预估耗时（约 5s+1s/页）；action=result 按 taskId 下载结果。"
+        ),
+        when_to_use="需要把研报/公告等 PDF 转成可阅读 Markdown 并抽出图片时。",
+    ),
 )
 
 DOMAIN_BY_TOOL: Dict[str, DomainDef] = {d.tool_name: d for d in DOMAINS}

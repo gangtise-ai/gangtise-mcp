@@ -91,9 +91,15 @@ def parse_credentials_from_headers(headers: Dict[str, str]) -> Optional[Tuple[st
             parsed = parse_credentials_payload(headers[name])
             if parsed:
                 return parsed
-    ak = headers.get("accesskey") or headers.get("x-access-key") or headers.get("access-key")
+    ak = (
+        headers.get("accesskey")
+        or headers.get("access_key")
+        or headers.get("x-access-key")
+        or headers.get("access-key")
+    )
     sk = (
         headers.get("secretkey")
+        or headers.get("secret_key")
         or headers.get("x-secret-key")
         or headers.get("secret-key")
         or headers.get("secretaccesskey")

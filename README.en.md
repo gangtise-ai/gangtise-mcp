@@ -217,7 +217,7 @@ Deploy with [docs/docker-deploy.en.md](docs/docker-deploy.en.md). Client URL:
 https://<host>:<port>/open-mcp
 ```
 
-- **OAuth**: set `GTS_JWT_SECRET` (optional `GTS_CRED_ENC_KEY`) and `GTS_OAUTH_ISSUER`; clients use `/oauth/authorize` consent (AK/SK), then Bearer only (access 1h / refresh 30d); business calls use loginV2.
+- **OAuth**: set `GTS_JWT_SECRET` (optional `GTS_CRED_ENC_KEY`) and `GTS_OAUTH_ISSUER`; clients use `/oauth/authorize` consent (AK/SK), then Bearer only (access 1h / refresh 7d); business calls use loginV2.
 - **Authorization**: pass-through business Bearer.
 - **X-GTS-Credentials**: AK/SK JSON header → loginV2.
 

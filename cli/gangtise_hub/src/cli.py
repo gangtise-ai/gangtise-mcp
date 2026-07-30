@@ -24,6 +24,7 @@ def _ensure_layer_paths() -> None:
             "gangtise_file",
             "gangtise_kb",
             "gangtise_private",
+            "gangtise_pdf",
         ):
             ds = mcp_root / dom / "src"
             ss = str(ds)
@@ -52,13 +53,13 @@ from router import route
 def main(argv: Optional[list[str]] = None) -> None:
     parser = argparse.ArgumentParser(
         prog="gangtise-hub",
-        description="Gangtise Hub：查看五域入口与叶子工具说明（方案 A）。",
+        description="Gangtise Hub：查看各域入口与叶子工具说明（方案 A）。",
     )
     parser.add_argument(
         "domain",
         nargs="?",
         choices=[d.tool_name for d in DOMAINS],
-        help="域入口名，如 gangtise-data；省略则列出五域",
+        help="域入口名，如 gangtise-data；省略则列出全部域",
     )
     parser.add_argument(
         "--action",
@@ -77,7 +78,7 @@ def main(argv: Optional[list[str]] = None) -> None:
     preload_all()
 
     if not args.domain:
-        print("可用域入口（MCP tools/list 仅暴露这 5 个）：\n")
+        print("可用域入口（MCP tools/list 暴露域入口工具）：\n")
         for d in DOMAINS:
             rt = try_load_domain(d)
             status = f"{len(rt.specs)} 个叶子工具" if rt else "未加载兄弟包"

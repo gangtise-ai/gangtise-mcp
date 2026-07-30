@@ -42,7 +42,7 @@
 | `GET /.well-known/oauth-authorization-server` | AS 元数据 |
 | `POST /oauth/register`（别名 `/register`） | 动态客户端注册 |
 | `GET/POST /oauth/authorize`（别名 `/authorize`） | 同意页：用户填 AK/SK，loginV2 校验后发 code |
-| `POST /oauth/token`（别名 `/token`） | code / refresh_token 换 access（1h）+ refresh（30d） |
+| `POST /oauth/token`（别名 `/token`） | code / refresh_token 换 access（1h）+ refresh（7d） |
 
 未带鉴权访问 MCP 路径时返回 **401**，并带 `WWW-Authenticate: Bearer FAKESECRET_g3h4i5j6k7l8m9n0o1p2="…"`。  
 客户端持有的 access JWT 在网关内解出 AK/SK，再 **loginV2** 调下游（不会把 MCP JWT 透传给业务 API）。

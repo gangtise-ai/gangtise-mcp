@@ -65,7 +65,7 @@ parameters:
     description: rank_type
   limit:
     type: integer
-    description: 返回数量上限，默认由系统配置
+    description: 返回条数上限；不传时用检索默认，开启 download 时默认 5
   download:
     type: boolean
     description: 是否在检索后自动下载所有对应研究报告文件，默认不下载

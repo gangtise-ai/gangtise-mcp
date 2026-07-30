@@ -26,6 +26,7 @@ def _ensure_layer_paths() -> None:
             "gangtise_file",
             "gangtise_kb",
             "gangtise_private",
+            "gangtise_pdf",
         ):
             paths.append(mcp_root / dom / "src")
     for p in paths:
@@ -43,7 +44,7 @@ from mcp.types import EmbeddedResource, TextContent, Tool
 from authorization import is_auth_configured
 from result_attachments import with_path_attachments
 from tool_catalog import DOMAIN_PACKAGES, INTERNAL_PARAMS, load_catalog
-from tool_errors import tool_error
+from tool_errors import coerce_tool_kwargs, tool_error
 from url_whitelist import get_white_list, is_tool_allowed, tool_denied_reason
 
 SERVER_NAME = "gangtise-mcp"
@@ -130,6 +131,7 @@ async def call_tool(
     filtered, param_err = _filter_arguments(handler, arguments or {})
     if param_err:
         return tool_error(param_err, code="INVALID_PARAMS")
+    filtered = coerce_tool_kwargs(handler, filtered)
     try:
         ctx = copy_context()
 

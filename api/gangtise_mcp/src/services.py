@@ -26,6 +26,7 @@ ALL_SERVICES: Tuple[ServiceSpec, ...] = (
     ServiceSpec("file", "gangtise_file", 18003, "gangtise-file-mcp", "gangtise-file-api"),
     ServiceSpec("kb", "gangtise_kb", 18004, "gangtise-kb-mcp", "gangtise-kb-api"),
     ServiceSpec("private", "gangtise_private", 18005, "gangtise-private-mcp", "gangtise-private-api"),
+    ServiceSpec("pdf", "gangtise_pdf", 18008, "gangtise-pdf-mcp", "gangtise-pdf-api"),
     ServiceSpec("hub", "gangtise_hub", 18006, "gangtise-hub-mcp", "gangtise-hub-api"),
     ServiceSpec("mcp", "gangtise_mcp", 18007, "gangtise-mcp", "gangtise-mcp-api"),
 )
@@ -47,6 +48,7 @@ _MCP_SERVER_FILES = {
     "gangtise_file": "file_server.py",
     "gangtise_kb": "kb_server.py",
     "gangtise_private": "private_server.py",
+    "gangtise_pdf": "pdf_server.py",
     "gangtise_hub": "hub_server.py",
     "gangtise_mcp": "full_server.py",
 }
@@ -153,6 +155,7 @@ def _pythonpath_for_api(package_dir: str) -> str:
         "gangtise_file",
         "gangtise_kb",
         "gangtise_private",
+        "gangtise_pdf",
     ):
         parts.append(str(package_mcp_src(dom)))
         parts.append(str(package_api_src(dom)))
@@ -177,6 +180,7 @@ def _pythonpath_for_mcp(package_dir: str) -> str:
         "gangtise_file",
         "gangtise_kb",
         "gangtise_private",
+        "gangtise_pdf",
     ):
         parts.append(str(package_mcp_src(dom)))
     existing = os.environ.get("PYTHONPATH", "")

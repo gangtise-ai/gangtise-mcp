@@ -53,7 +53,7 @@ parameters:
       type: string
   limit:
     type: integer
-    description: 返回数量上限
+    description: 返回条数上限；不传时用检索默认，开启 download 时默认 5
   download:
     type: boolean
     description: 是否下载文件

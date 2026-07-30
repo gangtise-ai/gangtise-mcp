@@ -1,65 +1,71 @@
 name: investment_calendar
 title: Investment Calendar
-description: 检索投资日历活动：路演、调研、线下策略会、论坛等，按活动类型与时间筛选。
+description: 检索投资日历：路演、调研、线下策略会、论坛、财报日历；财报日历区分已发布（可下载）与尚未发布（日程预告）。
 parameters:
   kind:
     type: string
-    description: 投资日历活动类型
+    description: 日程类型：roadshow 路演；site_visit 调研；strategy_meeting 线下策略会；forum 论坛；performance 财报日历
     required: true
   keyword:
     type: string
-    description: 搜索关键词，可为空
+    description: 搜索关键词，可为空（财报日历不支持）
   start_date:
     type: string
-    description: 开始日期 YYYY-MM-DD（转为 13 位时间戳 startTime）
+    description: 开始日期 YYYY-MM-DD（路演等转为时间戳；财报日历为 publishDate 的 startDate）
   end_date:
     type: string
-    description: 结束日期 YYYY-MM-DD（结束日含全天，转为 endTime）
+    description: 结束日期 YYYY-MM-DD（路演等含全天；财报日历为 publishDate 的 endDate）
   limit:
     type: integer
-    description: 返回条数上限，默认见 FILE_DEFAULT_LIMIT["calendar"]
+    description: 返回条数上限；不传时用检索默认，开启 download 时默认 5
   securities:
     type: array
-    description: 证券列表，逗号分隔；可为证券名称、代码或拼音首字母
+    description: 证券列表；可为证券名称、代码或拼音首字母（forum / roadshow / site_visit / performance）
     items:
       type: string
   institutions:
     type: array
-    description: 牵头机构，逗号分隔，智能匹配 brokerId
+    description: 牵头机构，逗号分隔，智能匹配 brokerId（roadshow / site_visit / strategy_meeting）
     items:
       type: string
   research_areas:
     type: array
-    description: research_areas
+    description: 研究方向 ID 或中文名（roadshow / site_visit / forum）
     items:
       type: string
   category_list:
     type: array
-    description: earningsCall 业绩会、strategyMeeting 策略会、companyAnalysis 公司分析、industryAnalysis 行业分析、fundRoadshow 基金路演
+    description: "roadshow：earningsCall 等；site_visit：single/series；performance：performanceForecast 业绩预告、performanceExpress 业绩快报、performanceAnnouncement 业绩公告"
     items:
       type: string
   market_list:
     type: array
-    description: aShares、hkStocks、usChinaConcept、usStocks
+    description: aShares、hkStocks、usChinaConcept、usStocks（roadshow / site_visit / performance）
     items:
       type: string
   participant_role_list:
     type: array
-    description: management 高管、expert 专家
+    description: management 高管、expert 专家（仅 roadshow）
     items:
       type: string
   broker_type_list:
     type: array
-    description: cnBroker 中资卖方、otherBroker 外资卖方
+    description: cnBroker 中资卖方、otherBroker 外资卖方（仅 roadshow）
     items:
       type: string
   permission_list:
     type: array
-    description: permission_list
+    description: 1 公开、2 私密（roadshow / site_visit）
     items:
       type: string
   object_list:
     type: array
-    description: company 公司调研、industry 行业调研
+    description: company 公司调研、industry 行业调研（仅 site_visit）
     items:
       type: string
+  download:
+    type: boolean
+    description: 是否下载文件；仅 performance 生效，且仅下载「已发布（可下载原文件）」条目，尚未发布的日程预告会跳过
+  output_dir:
+    type: string
+    description: 下载保存目录（建议绝对路径）；仅 download 且 kind=performance 时有效

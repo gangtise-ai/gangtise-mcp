@@ -1,9 +1,10 @@
-"""临时文件上传华为云 OBS（超大 MCP 附件外置）。
+"""临时文件上传华为云 OBS（超大 MCP 附件外置 / MCP_ATTACH_OBS_ALWAYS 全量外置）。
 
 环境变量：
   OBS_ACCESS_KEY / OBS_SECRET_KEY / OBS_ENDPOINT / OBS_BUCKET（静态）/ OBS_PATH
+  OBS_EXPIRE_DAYS — 对象存活天数，默认 1（华为云 PutObjectHeader.expires）
 
-对象上传时设置 expires=1（天），到期自动删除；返回公网路径：
+对象上传时设置 expires（天），到期自动删除；返回公网路径：
   https://{OBS_BUCKET}.{OBS_ENDPOINT_HOST}/{object_key}
 
 说明：该 URL 为虚拟主机风格公有读路径，桶策略或对象 ACL 需允许匿名 GET
@@ -18,8 +19,18 @@ from datetime import datetime, timezone
 from typing import Optional, Tuple
 from urllib.parse import quote
 
-# 对象存活天数（华为云 PutObjectHeader.expires，单位：天）
-_EXPIRE_DAYS = 1
+
+def _expire_days() -> int:
+    raw = (os.getenv("OBS_EXPIRE_DAYS") or "1").strip()
+    try:
+        days = int(raw)
+    except ValueError:
+        days = 1
+    return max(1, days)
+
+
+# 模块导入时解析一次；进程内改环境变量后需重启才生效（与其它 OBS_* 一致）
+EXPIRE_DAYS = _expire_days()
 
 _SAFE_NAME_RE = re.compile(r"[^\w.\-]+", re.UNICODE)
 
@@ -98,7 +109,7 @@ def upload_bytes(
 
     object_key = build_object_key(filename, obs_path)
     header = PutObjectHeader(contentType=content_type or "application/octet-stream")
-    header.expires = _EXPIRE_DAYS
+    header.expires = _expire_days()
 
     server = endpoint if "://" in endpoint else f"https://{endpoint}"
     client = ObsClient(access_key_id=ak, secret_access_key=sk, server=server)

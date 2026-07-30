@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | **English**
 
-五域全部叶子工具；与推荐 MCP 包 gangtise_mcp 同源。
+各域全部叶子工具（含 PDF）；与推荐 MCP 包 gangtise_mcp 同源。
 
 Command: `gangtise` (depends on [`api/gangtise_mcp`](../../mcp/gangtise_mcp/), package `gangtise-mcp-api`).  
 MCP server: [`mcp/gangtise_mcp`](../../mcp/gangtise_mcp/) (`gangtise-mcp`). Recommended MCP: [`gangtise_mcp`](../../mcp/gangtise_mcp/).

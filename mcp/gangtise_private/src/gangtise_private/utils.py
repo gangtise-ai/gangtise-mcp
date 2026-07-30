@@ -4,6 +4,7 @@ from typing import Dict, List, Any, Optional, Tuple
 import hashlib
 import pandas as pd
 import datetime
+import time
 import requests
 import json
 
@@ -18,24 +19,24 @@ from authorization import (
     get_authorization_headers,
     get_authorization_token,
     get_headers_extra,
+    gangtise_domain,
     invalidate_authorization,
 )
 
 GTS_SAVE_FILE = os.getenv("GTS_SAVE_FILE", True)
 GTS_SAVE_EXTENSION = os.getenv("GTS_SAVE_EXTENSION", "md")
 
-GANGTISE_VAULT_DOMAIN = os.getenv("GANGTISE_VAULT_DOMAIN", "https://openapi.gangtise.com/application/open-vault")
-WECHAT_GROUP_MSG_LIST_URL = f"{GANGTISE_VAULT_DOMAIN}/wechatgroupmsg/list"
-WECHAT_GROUP_CHATROOM_URL = f"{GANGTISE_VAULT_DOMAIN}/wechatgroupmsg/chatroomId"
-GET_POOL_LIST_URL = f"{GANGTISE_VAULT_DOMAIN}/stock-pool/getPoolList"
-GET_STOCK_LIST_URL = f"{GANGTISE_VAULT_DOMAIN}/stock-pool/getStockList"
-MY_CONFERENCE_LIST_URL = f"{GANGTISE_VAULT_DOMAIN}/my-conference/getList"
-MY_CONFERENCE_DOWNLOAD_URL = f"{GANGTISE_VAULT_DOMAIN}/my-conference/download/file"
-RECORD_LIST_URL = f"{GANGTISE_VAULT_DOMAIN}/record/getList"
-RECORD_DOWNLOAD_URL = f"{GANGTISE_VAULT_DOMAIN}/record/download/file"
-DRIVE_LIST_URL = f"{GANGTISE_VAULT_DOMAIN}/drive/getList"
-DRIVE_DOWNLOAD_URL = f"{GANGTISE_VAULT_DOMAIN}/drive/download/file"
-
+GANGTISE_VAULT_DOMAIN = gangtise_domain("GANGTISE_VAULT_DOMAIN", "https://openapi.gangtise.com/application/open-vault")
+WECHAT_GROUP_MSG_LIST_URL = GANGTISE_VAULT_DOMAIN + "/wechatgroupmsg/list"
+WECHAT_GROUP_CHATROOM_URL = GANGTISE_VAULT_DOMAIN + "/wechatgroupmsg/chatroomId"
+GET_POOL_LIST_URL = GANGTISE_VAULT_DOMAIN + "/stock-pool/getPoolList"
+GET_STOCK_LIST_URL = GANGTISE_VAULT_DOMAIN + "/stock-pool/getStockList"
+MY_CONFERENCE_LIST_URL = GANGTISE_VAULT_DOMAIN + "/my-conference/getList"
+MY_CONFERENCE_DOWNLOAD_URL = GANGTISE_VAULT_DOMAIN + "/my-conference/download/file"
+RECORD_LIST_URL = GANGTISE_VAULT_DOMAIN + "/record/getList"
+RECORD_DOWNLOAD_URL = GANGTISE_VAULT_DOMAIN + "/record/download/file"
+DRIVE_LIST_URL = GANGTISE_VAULT_DOMAIN + "/drive/getList"
+DRIVE_DOWNLOAD_URL = GANGTISE_VAULT_DOMAIN + "/drive/download/file"
 WORK_PATH = os.getenv("WORK_PATH", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "workspace"))
 if not os.path.exists(WORK_PATH):
     os.makedirs(WORK_PATH, exist_ok=True)
@@ -165,17 +166,12 @@ def _alloc_workspace_path(
         if os.path.exists(process_path):
             return process_path, "exist"
         return process_path, None
-    now = 1
+    now = datetime.datetime.now().strftime("%H%M%S")
     process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
     max_retries = 10
-    for name in os.listdir(process_dir):
-        if name.startswith(f"{module_name}_") and name.endswith(f".{extension}"):
-            try:
-                max_retries = max(max_retries, int(name.split("_")[-1].split(".")[0]) + 10)
-            except ValueError:
-                pass
     while os.path.exists(process_path) and max_retries > 0:
-        now += 1
+        time.sleep(1)
+        now = datetime.datetime.now().strftime("%H%M%S")
         process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
         max_retries -= 1
     if max_retries == 0:
@@ -380,7 +376,7 @@ def match_best(item: str, candidates, threshold: float = 0.6):
     return None
 
 PRIVATE_SKILL_VERSION = "1.0.0"
-OPENAPI_SKILL_VERSION = "1.6.7"
+OPENAPI_SKILL_VERSION = "1.6.8"
 SKILL_CHECK_URL = "https://open.gangtise.com/application/skills-backend/version?skill=openapi"
 
 def check_version(large_version: bool = True):

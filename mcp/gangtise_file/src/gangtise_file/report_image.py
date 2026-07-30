@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, REPORT_IMAGE_DOWNLOAD_URL, REPORT_IMAGE_URL, WORK_PATH, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (check_version, DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, REPORT_IMAGE_DOWNLOAD_URL, REPORT_IMAGE_URL, resolve_result_limit, WORK_PATH)
 from .get_file import (  # noqa: E402
     _download_success_info,
     _format_download_summary,
@@ -241,11 +241,12 @@ def report_image_finder(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     source_id: Optional[str] = None,
-    limit: int = FILE_DEFAULT_LIMIT["report_image"],
+    limit: Optional[int] = None,
     download: bool = False,
     output_dir: Optional[str] = None,
 ):
     try:
+        limit = resolve_result_limit(limit, download, "report_image")
         keyword_str = (keyword or "").strip()
         if not keyword_str:
             return format_response(
@@ -360,9 +361,9 @@ def main():
     parser.add_argument(
         "-l",
         "--limit",
-        default=FILE_DEFAULT_LIMIT["report_image"],
+        default=None,
         type=int,
-        help="返回结果数上限，最大 20",
+        help="返回条数上限；不传时用检索默认，开启 -d 下载时默认 5",
     )
     parser.add_argument(
         "-d",
@@ -396,7 +397,7 @@ def main():
         start_date=args.start_date or None,
         end_date=args.end_date or None,
         source_id=args.source_id or None,
-        limit=int(args.limit),
+        limit=resolve_result_limit(args.limit, bool(args.download), "report_image"),
         download=args.download or False,
         output_dir=output_dir,
     )

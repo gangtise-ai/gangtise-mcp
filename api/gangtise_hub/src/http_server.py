@@ -28,6 +28,7 @@ def _ensure_layer_paths() -> None:
             "gangtise_file",
             "gangtise_kb",
             "gangtise_private",
+            "gangtise_pdf",
         ):
             paths.append(mcps_root / "mcp" / dom / "src")
     for p in paths:

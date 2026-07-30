@@ -65,7 +65,7 @@ parameters:
     description: 1 综合排序，2 时间倒序（默认 1）
   limit:
     type: integer
-    description: 返回数量上限，默认由系统配置（单页最大 50 条，脚本内分页拉取）
+    description: 返回条数上限；不传时用检索默认，开启 download 时默认 5
   download:
     type: boolean
     description: 是否在检索后自动下载对应外资研报文件，默认不下载

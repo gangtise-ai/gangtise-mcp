@@ -92,9 +92,15 @@ def parse_credentials_from_headers(headers: Dict[str, str]) -> Optional[Tuple[st
             parsed = parse_credentials_payload(headers[name])
             if parsed:
                 return parsed
-    ak = headers.get("accesskey") or headers.get("x-access-key") or headers.get("access-key")
+    ak = (
+        headers.get("accesskey")
+        or headers.get("access_key")
+        or headers.get("x-access-key")
+        or headers.get("access-key")
+    )
     sk = (
         headers.get("secretkey")
+        or headers.get("secret_key")
         or headers.get("x-secret-key")
         or headers.get("secret-key")
         or headers.get("secretaccesskey")
@@ -162,7 +168,14 @@ def wrap_send_with_request_id(send: Send, request_id: str) -> Send:
 
 
 class HttpMiddleware:
-    """回传 Request-ID；注入 Authorization 或 AK/SK；透传 uid/tenantid/productcode。"""
+    """回传 Request-ID；注入 Authorization 或 AK/SK；透传 uid/tenantid/productcode。
+
+    鉴权优先级：
+    1. 本服务 OAuth access JWT → 解 AK/SK 走 loginV2，并用 JWT claims 补 uid 等
+       （内部域名下游需要 uid；网关未强制鉴权时不会再注入）
+    2. 其它 Authorization → 原样透传（公网 open-* 下游通常不依赖 uid）
+    3. X-GTS-Credentials → AK/SK loginV2
+    """
 
     def __init__(
         self,
@@ -217,14 +230,23 @@ class HttpMiddleware:
 
         # Authorization 优先：若为本服务 OAuth access JWT → 解出 AK/SK 走 loginV2；
         # 否则原样透传业务 Bearer；无 Authorization 时用 X-GTS-Credentials。
+        # oauth_server 仅整合包存在；其它 api 包 import 失败则走透传/凭证。
         oauth_creds = None
+        oauth_identity: Optional[Dict[str, str]] = None
         if auth:
             try:
-                from oauth_server import try_mcp_oauth_to_credentials
+                from oauth_server import try_mcp_oauth_identity, try_mcp_oauth_to_credentials
 
                 oauth_creds = try_mcp_oauth_to_credentials(auth)
+                oauth_identity = try_mcp_oauth_identity(auth)
             except Exception:
                 oauth_creds = None
+                oauth_identity = None
+
+        # 内部域名下游需要 uid：网关未鉴权时不会注入，从 OAuth JWT claims 补齐
+        if oauth_identity:
+            for key, value in oauth_identity.items():
+                extra.setdefault(key, value)
 
         auth_token = None
         cred_token = None

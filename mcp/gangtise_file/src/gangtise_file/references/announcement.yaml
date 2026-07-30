@@ -29,7 +29,7 @@ parameters:
     description: 排序方式：1-综合排序 2-时间倒序
   limit:
     type: integer
-    description: 返回数量上限
+    description: 返回条数上限；不传时用检索默认，开启 download 时默认 5
   download:
     type: boolean
     description: 是否在检索后自动下载所有对应公司公告文件，默认不下载

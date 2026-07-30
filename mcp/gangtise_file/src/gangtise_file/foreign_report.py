@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FOREIGN_REPORT_URL, INDUSTRIES_MAP, REGIONS_MAP, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, report_category_display, report_llm_tag_display, resolve_report_category_list, resolve_report_llm_tag_list)
+from .utils import (check_version, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, FOREIGN_REPORT_URL, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, INDUSTRIES_MAP, match_best, REGIONS_MAP, remove_html_tags, report_category_display, report_llm_tag_display, resolve_report_category_list, resolve_report_llm_tag_list, resolve_result_limit)
 from .get_file import download_files
 from .security import batch_security_search
 from .search_institution import (
@@ -240,12 +240,13 @@ def report_finder(
     max_report_pages: Optional[int] = None,
     search_type: int = 1,
     rank_type: int = 1,
-    limit: int = FILE_DEFAULT_LIMIT["foreign_report"],
+    limit: Optional[int] = None,
     download: bool = False,
     download_types: Optional[List[str]] = None,
     output_dir: Optional[str] = None,
 ):
     try:
+        limit = resolve_result_limit(limit, download, "foreign_report")
         headers = get_authorization_headers()
 
         industry_ids = _resolve_industries(industries) if industries else []
@@ -388,9 +389,9 @@ def main():
     parser.add_argument(
         "-l",
         "--limit",
-        default=FILE_DEFAULT_LIMIT["foreign_report"],
+        default=None,
         type=int,
-        help="返回文件数量上限",
+        help="返回条数上限；不传时用检索默认，开启 -d 下载时默认 5",
     )
     parser.add_argument(
         "--securities",
@@ -485,7 +486,7 @@ def main():
     rating_change_list = _parse_str_list(args.rating_change_list)
     start_date = args.start_date or None
     end_date = args.end_date or None
-    limit = int(args.limit)
+    limit = resolve_result_limit(args.limit, bool(args.download), "foreign_report")
     search_type = int(args.search_type or 1)
     rank_type = int(args.rank_type or 1)
     download = args.download or False

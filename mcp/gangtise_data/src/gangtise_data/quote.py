@@ -14,7 +14,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (QUOTE_ADJUST_FACTOR_URL, QUOTE_HK_URL, QUOTE_INDEX_DAILY_URL, QUOTE_MINUTE_URL, QUOTE_REALTIME_URL, QUOTE_URL, QUOTE_US_DAILY_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (QUOTE_ADJUST_FACTOR_URL, QUOTE_HK_URL, QUOTE_INDEX_DAILY_URL, QUOTE_MINUTE_URL, QUOTE_REALTIME_URL, QUOTE_URL, QUOTE_US_DAILY_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 # 与 open 日 K 文档一致
 _FIELD_LIST = [
@@ -523,7 +523,13 @@ def _code_max_kline_date(df: pd.DataFrame, code: str) -> Optional[str]:
 def _codes_needing_snap_supplement(
     data_parts: List[pd.DataFrame], candidate_codes: List[str], check_date: str
 ) -> List[str]:
-    """候选证券中，日 K 在 check_date（通常为 end_date）尚无行情的才需实时补全。"""
+    """候选证券中，日 K 在 check_date（通常为 end_date）尚无行情的才需实时补全。
+
+    注意：当整批日 K 都还没有 check_date（例如港股盘中，日 K 最新只到昨收）时，
+    不得用「该券已有全局最大交易日」跳过补全——否则单查一只港股时永远补不上当天。
+    「== global_max」启发式仅在全局日 K 已覆盖到 check_date 及以后时启用
+    （如美股时区导致 end 为日历次日、但 K 线已到 T 日）。
+    """
     kline_all = (
         pd.concat(data_parts, ignore_index=True) if data_parts else pd.DataFrame()
     )
@@ -542,8 +548,16 @@ def _codes_needing_snap_supplement(
         cu = code.upper()
         if cu in have_on_date:
             continue
-        # 日 K 已含该证券最新交易日（如美股 end 为日历次日但 K 线已到 T 日），无需 snap
-        if global_max_date and _code_max_kline_date(kline_all, cu) == global_max_date:
+        code_max = _code_max_kline_date(kline_all, cu)
+        # 日 K 已覆盖到目标日（或更晚）则无需 snap
+        if code_max and code_max >= check_date:
+            continue
+        # 仅当批内已有 ≥ check_date 的日 K 时，才用「已对齐全局最新」跳过（美股时区边界）
+        if (
+            global_max_date
+            and global_max_date >= check_date
+            and code_max == global_max_date
+        ):
             continue
         out.append(code)
     return out
@@ -743,7 +757,7 @@ def _fetch_adjust_factor_body(
         "limit": min(int(limit), 10000),
     }
     try:
-        r = requests.post(QUOTE_ADJUST_FACTOR_URL, headers=headers, json=payload, timeout=300)
+        r = authorized_request("POST", QUOTE_ADJUST_FACTOR_URL, headers=headers, json=payload, timeout=300)
         if r.status_code != 200:
             return pd.DataFrame(), r.text
         body = r.json()
@@ -947,7 +961,7 @@ def _parse_kline_body(body: dict) -> pd.DataFrame:
 
 def _fetch_kline_data(url: str, headers: dict, payload: dict) -> Tuple[pd.DataFrame, Optional[str]]:
     try:
-        r = requests.post(url, headers=headers, json=payload, timeout=300)
+        r = authorized_request("POST", url, headers=headers, json=payload, timeout=300)
         if r.status_code != 200:
             return pd.DataFrame(), r.text
         body = r.json()

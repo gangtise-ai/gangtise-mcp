@@ -44,7 +44,7 @@ parameters:
     description: 1 综合排序（默认），2 时间倒序
   limit:
     type: integer
-    description: 返回条数上限，默认 100，单页最大 50（自动分页）
+    description: 返回条数上限；不传时用检索默认，开启 download 时默认 5
   download:
     type: boolean
     description: 检索后自动下载正文

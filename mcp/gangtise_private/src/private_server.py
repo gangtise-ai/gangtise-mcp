@@ -30,7 +30,7 @@ from mcp.types import EmbeddedResource, TextContent, Tool
 from authorization import is_auth_configured
 from references_loader import load_all_tool_specs
 from result_attachments import with_path_attachments
-from tool_errors import tool_error
+from tool_errors import coerce_tool_kwargs, tool_error
 from url_whitelist import get_white_list, is_tool_allowed, tool_denied_reason
 from gangtise_private.tools_registry import INTERNAL_PARAMS, TOOL_HANDLERS
 
@@ -118,6 +118,7 @@ async def call_tool(
     filtered, param_err = _filter_arguments(handler, arguments or {})
     if param_err:
         return tool_error(param_err, code="INVALID_PARAMS")
+    filtered = coerce_tool_kwargs(handler, filtered)
     try:
         ctx = copy_context()
 

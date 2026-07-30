@@ -34,6 +34,7 @@ def _ensure_layer_paths() -> None:
             "gangtise_file",
             "gangtise_kb",
             "gangtise_private",
+            "gangtise_pdf",
         ):
             paths.append(mcps_root / "mcp" / dom / "src")
             paths.append(mcps_root / "api" / dom / "src")
@@ -80,7 +81,7 @@ from services import (
     wait_port,
 )
 from tool_catalog import DOMAIN_PACKAGES, INTERNAL_PARAMS, load_catalog
-from tool_errors import tool_error
+from tool_errors import coerce_tool_kwargs, tool_error
 from url_whitelist import get_white_list, is_tool_allowed, tool_denied_reason
 
 SERVER_NAME = "gangtise-mcp"
@@ -168,6 +169,7 @@ async def call_tool(
     filtered, param_err = _filter_arguments(handler, arguments or {})
     if param_err:
         return tool_error(param_err, code="INVALID_PARAMS")
+    filtered = coerce_tool_kwargs(handler, filtered)
     try:
         ctx = copy_context()
 

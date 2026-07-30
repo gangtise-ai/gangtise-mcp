@@ -1,0 +1,33 @@
+{
+  "title": "Gangtise MCP 对接配置",
+  "title_en": "Gangtise MCP Configuration",
+  "description": "填写岗底斯开放平台 Access Key / Secret Key。凭证仅存储在本机 ~/.workbuddy，连接时注入请求头 accessKey / secretKey，不出本机。表单字段使用 gangtiseAccessKey / gangtiseSecretKey，避免与客户端内部或环境变量名冲突。",
+  "description_en": "Enter your Gangtise open-platform Access Key / Secret Key. Credentials are stored only on this device under ~/.workbuddy and injected into request headers (accessKey / secretKey) when connecting. Form field keys are gangtiseAccessKey / gangtiseSecretKey to avoid clashing with client internals or env var names.",
+  "docUrl": "https://open-platform.gangtise.com/",
+  "docLabel": "如何获取开放平台 AK/SK？",
+  "docLabel_en": "How to get open-platform AK/SK?",
+  "fields": [
+    {
+      "key": "gangtiseAccessKey",
+      "label": "Access Key",
+      "label_en": "Access Key",
+      "placeholder": "开放平台 → 我的账号 → 账号列表",
+      "placeholder_en": "Open Platform → My Account → Account List",
+      "type": "password",
+      "required": true,
+      "description": "开放平台 Access Key（AK）。",
+      "description_en": "Open-platform Access Key (AK)."
+    },
+    {
+      "key": "gangtiseSecretKey",
+      "label": "Secret Key",
+      "label_en": "Secret Key",
+      "placeholder": "与 Access Key 成对的 Secret Key",
+      "placeholder_en": "Secret Key paired with the Access Key",
+      "type": "password",
+      "required": true,
+      "description": "开放平台 Secret Key（SK），请妥善保管。",
+      "description_en": "Open-platform Secret Key (SK). Keep it secret."
+    }
+  ]
+}

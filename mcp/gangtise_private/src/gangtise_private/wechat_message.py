@@ -116,7 +116,10 @@ def _format_msg_rows(rows: List[dict]) -> List[dict]:
         tag_str = "、".join(tag_parts)
         url = row.get("contentUrl") or row.get("url") or ""
         content = row.get("content") or ""
-        title = str(row.get("msgId") or "")
+        quote = row.get("quoteMsg") if isinstance(row.get("quoteMsg"), dict) else {}
+        quote_id = str(quote.get("quoteMsgId") or "") if quote else ""
+        quote_content = str(quote.get("quoteContent") or "") if quote else ""
+        quote_url = str(quote.get("quoteUrl") or "") if quote else ""
 
         item = {
             "消息全文": content,
@@ -127,6 +130,9 @@ def _format_msg_rows(rows: List[dict]) -> List[dict]:
             "发言人": row.get("speakerName") or "",
             "消息类型": row.get("category") or "",
             "标签": tag_str,
+            "引用消息ID": quote_id,
+            "引用消息内容": quote_content,
+            "引用消息链接": quote_url,
             "类型": "群消息",
             "类型ID": str(row.get("msgId") or ""),
         }

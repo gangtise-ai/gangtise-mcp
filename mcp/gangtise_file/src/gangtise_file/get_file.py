@@ -15,7 +15,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (COMPANY_ANNOUNCEMENT_DOWNLOAD_URL, FILE_TYPE_MAP, FILE_URL, FOREIGN_REPORT_DOWNLOAD_URL, HK_ANNOUNCEMENT_DOWNLOAD_URL, INDEPENDENT_OPINION_DOWNLOAD_URL, OFFICIAL_ACCOUNT_DOWNLOAD_URL, REPORT_DOWNLOAD_URL, SUMMARY_DOWNLOAD_URL, TRY_MORE_DOWNLOAD, US_ANNOUNCEMENT_DOWNLOAD_URL, WORK_PATH, check_version, file_dir, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (COMPANY_ANNOUNCEMENT_DOWNLOAD_URL, FILE_TYPE_MAP, FILE_URL, FOREIGN_REPORT_DOWNLOAD_URL, HK_ANNOUNCEMENT_DOWNLOAD_URL, INDEPENDENT_OPINION_DOWNLOAD_URL, OFFICIAL_ACCOUNT_DOWNLOAD_URL, PERFORMANCE_CALENDAR_DOWNLOAD_URL, REPORT_DOWNLOAD_URL, SUMMARY_DOWNLOAD_URL, TRY_MORE_DOWNLOAD, US_ANNOUNCEMENT_DOWNLOAD_URL, WORK_PATH, check_version, file_dir, get_authorization_headers, get_authorization_token, get_headers_extra)
 
 def _has_cjk(text: str) -> bool:
     return any("\u4e00" <= ch <= "\u9fff" for ch in text)
@@ -220,6 +220,9 @@ def _build_download_params(file_id: str, file_type: str, download_type: str) -> 
             "articleId": file_id,
             "fileType": _official_account_file_type(download_type),
         }
+    if file_type == "财报日历":
+        # 仅支持下载已发布（hasAttachment=true）的业绩报告原文件
+        return {"performanceReportId": file_id}
     raise ValueError(f"不支持的文件类型: {file_type}")
 
 
@@ -233,6 +236,7 @@ def _request_download(file_id: str, file_type: str, download_type: str, headers:
         "外资研报": FOREIGN_REPORT_DOWNLOAD_URL,
         "外资独立观点": INDEPENDENT_OPINION_DOWNLOAD_URL,
         "公众号": OFFICIAL_ACCOUNT_DOWNLOAD_URL,
+        "财报日历": PERFORMANCE_CALENDAR_DOWNLOAD_URL,
     }
     if file_type in url_map:
         params = _build_download_params(file_id, file_type, download_type)
