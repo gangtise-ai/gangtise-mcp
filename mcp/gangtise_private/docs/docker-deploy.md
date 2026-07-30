@@ -1,5 +1,5 @@
-# Docker 部署
+# Docker deploy
 
-本仓库 **仅支持整合镜像**。请参阅仓库级文档：
+Only the **all-in-one** image is supported. See:
 
 - [docs/docker-deploy.md](../../docs/docker-deploy.md)

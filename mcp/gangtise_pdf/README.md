@@ -22,4 +22,4 @@ uv run gangtise-pdf-mcp
 
 ## CLI
 
-命令行入口见 [`cli/gangtise_pdf`](../../cli/gangtise_pdf/)（`gangtise-pdf`）；全量 CLI 亦含 `pdf_parse`（[`cli/gangtise_mcp`](../../cli/gangtise_mcp/)）。
+See [`cli/gangtise_pdf`](../../cli/gangtise_pdf/) (`gangtise-pdf`). Full CLI also includes `pdf_parse` ([`cli/gangtise_mcp`](../../cli/gangtise_mcp/)).

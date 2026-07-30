@@ -160,7 +160,7 @@ def _login(ak: str, sk: str) -> Tuple[Optional[str], Optional[str], Optional[str
         )
     except (KeyError, TypeError) as exc:
         print(f"获取 authorization 失败, 响应格式异常: {exc}")
-        return None, None, None, None, None, None
+        return None, None, None, None, None
 
 
 def _session_from_file() -> Optional[Dict[str, Optional[str]]]:

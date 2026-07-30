@@ -2,30 +2,30 @@
 
 # Gangtise KB MCP
 
-**简体中文** | [English](README.en.md)
+[简体中文](README.cn.md) | **English**
 
-知识库语义检索与文件获取。
+Knowledge-base semantic search and file fetch.
 
-> **日常推荐**：请优先使用整合包 [`gangtise_mcp`](../gangtise_mcp/)（五域全部叶子工具）。本页仅介绍本单包。
+> **Recommended**: use the all-in-one package [`gangtise_mcp`](../gangtise_mcp/) for daily work. This page covers this package only.
 
-[仓库总览](../../README.md) · [开放平台](https://open-platform.gangtise.com/)
+[Repo overview](../../README.md) · [Credentials](https://open-platform.gangtise.com/)
 
 </div>
 
 ---
 
-## 工具
+## Tools
 
 `kb`
 
 ---
 
 <details>
-<summary><b>本包安装（Cursor / WorkBuddy）</b></summary>
+<summary><b>Install this package (Cursor)</b></summary>
 
-账号：[开放平台](https://open-platform.gangtise.com/)。需安装 [uv](https://docs.astral.sh/uv/)。
+Get keys from the [open platform](https://open-platform.gangtise.com/). Requires [uv](https://docs.astral.sh/uv/).
 
-**Cursor** — 推荐将下方 JSON 发给 Cursor **Agent** 由其安装（改动出现时 Accept），再在 Settings → Tools & MCP 确认；亦可手动写入 `~/.cursor/mcp.json` 或项目 `.cursor/mcp.json`：
+**Cursor** — Prefer sending the JSON below to the Cursor **Agent** to install (Accept when prompted); you can also write `~/.cursor/mcp.json` or project `.cursor/mcp.json`:
 
 ```json
 {
@@ -33,12 +33,10 @@
     "gangtise-kb": {
       "command": "uvx",
       "args": [
-        "--default-index",
-        "https://pypi.tuna.tsinghua.edu.cn/simple",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
+        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
         "--from",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
+        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
         "gangtise-kb-mcp"
       ],
       "env": {
@@ -50,37 +48,32 @@
 }
 ```
 
-**WorkBuddy**：将 MCP 配置 JSON 发给 WorkBuddy **智能体**由其安装；安装完成后打开侧边栏 **专家 · 技能 · 连接器** → 顶部 **连接器** → **自定义连接器** / **我的 MCP**，对 `gangtise_mcp` 依次 **信任** 并 **开启**（首次信任可能等待数秒）。推荐接入整合包，说明见 [`gangtise_mcp`](../gangtise_mcp/) 与 [仓库 README](../../README.md)。
 
-
-推荐包完整平台折叠示例见 [`gangtise_mcp`](../gangtise_mcp/) 与 [仓库 README](../../README.md)。
+Full platform folds: [`gangtise_mcp`](../gangtise_mcp/README.md) and [repo README](../../README.md).
 
 </details>
 
 <details>
-<summary><b>远程 HTTP / Docker</b></summary>
+<summary><b>Remote HTTP / Docker</b></summary>
 
-- HTTP / SSE / OAuth：[docs/http-sse.md](../../docs/http-sse.md)
-- Docker：仅整合镜像，见 [docker-deploy.md](../../docs/docker-deploy.md)
+- HTTP / SSE / OAuth: [http-sse.md](../../docs/http-sse.md)
+- Docker: all-in-one only — [docker-deploy.md](../../docs/docker-deploy.md)
 
 </details>
 
 
 <details>
-<summary><b>本地独立运行（开发）</b></summary>
+<summary><b>Run locally (dev)</b></summary>
 
-本包为 **stdio** 业务入口；HTTP/SSE + 鉴权见 [`api/gangtise_kb`](../../api/gangtise_kb/)。在 monorepo 内：
+This package is the **stdio** entry. HTTP/SSE + auth live in [`api/gangtise_kb`](../../api/gangtise_kb/):
 
 ```bash
-cd gangtise-data-mcp/mcp/gangtise_kb
-uv sync
-uv run gangtise-kb-mcp          # stdio
-# HTTP/SSE（api 包）
-cd ../../api/gangtise_kb && uv sync && uv run gangtise-kb-api --transport both --host 0.0.0.0 --port 8000
+cd gangtise-data-mcp/mcp/gangtise_kb && uv sync && uv run gangtise-kb-mcp   # stdio
+cd ../../api/gangtise_kb && uv sync && uv run gangtise-kb-api --transport both --port 8000
 ```
 
-CLI 调试见 [`cli/gangtise_kb`](../../cli/gangtise_kb/)。日常客户端接入推荐 [`gangtise_mcp`](../gangtise_mcp/)。
+CLI: [`cli/gangtise_kb`](../../cli/gangtise_kb/). Recommended client package: [`gangtise_mcp`](../gangtise_mcp/).
 
 </details>
 
-English: [README.en.md](README.en.md)
+Chinese: [README.cn.md](README.cn.md)

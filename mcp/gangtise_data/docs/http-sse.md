@@ -1,8 +1,8 @@
 # HTTP / SSE / OAuth
 
-**简体中文** | [English](http-sse.en.md)
+[简体中文](http-sse.cn.md) | **English**
 
-完整说明见仓库共享文档：
+Canonical docs:
 
 - [../../docs/http-sse.md](../../docs/http-sse.md)
-- 推荐包与安装：[../../README.md](../../README.md) · [`gangtise_mcp`](../gangtise_mcp/)
+- Install / overview: [../../README.md](../../README.md) · [`gangtise_mcp`](../gangtise_mcp/README.md)

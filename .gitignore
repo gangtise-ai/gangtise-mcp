@@ -12,3 +12,5 @@ _Dockerfile
 gangtise-mcp.yaml
 configmap.yaml
 local_nginx*
+workspace
+connectors

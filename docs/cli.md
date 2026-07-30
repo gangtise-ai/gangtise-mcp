@@ -1,71 +1,64 @@
 # CLI
 
-**简体中文** | [English](cli.en.md)
+[简体中文](cli.cn.md) | **English**
 
-命令行调用与 MCP **同源工具实现**。日常推荐使用全量入口 **`gangtise`**（对应 [`cli/gangtise_mcp`](../cli/gangtise_mcp/)，依赖 [`mcp/gangtise_mcp`](../mcp/gangtise_mcp/)）。
+Command-line access to the **same tool implementations** as MCP. Prefer the full entry **`gangtise`** ([`cli/gangtise_mcp`](../cli/gangtise_mcp/), depends on [`mcp/gangtise_mcp`](../mcp/gangtise_mcp/)).
 
-账号：[开放平台](https://open-platform.gangtise.com/) 申请 Access Key / Secret Key。
+Credentials: [open platform](https://open-platform.gangtise.com/) Access Key / Secret Key.
 
-仓库示例（中文文档默认 Gitee）：[`https://gitee.com/yanxi3938/gangtise-data-mcp`](https://gitee.com/yanxi3938/gangtise-data-mcp)。英文示例见 [cli.en.md](cli.en.md)（GitHub）。
+Repo examples in this English doc use GitHub: [`https://github.com/XiaoYan3938/gangtise-data-mcp`](https://github.com/XiaoYan3938/gangtise-data-mcp). Chinese doc defaults to Gitee: [cli.md](cli.md).
 
 ---
 
-## 推荐安装（`uvx` + `gangtise-mcp`）
+## Recommended install (`uvx` + `gangtise-mcp`)
 
-需已安装 [uv](https://docs.astral.sh/uv/)。无需克隆仓库即可运行：
+Requires [uv](https://docs.astral.sh/uv/). No clone needed:
 
 ```bash
-uvx --default-index https://pypi.tuna.tsinghua.edu.cn/simple \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
-  --from "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=cli/gangtise_mcp" \
+uvx --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
+  --from "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=cli/gangtise_mcp" \
   gangtise --help
 ```
 
-首次会拉取依赖；之后可直接：
+Then:
 
 ```bash
-uvx --default-index https://pypi.tuna.tsinghua.edu.cn/simple \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
-  --from "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=cli/gangtise_mcp" \
+uvx --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
+  --from "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=cli/gangtise_mcp" \
   gangtise list
 ```
 
-可将上述 `uvx ... gangtise` 做成 shell 别名，便于日常调用。
-
 ---
 
-## 配置凭证
+## Credentials
 
 ```bash
-# 写入 ~/.config/gangtise/authorization（推荐）
 uvx ... gangtise configure --access-key <AK> --secret-key <SK>
 
-# 或环境变量（优先级高于本地文件）
+# or env (overrides local file)
 export GTS_ACCESS_KEY=<AK>
 export GTS_SECRET_KEY=<SK>
 ```
 
-| 变量 | 说明 |
-|------|------|
-| `GTS_ACCESS_KEY` / `GTS_SECRET_KEY` | AK/SK（优先） |
-| `GTS_AUTHORIZATION_PATH` | 自定义凭证文件路径 |
-| `GTS_SAVE_FILE` / `WORK_PATH` | 是否落盘 / 工作区（部分工具） |
+| Variable | Notes |
+|----------|--------|
+| `GTS_ACCESS_KEY` / `GTS_SECRET_KEY` | AK/SK (preferred) |
+| `GTS_AUTHORIZATION_PATH` | Custom credentials path |
+| `GTS_SAVE_FILE` / `WORK_PATH` | Persist / workspace (some tools) |
 
 ---
 
-## 常用命令
+## Common commands
 
-| 命令 | 说明 |
-|------|------|
-| `gangtise configure` | 保存 AK/SK |
-| `gangtise list` | 列出全部工具子命令 |
-| `gangtise <tool> --help` | 查看单个工具参数 |
-| `gangtise <tool> ...` | 调用工具（与 MCP 同源） |
-| `gangtise uninstall` | 删除本地凭证文件 |
+| Command | Notes |
+|---------|--------|
+| `gangtise configure` | Save AK/SK |
+| `gangtise list` | List tools |
+| `gangtise <tool> --help` | Tool help |
+| `gangtise <tool> ...` | Invoke (same as MCP) |
+| `gangtise uninstall` | Remove local credentials |
 
-参数名多为 kebab-case（如 `--start-date`），并支持常用短选项（如 `-k`、`-sd`、`-ed`）。
-
-示例：
+Examples:
 
 ```bash
 gangtise quote --securities 比亚迪
@@ -76,25 +69,23 @@ gangtise pdf_parse --action submit --pdf-path ./sample.pdf
 ---
 
 <details>
-<summary><b>从源码本地运行</b></summary>
+<summary><b>Run from source</b></summary>
 
 ```bash
 cd gangtise-data-mcp/cli/gangtise_mcp
-uv sync --default-index https://pypi.tuna.tsinghua.edu.cn/simple
+uv sync
 uv run gangtise list
 ```
-
-`uv.sources` 通过相对路径引用 `../../mcp/gangtise_mcp`，无需整仓 workspace。
 
 </details>
 
 <details>
-<summary><b>单域 CLI（可选）</b></summary>
+<summary><b>Single-domain CLIs (optional)</b></summary>
 
-仅需某一域时可安装对应包（命令分别为 `gangtise-data` / `gangtise-file` / … / `gangtise-pdf`），见 [`cli/`](../cli/) 下各目录 README。日常更推荐全量 **`gangtise`**。
+See [`cli/`](../cli/) for `gangtise-data`, `gangtise-file`, …, `gangtise-pdf`. Prefer full **`gangtise`** for daily use.
 
 </details>
 
 ---
 
-[HTTP / SSE](http-sse.md) · [Docker 部署](docker-deploy.md) · [总览](../README.md)
+[HTTP / SSE](http-sse.md) · [Docker](docker-deploy.md) · [Overview](../README.md)
