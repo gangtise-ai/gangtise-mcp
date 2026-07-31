@@ -36,9 +36,9 @@
         "--default-index",
         "https://pypi.tuna.tsinghua.edu.cn/simple",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_agent",
         "--from",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_agent",
         "gangtise-agent-mcp"
       ],
       "env": {

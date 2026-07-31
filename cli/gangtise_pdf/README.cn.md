@@ -25,8 +25,8 @@ uv run gangtise-pdf --help
 
 ```bash
 uvx --default-index https://pypi.tuna.tsinghua.edu.cn/simple \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_pdf" \
-  --from "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=cli/gangtise_pdf" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_pdf" \
+  --from "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=cli/gangtise_pdf" \
   gangtise-pdf list
 ```
 

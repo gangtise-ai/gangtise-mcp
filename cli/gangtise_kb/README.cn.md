@@ -25,8 +25,8 @@ uv run gangtise-kb --help
 
 ```bash
 uvx --default-index https://pypi.tuna.tsinghua.edu.cn/simple \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb" \
-  --from "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=cli/gangtise_kb" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_kb" \
+  --from "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=cli/gangtise_kb" \
   gangtise-kb list
 ```
 

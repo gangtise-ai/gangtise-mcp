@@ -25,8 +25,8 @@ uv run gangtise-private --help
 
 ```bash
 uvx --default-index https://pypi.tuna.tsinghua.edu.cn/simple \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private" \
-  --from "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=cli/gangtise_private" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_private" \
+  --from "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=cli/gangtise_private" \
   gangtise-private list
 ```
 

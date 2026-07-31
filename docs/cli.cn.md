@@ -6,7 +6,7 @@
 
 账号：[开放平台](https://open-platform.gangtise.com/) 申请 Access Key / Secret Key。
 
-仓库示例（中文文档默认 Gitee）：[`https://gitee.com/yanxi3938/gangtise-data-mcp`](https://gitee.com/yanxi3938/gangtise-data-mcp)。英文示例见 [cli.md](cli.md)（GitHub）。
+仓库示例（中文文档默认 Gitee）：[`https://gitee.com/gangtise/gangtise-mcp`](https://gitee.com/gangtise/gangtise-mcp)。英文示例见 [cli.md](cli.md)（GitHub）。
 
 ---
 
@@ -16,8 +16,8 @@
 
 ```bash
 uvx --default-index https://pypi.tuna.tsinghua.edu.cn/simple \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
-  --from "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=cli/gangtise_mcp" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_mcp" \
+  --from "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=cli/gangtise_mcp" \
   gangtise --help
 ```
 
@@ -25,8 +25,8 @@ uvx --default-index https://pypi.tuna.tsinghua.edu.cn/simple \
 
 ```bash
 uvx --default-index https://pypi.tuna.tsinghua.edu.cn/simple \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
-  --from "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=cli/gangtise_mcp" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_mcp" \
+  --from "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=cli/gangtise_mcp" \
   gangtise list
 ```
 

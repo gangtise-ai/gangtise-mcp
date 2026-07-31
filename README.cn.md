@@ -30,7 +30,7 @@
 | **命令行 CLI** | `uvx` 拉起全量命令 `gangtise`（见 [docs/cli.cn.md](docs/cli.cn.md)） |
 | **远程 HTTP / SSE** | HTTP `…/application/mcp/` · SSE `…/application/mcp/sse`；请求头带 AK/SK（推荐）或 Authorization |
 
-仓库地址（本文安装示例均使用 Gitee）：[`https://gitee.com/yanxi3938/gangtise-data-mcp`](https://gitee.com/yanxi3938/gangtise-data-mcp)。英文文档示例见 [README.md](README.md)（GitHub）。
+仓库地址（本文安装示例均使用 Gitee）：[`https://gitee.com/gangtise/gangtise-mcp`](https://gitee.com/gangtise/gangtise-mcp)。英文文档示例见 [README.md](README.md)（GitHub）。
 
 ---
 
@@ -57,17 +57,17 @@
         "--default-index",
         "https://pypi.tuna.tsinghua.edu.cn/simple",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_agent",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_data",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_file",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_kb",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_private",
         "--from",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_mcp",
         "gangtise-mcp"
       ],
       "env": {
@@ -120,17 +120,17 @@
         "--default-index",
         "https://pypi.tuna.tsinghua.edu.cn/simple",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_agent",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_data",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_file",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_kb",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_private",
         "--from",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_mcp",
         "gangtise-mcp"
       ],
       "env": {
@@ -175,17 +175,17 @@
                 "--default-index",
         "https://pypi.tuna.tsinghua.edu.cn/simple",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_agent",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_data",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_file",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_kb",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_private",
         "--from",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_mcp",
         "gangtise-mcp"
       ],
       "env": {
@@ -209,12 +209,12 @@
 ```bash
 claude mcp add gangtise -- uvx \
   --default-index https://pypi.tuna.tsinghua.edu.cn/simple \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent" \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data" \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file" \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb" \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private" \
-  --from "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_agent" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_data" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_file" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_kb" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_private" \
+  --from "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_mcp" \
   gangtise-mcp
 ```
 
@@ -240,17 +240,17 @@ claude mcp add gangtise -- uvx \
                 "--default-index",
         "https://pypi.tuna.tsinghua.edu.cn/simple",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_agent",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_data",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_file",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_kb",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_private",
         "--from",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_mcp",
         "gangtise-mcp"
       ],
       "env": {

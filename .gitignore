@@ -14,3 +14,4 @@ configmap.yaml
 local_nginx*
 workspace
 connectors
+local_mcp_proxy.py
