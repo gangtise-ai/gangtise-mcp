@@ -67,10 +67,10 @@
 
 官方：[WorkBuddy MCP 指南](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide)。
 
-市场 Connector 提交包（OAuth）：[`connectors/workbuddy/gangtise-mcp/`](../../connectors/workbuddy/gangtise-mcp/)。
-
 1. 将 MCP 配置 JSON（与上方 Cursor 示例相同，server 键名可用 `gangtise_mcp`；先填好 ak/sk）发给 WorkBuddy **智能体**，请其完成安装。
 2. 安装完成后，打开侧边栏 **专家 · 技能 · 连接器** → 顶部 **连接器** → **自定义连接器** / **我的 MCP**，对 `gangtise_mcp` 依次 **信任** 并 **开启**（首次信任可能等待数秒）。
+
+远程 HTTP：`https://openapi.gangtise.com/application/open-mcp/` — [http-sse.cn.md](../../docs/http-sse.cn.md)。
 
 </details>
 

@@ -126,7 +126,7 @@ Authorization: Bearer <token>
 }
 ```
 
-WorkBuddy 上架端点为 `https://openapi.gangtise.com/application/open-mcp/`（`streamableHttp`），见 [`connectors/workbuddy/gangtise-mcp/`](../connectors/workbuddy/gangtise-mcp/)。
+WorkBuddy 远程端点：`https://openapi.gangtise.com/application/open-mcp/`（`streamableHttp` + AK/SK 请求头）。
 
 </details>
 

@@ -104,8 +104,6 @@
 
 官方说明见 [WorkBuddy MCP 指南](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide)。推荐接入 **`gangtise_mcp`**。
 
-**市场 Connector 提交包**（规范 v3.0 · 用户自填 Token）：[`connectors/workbuddy/gangtise-mcp/`](connectors/workbuddy/gangtise-mcp/)，端点 `https://openapi.gangtise.com/application/open-mcp/`（专供 WorkBuddy，屏蔽微信/公众号流量）。用户填写开放平台 AK/SK；开发自测仍可用「发给智能体」stdio 方式。
-
 1. 将下方 MCP 配置 JSON 发给 WorkBuddy **智能体**（可附带真实 `GTS_ACCESS_KEY` / `GTS_SECRET_KEY`），请其完成 MCP 安装：
 
 <details>
@@ -154,7 +152,7 @@
 
 ![信任并开启 gangtise_mcp](assets/trust_mcp.png)
 
-远程 HTTP：WorkBuddy 上架端点为 `https://openapi.gangtise.com/application/open-mcp/`（见 [docs/http-sse.cn.md](docs/http-sse.cn.md)）；通用客户端见下方「远程 HTTP / SSE」。
+远程 HTTP：WorkBuddy 端点为 `https://openapi.gangtise.com/application/open-mcp/`（见 [docs/http-sse.cn.md](docs/http-sse.cn.md)）；通用客户端见下方「远程 HTTP / SSE」。
 
 </details>
 

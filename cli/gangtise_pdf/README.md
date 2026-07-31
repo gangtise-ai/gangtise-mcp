@@ -20,8 +20,8 @@ uv run gangtise-pdf --help
 ```
 
 ```bash
-uvx --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_pdf" \
-  --from "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=cli/gangtise_pdf" \
+uvx --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_pdf" \
+  --from "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=cli/gangtise_pdf" \
   gangtise-pdf list
 ```
 

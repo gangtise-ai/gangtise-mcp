@@ -126,7 +126,7 @@ Bearer pass-through:
 }
 ```
 
-WorkBuddy marketplace uses `https://openapi.gangtise.com/application/open-mcp/` (streamableHttp); see [`connectors/workbuddy/gangtise-mcp/`](../connectors/workbuddy/gangtise-mcp/).
+WorkBuddy remote endpoint: `https://openapi.gangtise.com/application/open-mcp/` (`streamableHttp` + AK/SK headers).
 
 </details>
 

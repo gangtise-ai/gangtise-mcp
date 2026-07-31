@@ -6,7 +6,7 @@ Command-line access to the **same tool implementations** as MCP. Prefer the full
 
 Credentials: [open platform](https://open-platform.gangtise.com/) Access Key / Secret Key.
 
-Repo examples in this English doc use GitHub: [`https://github.com/XiaoYan3938/gangtise-data-mcp`](https://github.com/XiaoYan3938/gangtise-data-mcp). Chinese doc defaults to Gitee: [cli.md](cli.md).
+Repo examples in this English doc use GitHub: [`https://github.com/gangtise-ai/gangtise-mcp`](https://github.com/gangtise-ai/gangtise-mcp). Chinese doc defaults to Gitee: [cli.md](cli.md).
 
 ---
 
@@ -15,16 +15,16 @@ Repo examples in this English doc use GitHub: [`https://github.com/XiaoYan3938/g
 Requires [uv](https://docs.astral.sh/uv/). No clone needed:
 
 ```bash
-uvx --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
-  --from "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=cli/gangtise_mcp" \
+uvx --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_mcp" \
+  --from "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=cli/gangtise_mcp" \
   gangtise --help
 ```
 
 Then:
 
 ```bash
-uvx --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
-  --from "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=cli/gangtise_mcp" \
+uvx --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_mcp" \
+  --from "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=cli/gangtise_mcp" \
   gangtise list
 ```
 

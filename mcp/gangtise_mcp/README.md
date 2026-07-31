@@ -36,17 +36,17 @@ Prefer: send JSON to the Cursor **Agent** → **Accept** when prompted → **Cur
       "command": "uvx",
       "args": [
                 "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_agent",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_data",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_file",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_kb",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_private",
         "--from",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_mcp",
         "gangtise-mcp"
       ],
       "env": {
@@ -64,7 +64,7 @@ Prefer: send JSON to the Cursor **Agent** → **Accept** when prompted → **Cur
 <details>
 <summary><b>Install in WorkBuddy</b></summary>
 
-Marketplace Connector package (OAuth): [`connectors/workbuddy/gangtise-mcp/`](../../connectors/workbuddy/gangtise-mcp/). For ad-hoc install, send the same MCP JSON as Cursor (server key may be `gangtise_mcp`) to the WorkBuddy agent, then **trust** and **enable** the connector.
+Send the same MCP JSON as Cursor (server key may be `gangtise_mcp`) to the WorkBuddy agent, then **trust** and **enable**. Remote HTTP: `https://openapi.gangtise.com/application/open-mcp/` — [http-sse.md](../../docs/http-sse.md).
 
 </details>
 
@@ -91,12 +91,12 @@ OAuth or `X-GTS-Credentials`: [http-sse.md](../../docs/http-sse.md).
 
 ```bash
 uvx \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent" \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data" \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file" \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb" \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private" \
-  --from "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_agent" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_data" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_file" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_kb" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_private" \
+  --from "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_mcp" \
   gangtise-mcp
 ```
 
