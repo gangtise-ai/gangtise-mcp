@@ -294,3 +294,7 @@ See [docs/docker-deploy.md](docs/docker-deploy.md).
 ---
 
 Credentials via the open platform. Docs issues welcome as GitHub Issues. Chinese: [README.cn.md](README.cn.md).
+
+## License
+
+[MIT](LICENSE) © 2026 Gangtise

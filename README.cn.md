@@ -357,3 +357,7 @@ docker run -d -p 8000:8000 gangtise-mcp
 ---
 
 问题与支持：通过开放平台账号体系获取凭证；文档问题可提 Issue。English：[README.md](README.md)。
+
+## 许可证
+
+[MIT](LICENSE) © 2026 Gangtise
