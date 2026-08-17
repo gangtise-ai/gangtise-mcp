@@ -58,16 +58,6 @@ PUBLIC_AGENT_TYPES = sorted(
     + list(SPECIAL_AGENT_TYPES)
 )
 
-STOCK_SUMMARY_MARKET_TOKENS = {
-    "ashares": "aShares",
-    "aShares": "aShares",
-    "a股": "aShares",
-    "A股": "aShares",
-    "hkstocks": "hkStocks",
-    "hkStocks": "hkStocks",
-    "港股": "hkStocks",
-}
-
 SECURITY_REQUIRED_AGENT_TYPES = {
     "stock-one-pager",
     "investment-logic",
@@ -244,27 +234,12 @@ def _resolve_stock_summary_security_list(
     security: Optional[str] = None,
     securities: Optional[List[str]] = None,
 ) -> Tuple[Optional[List[str]], Optional[str]]:
-    """解析 stock-one-line-summary 的 securityList：支持证券批量或 aShares/hkStocks 全市场。"""
+    """解析 stock-one-line-summary 的 securityList：仅支持 A 股/港股个股批量，不支持市场标识。"""
     tokens = _collect_security_tokens(security, securities)
     if not tokens:
-        return None, "stock-one-line-summary 需要参数 security 或 securities（支持证券代码/名称，或 aShares/hkStocks 全市场查询）"
+        return None, "stock-one-line-summary 需要参数 security 或 securities（支持证券代码/名称批量查询，不支持 aShares/hkStocks 等市场标识）"
 
-    market_codes: List[str] = []
-    stock_tokens: List[str] = []
-    for token in tokens:
-        mapped = STOCK_SUMMARY_MARKET_TOKENS.get(token) or STOCK_SUMMARY_MARKET_TOKENS.get(token.lower())
-        if mapped:
-            if mapped not in market_codes:
-                market_codes.append(mapped)
-        else:
-            stock_tokens.append(token)
-
-    if market_codes and stock_tokens:
-        return None, "请勿同时传入市场标识（aShares/hkStocks）与具体证券"
-    if market_codes:
-        return market_codes, None
-
-    resolved = batch_security_search(stock_tokens, category=["stock", "dr"], output_limit=1)
+    resolved = batch_security_search(tokens, category=["stock", "dr"], output_limit=1)
     if resolved.get("state") != "success":
         return None, resolved.get("message") or "证券解析失败"
     codes = resolved.get("codes") or []
@@ -738,7 +713,7 @@ def main():
     parser.add_argument(
         "--securities",
         default=None,
-        help="多个证券名称或代码，逗号分隔；与 --security 可同时使用并去重合并。用于需证券的 agent 类型；stock-one-line-summary 也可传 aShares 或 hkStocks 查询全市场",
+        help="多个证券名称或代码，逗号分隔；与 --security 可同时使用并去重合并。用于需证券的 agent 类型；stock-one-line-summary 仅支持 A 股/港股个股批量查询",
     )
     parser.add_argument(
         "--industry",

@@ -21,7 +21,6 @@
       "/sectors/search"
     ],
     "company_indicator": [
-      "/EDE/cross-section",
       "/EDE/search",
       "/EDE/time-series",
       "/securities/search"
@@ -63,9 +62,6 @@
     ],
     "quote": [
       "/adjustFactor",
-      "/index/kline/daily",
-      "/kline-hk/daily",
-      "/kline-us/daily",
       "/kline/daily",
       "/kline/minute",
       "/quote/realtime",
@@ -296,7 +292,6 @@
         "/sectors/search"
       ],
       "company_indicator": [
-        "/EDE/cross-section",
         "/EDE/search",
         "/EDE/time-series",
         "/securities/search"
@@ -338,9 +333,6 @@
       ],
       "quote": [
         "/adjustFactor",
-        "/index/kline/daily",
-        "/kline-hk/daily",
-        "/kline-us/daily",
         "/kline/daily",
         "/kline/minute",
         "/quote/realtime",
@@ -560,7 +552,6 @@
   "all_urls": [
     "/EDB/getData",
     "/EDB/search",
-    "/EDE/cross-section",
     "/EDE/search",
     "/EDE/time-series",
     "/Q&A-data/getList",
@@ -602,10 +593,7 @@
     "/hot-topic/getList",
     "/independent-opinion/download/file",
     "/independent-opinion/getList",
-    "/index/kline/daily",
     "/institutions/search",
-    "/kline-hk/daily",
-    "/kline-us/daily",
     "/kline/daily",
     "/kline/minute",
     "/main-business",
@@ -673,7 +661,6 @@
     "HOT_TOPIC_LIST_URL": "/hot-topic/getList",
     "INDEPENDENT_OPINION_DOWNLOAD_URL": "/independent-opinion/download/file",
     "INDEPENDENT_OPINION_LIST_URL": "/independent-opinion/getList",
-    "INDICATOR_CROSS_SECTION_URL": "/EDE/cross-section",
     "INDICATOR_SEARCH_URL": "/EDE/search",
     "INDICATOR_TIME_SERIES_URL": "/EDE/time-series",
     "INSTITUTIONS_SEARCH_URL": "/institutions/search",
@@ -690,12 +677,9 @@
     "PERFORMANCE_CALENDAR_LIST_URL": "/schedule/performance-calendar/getList",
     "QA_DATA_LIST_URL": "/Q&A-data/getList",
     "QUOTE_ADJUST_FACTOR_URL": "/adjustFactor",
-    "QUOTE_HK_URL": "/kline-hk/daily",
-    "QUOTE_INDEX_DAILY_URL": "/index/kline/daily",
     "QUOTE_MINUTE_URL": "/kline/minute",
     "QUOTE_REALTIME_URL": "/quote/realtime",
     "QUOTE_URL": "/kline/daily",
-    "QUOTE_US_DAILY_URL": "/kline-us/daily",
     "RAG_URL": "/ai/search/knowledge_base",
     "RECORD_DOWNLOAD_URL": "/record/download/file",
     "RECORD_LIST_URL": "/record/getList",

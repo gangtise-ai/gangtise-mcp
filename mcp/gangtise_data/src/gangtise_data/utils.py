@@ -36,9 +36,6 @@ SECTOR_SEARCH_URL = GANGTISE_REFERENCE_DOMAIN + "/sectors/search"
 SECTOR_CONSTITUENTS_URL = GANGTISE_REFERENCE_DOMAIN + "/sectors/constituents"
 QUOTE_URL = GANGTISE_QUOTE_DOMAIN + "/kline/daily"
 FUND_FLOW_DAILY_URL = GANGTISE_QUOTE_DOMAIN + "/fund-flow/daily"
-QUOTE_INDEX_DAILY_URL = GANGTISE_QUOTE_DOMAIN + "/index/kline/daily"
-QUOTE_HK_URL = GANGTISE_QUOTE_DOMAIN + "/kline-hk/daily"
-QUOTE_US_DAILY_URL = GANGTISE_QUOTE_DOMAIN + "/kline-us/daily"
 QUOTE_MINUTE_URL = GANGTISE_QUOTE_DOMAIN + "/kline/minute"
 QUOTE_REALTIME_URL = GANGTISE_QUOTE_DOMAIN + "/quote/realtime"
 QUOTE_ADJUST_FACTOR_URL = GANGTISE_QUOTE_DOMAIN + "/adjustFactor"
@@ -60,7 +57,6 @@ MAIN_BUSINESS_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/main-business"
 VALUATION_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/valuation-analysis"
 INDICATOR_SEARCH_URL = GANGTISE_INDICATOR_DOMAIN + "/EDE/search"
 INDICATOR_TIME_SERIES_URL = GANGTISE_INDICATOR_DOMAIN + "/EDE/time-series"
-INDICATOR_CROSS_SECTION_URL = GANGTISE_INDICATOR_DOMAIN + "/EDE/cross-section"
 WORK_PATH = os.getenv("WORK_PATH", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "workspace"))
 if not os.path.exists(WORK_PATH):
     os.makedirs(WORK_PATH, exist_ok=True)
@@ -1737,7 +1733,7 @@ FUND_FLOW_CN ={
     "mainOutflowRatio": "主力流出占总流出比例（%）",
 }
 
-OPENAPI_SKILL_VERSION = "1.6.8"
+OPENAPI_SKILL_VERSION = "1.7.0"
 SKILL_CHECK_URL = "https://open.gangtise.com/application/skills-backend/version?skill=openapi"
 
 def check_version(large_version: bool = True):

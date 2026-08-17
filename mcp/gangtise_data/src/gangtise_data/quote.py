@@ -14,7 +14,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (QUOTE_ADJUST_FACTOR_URL, QUOTE_HK_URL, QUOTE_INDEX_DAILY_URL, QUOTE_MINUTE_URL, QUOTE_REALTIME_URL, QUOTE_URL, QUOTE_US_DAILY_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (QUOTE_ADJUST_FACTOR_URL, QUOTE_MINUTE_URL, QUOTE_REALTIME_URL, QUOTE_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 # 与 open 日 K 文档一致
 _FIELD_LIST = [
@@ -146,12 +146,7 @@ DEFAULT_QUOTE_LOOKBACK_DAYS = 7
 ALL_MARKET_DATE_LOOKBACK_DAYS = 15
 
 _ALL_MARKET_LABEL = {"cn": "A股", "hk": "H股", "us": "美股"}
-_ALL_MARKET_TO_SNAP_TOKEN = {"cn": "aShares", "hk": "hkStocks", "us": "usStocks"}
-_ALL_MARKET_TO_DAILY_URL = {
-    "cn": QUOTE_URL,
-    "hk": QUOTE_HK_URL,
-    "us": QUOTE_US_DAILY_URL,
-}
+_ALL_MARKET_TO_TOKEN = {"cn": "aShares", "hk": "hkStocks", "us": "usStocks"}
 
 
 def _parse_all_market_arg(value: Optional[str]) -> Optional[Tuple[str, ...]]:
@@ -180,7 +175,7 @@ def _parse_all_market_arg(value: Optional[str]) -> Optional[Tuple[str, ...]]:
 
 
 def _snap_tokens_for_markets(markets: Tuple[str, ...]) -> Tuple[str, ...]:
-    return tuple(_ALL_MARKET_TO_SNAP_TOKEN[m] for m in markets if m in _ALL_MARKET_TO_SNAP_TOKEN)
+    return tuple(_ALL_MARKET_TO_TOKEN[m] for m in markets if m in _ALL_MARKET_TO_TOKEN)
 
 
 def _market_code_mask(codes_u: pd.Series, market: str) -> pd.Series:
@@ -196,7 +191,7 @@ def _market_code_mask(codes_u: pd.Series, market: str) -> pd.Series:
 def _partition_daily_quote_codes(
     codes: List[str], types: List[str]
 ) -> Tuple[List[str], List[str], List[str], List[str], List[Tuple[str, str]]]:
-    """返回 (A股, 港股, 交易所指数, 美股, 不支持的 (code, security_type))。指数日 K 仅支持交易所指数。"""
+    """返回 (A股, 港股, 指数, 美股, 不支持的 (code, security_type))。指数日 K 支持交易所/概念/行业指数。"""
     a_list: List[str] = []
     hk_list: List[str] = []
     idx_list: List[str] = []
@@ -210,10 +205,8 @@ def _partition_daily_quote_codes(
             hk_list.append(c)
         elif t == "美股":
             us_list.append(c)
-        elif t == "交易所指数":
+        elif t in ("交易所指数", "行业指数", "概念指数", "其他指数", "指数"):
             idx_list.append(c)
-        elif t in ("行业指数", "概念指数", "其他指数", "指数"):
-            skipped.append((c, t))
         else:
             skipped.append((c, t or "未知类型"))
     return a_list, hk_list, idx_list, us_list, skipped
@@ -222,15 +215,13 @@ def _partition_daily_quote_codes(
 def _partition_snap_quote_codes(
     codes: List[str], types: List[str]
 ) -> Tuple[List[str], List[Tuple[str, str]]]:
-    """截面行情：A/港/美股走同一实时接口；指数类跳过。"""
+    """截面行情：A/港/美股及交易所/概念/行业指数走同一实时接口。"""
     ok_list: List[str] = []
     skipped: List[Tuple[str, str]] = []
     for i, c in enumerate(codes):
         t = types[i] if i < len(types) else ""
-        if t in ("A股", "港股", "美股"):
+        if t in ("A股", "港股", "美股", "交易所指数", "行业指数", "概念指数", "其他指数", "指数"):
             ok_list.append(c)
-        elif t in ("行业指数", "概念指数", "其他指数", "指数", "交易所指数"):
-            skipped.append((c, t))
         else:
             skipped.append((c, t or "未知类型"))
     return ok_list, skipped
@@ -400,7 +391,7 @@ def _quote_title_segment_for_block(
     adj_map = {"none": "不复权", "forward": "前复权", "backward": "后复权"}
 
     if data_type == "minute":
-        return f"{body}（A股 不复权）"
+        return f"{body}（不复权）"
 
     if segment == "all_market":
         markets = all_market_markets or ("cn",)
@@ -435,9 +426,9 @@ def _quote_title_segment_for_block(
         if in_hk and not in_idx:
             mkt = "H股"
         elif in_idx and not in_hk:
-            mkt = "沪深京指数"
+            mkt = "指数"
         else:
-            mkt = "港股及沪深京指数"
+            mkt = "港股及指数"
         return f"{body}（{mkt} 不复权）"
 
     if segment == "single":
@@ -465,7 +456,7 @@ def _quote_title_segment_for_block(
                 return f"{body}（美股 {adj_map[adj_mode]}）"
             return f"{body}（美股 不复权）"
         if all_idx and not (all_a or all_hk or all_us):
-            return f"{body}（沪深京指数 不复权）"
+            return f"{body}（指数 不复权）"
         if prefer_adj and adj_mode != "none":
             return f"{body}（多品种 {adj_map[adj_mode]}）"
         return f"{body}（多品种 不复权）"
@@ -1004,7 +995,7 @@ def _resolve_quote_dates(
 
 def _fetch_full_market_daily_with_date_fallback(
     headers: dict,
-    url: str,
+    security_token: str,
     adj_mode: str,
     limit: int,
     snap_markets: Optional[Tuple[str, ...]] = None,
@@ -1012,6 +1003,7 @@ def _fetch_full_market_daily_with_date_fallback(
 ) -> Tuple[pd.DataFrame, Optional[str], Optional[str], Optional[str], bool]:
     """全市场日 K 未指定日期时：从当天起逐日向前查询，当天可先尝试实时快照补全。
 
+    security_token 为市场标识（aShares/hkStocks/usStocks），统一走日 K 接口。
     返回 (data, err, used_date, fallback_note, used_snap_supplement)。
     """
     today = date.today()
@@ -1026,9 +1018,9 @@ def _fetch_full_market_daily_with_date_fallback(
             "endDate": query_date,
             "limit": limit,
             "fieldList": daily_fields,
-            "securityList": ["all"],
+            "securityList": [security_token],
         }
-        data_one, err_one = _fetch_kline_data(url, headers, payload)
+        data_one, err_one = _fetch_kline_data(QUOTE_URL, headers, payload)
         if not err_one and not data_one.empty:
             fb_note = None
             if offset > 0:
@@ -1164,10 +1156,10 @@ def quote_data(
         elif data_type == "snap":
             snap_codes, skipped_quote = _partition_snap_quote_codes(codes, resolved_types)
         else:
-            # 分钟 K 仅支持 A 股接口，其余类型跳过不报错
+            # 分钟 K 支持 A 股个股及交易所/概念/行业指数；港股/美股等跳过不报错
             for i, c in enumerate(codes):
                 t = resolved_types[i] if i < len(resolved_types) else ""
-                if t == "A股":
+                if t in ("A股", "交易所指数", "行业指数", "概念指数", "其他指数", "指数"):
                     daily_a_codes.append(c)
                 else:
                     skipped_quote.append((c, t or "未知类型"))
@@ -1194,13 +1186,13 @@ def quote_data(
 
         if all_market_markets:
             for mkt in all_market_markets:
-                url = _ALL_MARKET_TO_DAILY_URL[mkt]
+                token = _ALL_MARKET_TO_TOKEN[mkt]
                 label = _ALL_MARKET_LABEL[mkt]
                 if all_market_date_fallback:
                     data_m, err_m, used_date, fb_note, used_snap = (
                         _fetch_full_market_daily_with_date_fallback(
                             headers,
-                            url,
+                            token,
                             adj_mode,
                             capped_limit,
                             snap_markets=(mkt,),
@@ -1222,55 +1214,35 @@ def quote_data(
                         data_parts.append(data_m)
                 else:
                     payload_m = dict(payload)
-                    payload_m["securityList"] = ["all"]
-                    data_m, err_m = _fetch_kline_data(url, headers, payload_m)
+                    payload_m["securityList"] = [token]
+                    data_m, err_m = _fetch_kline_data(QUOTE_URL, headers, payload_m)
                     if err_m:
                         request_errors.append(f"{label}接口请求失败: {err_m}")
                     elif not data_m.empty:
                         data_parts.append(data_m)
         else:
-            if daily_a_codes:
-                payload_a = dict(payload)
-                payload_a["securityList"] = daily_a_codes
-                data_a, err_a = _fetch_kline_data(QUOTE_URL, headers, payload_a)
-                if err_a:
-                    request_errors.append(f"A股接口请求失败: {err_a}")
-                elif not data_a.empty:
-                    data_parts.append(data_a)
-
-            if daily_hk_codes:
-                payload_hk = dict(payload)
-                payload_hk["securityList"] = daily_hk_codes
-                data_hk, err_hk = _fetch_kline_data(QUOTE_HK_URL, headers, payload_hk)
-                if err_hk:
-                    request_errors.append(f"港股接口请求失败: {err_hk}")
-                elif not data_hk.empty:
-                    data_parts.append(data_hk)
-
-            if daily_idx_codes:
-                payload_idx = dict(payload)
-                payload_idx["securityList"] = daily_idx_codes
-                data_idx, err_idx = _fetch_kline_data(QUOTE_INDEX_DAILY_URL, headers, payload_idx)
-                if err_idx:
-                    request_errors.append(f"指数日K接口请求失败: {err_idx}")
-                elif not data_idx.empty:
-                    data_parts.append(data_idx)
-
-            if daily_us_codes:
-                payload_us = dict(payload)
-                payload_us["securityList"] = daily_us_codes
-                data_us, err_us = _fetch_kline_data(QUOTE_US_DAILY_URL, headers, payload_us)
-                if err_us:
-                    request_errors.append(f"美股日K接口请求失败: {err_us}")
-                elif not data_us.empty:
-                    data_parts.append(data_us)
+            daily_all_codes = list(
+                dict.fromkeys(
+                    daily_a_codes + daily_hk_codes + daily_idx_codes + daily_us_codes
+                )
+            )
+            if daily_all_codes:
+                payload_all = dict(payload)
+                payload_all["securityList"] = daily_all_codes
+                data_all, err_all = _fetch_kline_data(QUOTE_URL, headers, payload_all)
+                if err_all:
+                    request_errors.append(f"日K接口请求失败: {err_all}")
+                elif not data_all.empty:
+                    data_parts.append(data_all)
 
         if _end_date_includes_today(end_date):
             check_date = end_date[:10]
             snap_codes_for_supplement: List[str] = []
             if not all_market_markets:
                 candidates = list(
-                    dict.fromkeys(daily_a_codes + daily_hk_codes + daily_us_codes)
+                    dict.fromkeys(
+                        daily_a_codes + daily_hk_codes + daily_idx_codes + daily_us_codes
+                    )
                 )
                 snap_codes_for_supplement = _codes_needing_snap_supplement(
                     data_parts, candidates, check_date

@@ -1,6 +1,6 @@
 name: summary
 title: Summary
-description: 检索会议纪要/调研纪要，支持机构、行业、来源类型、参会角色等筛选；可选下载。
+description: 检索用户白名单权限范围内的纪要，支持机构、行业、来源类型、参会角色等筛选，可下载纪要文件
 parameters:
   keyword:
     type: string

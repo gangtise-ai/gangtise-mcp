@@ -1,12 +1,12 @@
 name: stock_one_line_summary
 title: Stock One Line Summary
-description: 批量获取个股「一句话总结」；支持具体证券列表，或 aShares/hkStocks 全市场扫描。无总结的标的不会返回。
+description: 批量获取个股「一句话总结」；支持 A 股/港股个股批量查询。无总结的标的不会返回。
 parameters:
   security:
     type: string
     description: 单个证券名称或代码（推荐名称，如 贵州茅台；或代码 600519.SH）
   securities:
     type: array
-    description: 多个证券名称或代码，逗号分隔；与 security 可同时使用并去重合并。另支持 aShares（全部 A 股）或 hkStocks（全部港股），不可与具体证券混传
+    description: 多个证券名称或代码，逗号分隔；与 security 可同时使用并去重合并。仅支持 A 股/港股个股，不支持 aShares/hkStocks 等市场标识
     items:
       type: string
