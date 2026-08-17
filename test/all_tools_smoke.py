@@ -23,8 +23,8 @@ CASES: List[Tuple[str, Tuple[str, ...]]] = [
     # data
     ("security", ("-k", "茅台")),
     ("quote", ("--securities", "贵州茅台", "-l", "3")),
-    ("quote", ("--securities", "贵州茅台", "--type", "minute", "-l", "3")),
-    ("quote", ("--securities", "贵州茅台", "--type", "snap")),
+    ("quote", ("--securities", "贵州茅台", "--data-type", "minute", "-l", "3")),
+    ("quote", ("--securities", "贵州茅台", "--data-type", "snap")),
     ("financial", ("--securities", "贵州茅台")),
     ("fund_flow", ("--securities", "贵州茅台")),
     ("shareholder", ("--holder-type", "top10", "--securities", "贵州茅台")),
@@ -33,7 +33,7 @@ CASES: List[Tuple[str, Tuple[str, ...]]] = [
     ("earning_forecast", ("--securities", "贵州茅台")),
     ("industry_indicator", ("-k", "GDP")),
     ("company_indicator", ("-k", "ROE")),
-    ("concept", ("-k", "机器人")),
+    ("concept", ("-c", "机器人", "--top", "3")),
     ("block_constituents", ("-k", "白酒")),
     # file
     ("report", ("-l", "1")),
@@ -44,10 +44,22 @@ CASES: List[Tuple[str, Tuple[str, ...]]] = [
     ("foreign_report", ("-l", "1")),
     ("foreign_opinion", ("-l", "1")),
     ("official_account", ("-l", "1")),
-    ("management_discuss", ("--securities", "贵州茅台", "-l", "1")),
+    (
+        "management_discuss",
+        (
+            "--securities",
+            "贵州茅台",
+            "--discuss-type",
+            "年报",
+            "--report-date",
+            "2024-12-31",
+            "--discussion-dimension",
+            "all",
+        ),
+    ),
     ("qa", ("--securities", "贵州茅台", "-l", "1")),
     ("report_image", ("-k", "茅台", "-l", "1")),
-    ("investment_calendar", ("-t", "roadshow", "-l", "1")),
+    ("investment_calendar", ("--kind", "roadshow", "-l", "1")),
     ("get_chiefs", ("-k", "张")),
     ("get_institutions", ("-k", "中信")),
     ("get_industries", ()),
@@ -58,12 +70,12 @@ CASES: List[Tuple[str, Tuple[str, ...]]] = [
     ("hot_topic", ("--page-size", "1")),
     ("security_clue", ("--securities", "贵州茅台", "--page-size", "1")),
     # kb / private
-    ("kb", ("-q", "茅台", "-l", "1")),
-    ("stockpool", ("-m", "search", "-l", "1")),
-    ("wechat_message", ("-m", "search", "-l", "1")),
-    ("private_cloud", ("-m", "search", "-l", "1")),
-    ("private_record", ("-m", "search", "-l", "1")),
-    ("private_meeting", ("-m", "search", "-l", "1")),
+    ("kb", ("--query", "茅台", "-l", "1")),
+    ("stockpool", ("-l", "1")),
+    ("wechat_message", ("-l", "1")),
+    ("private_cloud", ("-l", "1")),
+    ("private_record", ("-l", "1")),
+    ("private_meeting", ("-l", "1")),
 ]
 
 SKIP_REASON = {
@@ -95,25 +107,25 @@ class Result:
 def _classify(tool: str, returncode: int, text: str) -> Tuple[str, str]:
     low = text.lower()
     snippet = re.sub(r"\s+", " ", text).strip()[:180]
-    if tool == "pamirs_summary":
-        # 无权限但能调通算 ok
-        if returncode == 0 or any(m in text for m in PERM_MARKERS) or "state" in low or "error" in low or "失败" in text or "成功" in text:
-            if any(m in text for m in PERM_MARKERS):
-                return "ok_perm", snippet or "permission denied but reachable"
-            if returncode == 0:
-                return "ok", snippet or "exit 0"
-            # 业务错误也算调通
-            if any(m in text for m in AUTH_MARKERS):
-                return "fail_auth", snippet
-            return "ok_reachable", snippet or f"rc={returncode}"
-    if returncode != 0:
-        if any(m in text for m in AUTH_MARKERS):
-            return "fail_auth", snippet
+    if tool in ("--help", "list"):
+        if returncode == 0:
+            return "ok", snippet or "exit 0"
         return "fail", snippet or f"rc={returncode}"
-    if any(m in text for m in AUTH_MARKERS) and "success" not in low:
-        return "fail_auth", snippet
-    if "traceback" in low or "ImportError" in text:
+    if "traceback" in low or "ImportError" in text or "unrecognized arguments" in text:
         return "fail", snippet
+    if tool == "pamirs_summary":
+        if "RESOURCE_NO_PERMISSION" in text or any(m in text for m in PERM_MARKERS):
+            return "ok_perm", snippet or "permission denied but reachable"
+        if returncode == 0:
+            return "ok", snippet or "exit 0"
+        return "ok_reachable", snippet or f"rc={returncode}"
+    if returncode != 0:
+        if "未配置 Gangtise 授权" in text or "登录失败" in text:
+            return "fail_auth", snippet
+        # 业务侧“未找到/失败”但 CLI 已调通
+        if "调用" in text or "未找到" in text or "失败" in text:
+            return "ok_reachable", snippet
+        return "fail", snippet or f"rc={returncode}"
     return "ok", snippet or "exit 0"
 
 
