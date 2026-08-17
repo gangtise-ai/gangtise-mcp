@@ -73,8 +73,8 @@ FORUM_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/schedule/forum/getList"
 PERFORMANCE_CALENDAR_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/schedule/performance-calendar/getList"
 PERFORMANCE_CALENDAR_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/schedule/performance-calendar/download/file"
 FILE_URL = GANGTISE_DATA_DOMAIN + "/ai/resource/download"
-MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL = GANGTISE_OPENAI_DOMAIN + "/management_discuss/from-announcement"
-MANAGEMENT_DISCUSS_FROM_EARNINGS_CALL_URL = GANGTISE_OPENAI_DOMAIN + "/management_discuss/from-earningsCall"
+MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL = GANGTISE_OPENAI_DOMAIN + "/management-discuss/from-announcement"
+MANAGEMENT_DISCUSS_FROM_EARNINGS_CALL_URL = GANGTISE_OPENAI_DOMAIN + "/management-discuss/from-earningsCall"
 MANAGEMENT_DISCUSS_TYPE_MAP = {
     "announcement": "半年报/年报",
     "earningsCall": "业绩会",

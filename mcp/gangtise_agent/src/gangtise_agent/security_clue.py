@@ -1,7 +1,7 @@
 import os
 import re
 import sys
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from io import TextIOWrapper
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -13,6 +13,10 @@ if script_dir not in sys.path:
 
 from .utils import GANGTISE_OPENAI_DOMAIN, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra
 from .security import security_search_basic
+
+# 未传起止时间时默认前溯窗口（与试用账号权限长度对齐；正式账号可显式传更长区间）
+DEFAULT_LOOKBACK_DAYS = 7
+POINTS_PER_ITEM = 5
 
 _VALID_QUERY_MODES = {"bySecurity", "byIndustry"}
 _QUERY_MODE_ALIASES = {
@@ -169,6 +173,36 @@ def markdown_security_clue_list(data: Dict[str, Any]) -> str:
     return "\n".join(lines).strip()
 
 
+def _default_time_window() -> Tuple[str, str]:
+    """未传时间时的默认区间：今天往前 DEFAULT_LOOKBACK_DAYS 天（含当天）。"""
+    today = date.today()
+    start = (today - timedelta(days=DEFAULT_LOOKBACK_DAYS)).strftime("%Y-%m-%d 00:00:00")
+    end = today.strftime("%Y-%m-%d 23:59:59")
+    return start, end
+
+
+def _resolve_time_window(
+    start_time: Optional[str],
+    end_time: Optional[str],
+) -> Tuple[Optional[str], Optional[str]]:
+    """解析起止时间：均未传则默认近 7 日；只传一侧则补齐另一侧。"""
+    start = _validate_time(start_time, "startTime")
+    end = _validate_time(end_time, "endTime")
+    if not start and not end:
+        return _default_time_window()
+    if start and not end:
+        return start, date.today().strftime("%Y-%m-%d 23:59:59")
+    if end and not start:
+        end_day = end[:10] if len(end) >= 10 else end
+        try:
+            end_d = datetime.strptime(end_day, "%Y-%m-%d").date()
+        except ValueError:
+            end_d = date.today()
+        start_d = end_d - timedelta(days=DEFAULT_LOOKBACK_DAYS)
+        return start_d.strftime("%Y-%m-%d 00:00:00"), end
+    return start, end
+
+
 def format_security_clue_payload(
     page_from: int = 0,
     page_size: int = 500,
@@ -203,8 +237,7 @@ def format_security_clue_payload(
         "gtsCodeList": codes,
     }
 
-    start = _validate_time(start_time, "startTime")
-    end = _validate_time(end_time, "endTime")
+    start, end = _resolve_time_window(start_time, end_time)
     if start:
         payload["startTime"] = start
     if end:
@@ -230,7 +263,9 @@ def normalize_security_clue_response(body: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(raw_data, dict):
         rows = [{"markdown": markdown_security_clue_list(raw_data), "type": "security-clue-list"}]
         points_cost = len(raw_data.get("list", [])) if isinstance(raw_data.get("list"), list) else 0
-        extra_message = f"提示：本次成功返回 {points_cost} 条线索，按 1 积分/条计费。"
+        extra_message = (
+            f"提示：本次成功返回 {points_cost} 条线索，按 {POINTS_PER_ITEM} 积分/条计费。"
+        )
     else:
         rows = [{"markdown": "（无数据）", "type": "security-clue-list"}]
         extra_message = ""
@@ -351,8 +386,18 @@ def main():
     )
     parser.add_argument("--page-from", type=int, default=0, help="分页 from（从 0 开始）")
     parser.add_argument("--page-size", type=int, default=500, help="分页 size（最大 500）")
-    parser.add_argument("-st", "--start-time", default=None, help="开始时间 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss")
-    parser.add_argument("-et", "--end-time", default=None, help="结束时间 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss")
+    parser.add_argument(
+        "-st",
+        "--start-time",
+        default=None,
+        help=f"开始时间 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss；与 -et 均不传时默认近 {DEFAULT_LOOKBACK_DAYS} 日",
+    )
+    parser.add_argument(
+        "-et",
+        "--end-time",
+        default=None,
+        help=f"结束时间 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss；与 -st 均不传时默认近 {DEFAULT_LOOKBACK_DAYS} 日",
+    )
     parser.add_argument(
         "-q",
         "--query-mode",

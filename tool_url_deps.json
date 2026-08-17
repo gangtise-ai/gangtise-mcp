@@ -105,8 +105,8 @@
       "/schedule/strategy-meeting/getList"
     ],
     "management_discuss": [
-      "/management_discuss/from-announcement",
-      "/management_discuss/from-earningsCall"
+      "/management-discuss/from-announcement",
+      "/management-discuss/from-earningsCall"
     ],
     "official_account": [
       "/officialAccount/getList"
@@ -264,8 +264,8 @@
         "/schedule/strategy-meeting/getList"
       ],
       "management_discuss": [
-        "/management_discuss/from-announcement",
-        "/management_discuss/from-earningsCall"
+        "/management-discuss/from-announcement",
+        "/management-discuss/from-earningsCall"
       ],
       "official_account": [
         "/officialAccount/getList"
@@ -366,8 +366,8 @@
     "/kline/daily",
     "/kline/minute",
     "/main-business",
-    "/management_discuss/from-announcement",
-    "/management_discuss/from-earningsCall",
+    "/management-discuss/from-announcement",
+    "/management-discuss/from-earningsCall",
     "/my-conference/download/file",
     "/my-conference/getList",
     "/officialAccount/download/file",
@@ -435,8 +435,8 @@
     "INDICATOR_TIME_SERIES_URL": "/EDE/time-series",
     "INSTITUTIONS_SEARCH_URL": "/institutions/search",
     "MAIN_BUSINESS_URL": "/main-business",
-    "MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL": "/management_discuss/from-announcement",
-    "MANAGEMENT_DISCUSS_FROM_EARNINGS_CALL_URL": "/management_discuss/from-earningsCall",
+    "MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL": "/management-discuss/from-announcement",
+    "MANAGEMENT_DISCUSS_FROM_EARNINGS_CALL_URL": "/management-discuss/from-earningsCall",
     "MY_CONFERENCE_DOWNLOAD_URL": "/my-conference/download/file",
     "MY_CONFERENCE_LIST_URL": "/my-conference/getList",
     "OFFICIAL_ACCOUNT_DOWNLOAD_URL": "/officialAccount/download/file",
