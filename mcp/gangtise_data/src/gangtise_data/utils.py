@@ -10,6 +10,7 @@ import requests
 import json
 
 from authorization import (
+    authorized_request,
     get_authorization_headers,
     get_authorization_token,
     get_headers_extra,
