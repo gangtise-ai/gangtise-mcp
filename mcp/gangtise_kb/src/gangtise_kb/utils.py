@@ -256,7 +256,7 @@ def load_securities_from_file(path: str) -> List[str]:
         return [str(x) for x in df["security_code"].dropna().tolist()]
     raise ValueError("证券文件必须包含 security_code 或 security_abbr 列")
 
-OPENAPI_SKILL_VERSION = "1.6.8"
+OPENAPI_SKILL_VERSION = "1.7.0"
 SKILL_CHECK_URL = "https://open.gangtise.com/application/skills-backend/version?skill=openapi"
 
 def check_version(large_version: bool = True):

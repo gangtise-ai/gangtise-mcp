@@ -1611,7 +1611,7 @@ def match_best(item: str, candidates, threshold: float = 0.6):
         return {best_key: candidates[best_key]} if is_dict else best_key
     return None
 
-OPENAPI_SKILL_VERSION = "1.6.8"
+OPENAPI_SKILL_VERSION = "1.7.0"
 SKILL_CHECK_URL = "https://open.gangtise.com/application/skills-backend/version?skill=openapi"
 
 def check_version(large_version: bool = True):

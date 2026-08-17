@@ -286,7 +286,7 @@ def remove_html_tags(text):
     clean = re.compile('<.*?>')
     return re.sub(clean, '', text)
 
-OPENAPI_SKILL_VERSION = "1.6.8"
+OPENAPI_SKILL_VERSION = "1.7.0"
 SKILL_CHECK_URL = "https://open.gangtise.com/application/skills-backend/version?skill=openapi"
 
 def check_version(large_version: bool = True):
