@@ -1,7 +1,7 @@
 """按工具 URL 依赖白名单 / 部署黑名单过滤 MCP 工具可见性。
 
 依赖图由 scripts/scan_tool_url_deps.py 在构建期生成（tool_url_deps.json，version=2，
-值为 API path，如 /broker-report/getList；仅含各工具自身脚本中的 *_URL，无 sibling 连锁）。
+值为 API path，如 /broker-report/getList）。
 
 运行时：
   - get_tool_blacklist()：部署级工具黑名单（绝对屏蔽 list/call）

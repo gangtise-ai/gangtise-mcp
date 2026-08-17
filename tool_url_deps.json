@@ -90,6 +90,7 @@
       "/foreign-report/download/file",
       "/independent-opinion/download/file",
       "/officialAccount/download/file",
+      "/pamirs-summary/download/file",
       "/schedule/performance-calendar/download/file",
       "/summary/v2/download/file"
     ],
@@ -112,6 +113,9 @@
     ],
     "opinion": [
       "/chief-opinion/getList"
+    ],
+    "pamirs_summary": [
+      "/pamirs-summary/getList"
     ],
     "qa": [
       "/Q&A-data/getList"
@@ -245,6 +249,7 @@
         "/foreign-report/download/file",
         "/independent-opinion/download/file",
         "/officialAccount/download/file",
+        "/pamirs-summary/download/file",
         "/schedule/performance-calendar/download/file",
         "/summary/v2/download/file"
       ],
@@ -267,6 +272,9 @@
       ],
       "opinion": [
         "/chief-opinion/getList"
+      ],
+      "pamirs_summary": [
+        "/pamirs-summary/getList"
       ],
       "qa": [
         "/Q&A-data/getList"
@@ -364,6 +372,8 @@
     "/my-conference/getList",
     "/officialAccount/download/file",
     "/officialAccount/getList",
+    "/pamirs-summary/download/file",
+    "/pamirs-summary/getList",
     "/quote/realtime",
     "/record/download/file",
     "/record/getList",
@@ -433,6 +443,8 @@
     "OFFICIAL_ACCOUNT_LIST_URL": "/officialAccount/getList",
     "OFFICIAL_ACCOUNT_SEARCH_URL": "/officialAccount/search",
     "OPINION_URL": "/chief-opinion/getList",
+    "PAMIRS_SUMMARY_DOWNLOAD_URL": "/pamirs-summary/download/file",
+    "PAMIRS_SUMMARY_URL": "/pamirs-summary/getList",
     "PERFORMANCE_CALENDAR_DOWNLOAD_URL": "/schedule/performance-calendar/download/file",
     "PERFORMANCE_CALENDAR_LIST_URL": "/schedule/performance-calendar/getList",
     "QA_DATA_LIST_URL": "/Q&A-data/getList",

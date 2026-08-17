@@ -736,12 +736,6 @@ def financial_data(
 
     headers = get_authorization_headers()
 
-    # MCP 扁平化后 list 参数可能以逗号分隔字符串传入；统一归一化，避免 str 被按字符迭代
-    fiscal_year = parse_str_list(fiscal_year) or None
-    period = parse_str_list(period) or None
-    report_type = parse_str_list(report_type) or None
-    field_list = parse_str_list(field_list) or None
-
     report_list = report_type if report_type is not None else ["consolidated"]
     fields_raw = field_list if field_list is not None else []
     explicit_fields = bool(fields_raw)

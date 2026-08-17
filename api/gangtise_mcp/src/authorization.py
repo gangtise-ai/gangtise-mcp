@@ -516,7 +516,6 @@ def rewrite_url_for_auth_mode(url: str) -> str:
         ("GANGTISE_ALTERNATIVE_DOMAIN", "https://openapi.gangtise.com/application/open-alternative"),
         ("GANGTISE_INDICATOR_DOMAIN", "https://openapi.gangtise.com/application/open-indicator"),
         ("GANGTISE_VAULT_DOMAIN", "https://openapi.gangtise.com/application/open-vault"),
-        ("GANGTISE_TOOL_DOMAIN", "https://openapi.gangtise.com/application/open-tool"),
     ):
         internal = (os.getenv(key) or "").strip().rstrip("/")
         public = default.rstrip("/")

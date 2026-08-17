@@ -9,8 +9,9 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (check_version, DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, REPORT_IMAGE_DOWNLOAD_URL, REPORT_IMAGE_URL, resolve_result_limit, WORK_PATH)
+from .utils import (DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, REPORT_IMAGE_DOWNLOAD_URL, REPORT_IMAGE_URL, WORK_PATH, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, resolve_result_limit)
 from .get_file import (  # noqa: E402
+    UnsupportedClientPathError,
     _download_success_info,
     _format_download_summary,
     _join_user_path,
@@ -179,9 +180,15 @@ def _download_report_images(
     images: List[dict],
     output_dir: Optional[str] = None,
 ) -> str:
-    target_dir = _normalize_user_path(output_dir) if output_dir else os.path.join(
-        WORK_PATH, "report_image"
-    )
+    path_warn = ""
+    if output_dir:
+        try:
+            target_dir = _normalize_user_path(output_dir)
+        except UnsupportedClientPathError as e:
+            path_warn = f"[WARNING]{e}\n"
+            target_dir = os.path.join(WORK_PATH, "report_image")
+    else:
+        target_dir = os.path.join(WORK_PATH, "report_image")
     os.makedirs(target_dir, exist_ok=True)
 
     headers = get_authorization_headers()
@@ -222,7 +229,7 @@ def _download_report_images(
             })
 
     if len(failed_messages) == len(unique_images) and unique_images:
-        return "\n".join(
+        return path_warn + "\n".join(
             f"- {x['title']}：{x['message']}" for x in failed_messages
         )
     if failed_messages:
@@ -232,8 +239,10 @@ def _download_report_images(
         return_message += "; 其中有下载失败的图片：\n" + "\n".join(
             f"- {x['title']}：{x['message']}" for x in failed_messages
         )
-        return return_message
-    return _format_download_summary("图片全部下载成功", total_saved_files, all_saved_paths)
+        return path_warn + return_message
+    return path_warn + _format_download_summary(
+        "图片全部下载成功", total_saved_files, all_saved_paths
+    )
 
 
 def report_image_finder(

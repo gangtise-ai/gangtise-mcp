@@ -4,4 +4,4 @@ description: 返回公告分类树（A 股 cn 或港股 hk），用于 announcem
 parameters:
   market:
     type: string
-    description: 市场，可选：cn、hk
+    description: 公告分类市场：cn（A股）或 hk（港股）

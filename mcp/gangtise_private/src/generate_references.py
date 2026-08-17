@@ -14,9 +14,9 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from skill_reference_loader import load_tool_reference, _sanitize_mcp_text  # noqa: E402
-from tools_registry import INTERNAL_PARAMS, TOOL_HANDLERS  # noqa: E402
+from gangtise_private.tools_registry import INTERNAL_PARAMS, TOOL_HANDLERS  # noqa: E402
 
-REFERENCES_DIR = SRC / "references"
+REFERENCES_DIR = SRC / "gangtise_private" / "references"
 
 # MCP 工具说明：面向调用方，说明用途、场景与关键限制（不含脚本路径、内部 API 名）
 TOOL_DESCRIPTIONS: Dict[str, str] = {
@@ -259,7 +259,7 @@ PARAM_DESCRIPTIONS: Dict[str, str] = {
     "with_close_reading": "热点报告是否包含话题精读",
 }
 
-SKIP_PARAMS = INTERNAL_PARAMS | frozenset({"output"})
+SKIP_PARAMS = INTERNAL_PARAMS | frozenset({"output", "output_dir"})
 
 
 def _sanitize_param_description(desc: str) -> str:

@@ -16,10 +16,7 @@ parameters:
     description: PDF 绝对路径。action=submit 必填；action=result 可选（仅用于命名输出目录）。
   task_id:
     type: string
-    description: 任务 ID。action=result 必填；来自 submit 返回或 output_dir/task_id.txt。
-  output_dir:
-    type: string
-    description: 输出目录绝对路径；默认 workspace/files/<stem>_parsed/。
+    description: 任务 ID。action=result 必填；来自 submit 返回或默认输出目录下的 task_id.txt。
   poll_interval:
     type: integer
     description: action=result 时轮询间隔秒数，默认 10。

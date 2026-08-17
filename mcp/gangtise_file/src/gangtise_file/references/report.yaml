@@ -4,41 +4,41 @@ description: 检索国内卖方研报，支持机构、行业、评级、页数�
 parameters:
   keyword:
     type: string
-    description: 检索关键词，可为空
+    description: 搜索关键词
   securities:
     type: array
-    description: 证券列表，逗号分隔；可为证券名称、代码或拼音首字母
+    description: 证券名称或代码列表
     items:
       type: string
   start_date:
     type: string
-    description: 开始日期，如 2026-01-01
+    description: 起始日期，格式 yyyy-MM-dd
   end_date:
     type: string
-    description: 结束日期，如 2026-12-31
+    description: 结束日期，格式 yyyy-MM-dd
   institutions:
     type: array
-    description: 机构名称，逗号分隔；可选值见枚举脚本
+    description: institutions
     items:
       type: string
   industries:
     type: array
-    description: 行业名称，逗号分隔；可选值见枚举脚本
+    description: 行业或研究方向名称列表；可选值见 get_industries
     items:
       type: string
   source_types:
     type: array
-    description: 来源类型，逗号分隔；可选值：研报、公众号
+    description: source_types
     items:
       type: string
   category_list:
     type: array
-    description: 研报类别，逗号分隔。英文 code 或中文均可，如 industry,company 或 行业研究,公司研究（完整列表见 report.py help）
+    description: 分类/类型列表；帕米尔专家纪要可选 companyAnalysis/industryAnalysis（或中文：公司分析/行业分析）
     items:
       type: string
   llm_tag_list:
     type: array
-    description: 语义标签，逗号分隔。英文：inDepth/earningsReview/industryStrategy；或中文：深度报告/业绩点评/行业策略
+    description: llm_tag_list
     items:
       type: string
   rating_list:
@@ -59,21 +59,18 @@ parameters:
     description: max_report_pages
   search_type:
     type: integer
-    description: search_type
+    description: 搜索类型：1 标题搜索，2 全文搜索
   rank_type:
     type: integer
-    description: rank_type
+    description: 排序方式：1 综合排序，2 时间倒序
   limit:
     type: integer
-    description: 返回条数上限；不传时用检索默认，开启 download 时默认 5
+    description: 返回条数上限
   download:
     type: boolean
-    description: 是否在检索后自动下载所有对应研究报告文件，默认不下载
+    description: 是否下载文件全文
   download_types:
     type: array
-    description: 下载文件类型，逗号分隔。可选：pdf, markdown
+    description: 下载格式列表，如 pdf、markdown；帕米尔专家纪要为 original、html
     items:
       type: string
-  output_dir:
-    type: string
-    description: 所有下载文件保存的目录，建议使用绝对路径。默认保存在 gangtise 工作目录下的 report 目录

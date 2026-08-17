@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (check_version, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, FOREIGN_REPORT_URL, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, INDUSTRIES_MAP, match_best, REGIONS_MAP, remove_html_tags, report_category_display, report_llm_tag_display, resolve_report_category_list, resolve_report_llm_tag_list, resolve_result_limit)
+from .utils import (DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, FOREIGN_REPORT_URL, INDUSTRIES_MAP, REGIONS_MAP, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, report_category_display, report_llm_tag_display, resolve_report_category_list, resolve_report_llm_tag_list, resolve_result_limit)
 from .get_file import download_files
 from .security import batch_security_search
 from .search_institution import (

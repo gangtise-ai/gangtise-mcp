@@ -26,6 +26,7 @@ DOWNLOAD_TYPE_DEFAULT_STR = os.getenv("DOWNLOAD_TYPE_DEFAULT", """
     "foreign_opinion": "html",
     "foreign_report": "pdf",
     "official_account": "txt",
+    "pamirs_summary": "original",
     "report": "pdf"
 }
 """)
@@ -60,6 +61,8 @@ US_ANNOUNCEMENT_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/announcement-us/getList"
 US_ANNOUNCEMENT_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/announcement-us/download/file"
 SUMMARY_URL = GANGTISE_INSIGHT_DOMAIN + "/summary/v2/getList"
 SUMMARY_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/summary/v2/download/file"
+PAMIRS_SUMMARY_URL = GANGTISE_INSIGHT_DOMAIN + "/pamirs-summary/getList"
+PAMIRS_SUMMARY_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/pamirs-summary/download/file"
 OPINION_URL = GANGTISE_INSIGHT_DOMAIN + "/chief-opinion/getList"
 OFFICIAL_ACCOUNT_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/officialAccount/getList"
 OFFICIAL_ACCOUNT_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/officialAccount/download/file"
@@ -116,9 +119,9 @@ FILE_DEFAULT_LIMIT = {
     "foreign_opinion": 100,
     "official_account": 100,
     "summary": 100,
+    "pamirs_summary": 100,
     "qa": 100,
 }
-
 
 def resolve_result_limit(
     limit: Optional[int],
@@ -133,7 +136,6 @@ def resolve_result_limit(
     if method and method in FILE_DEFAULT_LIMIT:
         return int(FILE_DEFAULT_LIMIT[method])
     return FILE_DOWNLOAD_DEFAULT_LIMIT
-
 
 QA_SOURCE_CODE_MAP = {
     "电话会议": "conference",
@@ -1421,6 +1423,7 @@ def format_response(response: dict, method_name: str, output: Optional[str] = No
         "opinion": "首席观点",
         "announcement": "公司公告",
         "summary": "会议纪要",
+        "pamirs_summary": "帕米尔专家纪要",
         "calendar": "投研日程",
         "foreign_report": "外资研报",
         "foreign_opinion": "外资/独立观点",

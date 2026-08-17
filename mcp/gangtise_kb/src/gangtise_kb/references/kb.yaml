@@ -23,9 +23,6 @@ parameters:
   download:
     type: boolean
     description: 是否下载文件
-  output_dir:
-    type: string
-    description: 下载文件保存路径
   download_types:
     type: array
     description: 下载文件类型，逗号分隔。可选：pdf, markdown

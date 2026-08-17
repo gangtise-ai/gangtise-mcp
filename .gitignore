@@ -2,7 +2,9 @@ upload.sh
 local_start.sh
 .vscode
 __pycache__
-test*
+/test.sh
+/test.json
+/test_auth.py
 .DS_Store
 .venv
 mcp/*/workspace

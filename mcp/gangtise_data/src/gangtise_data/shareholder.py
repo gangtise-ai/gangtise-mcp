@@ -161,8 +161,8 @@ def shareholder_data(
             "shareholder",
         )
 
-    fy = _normalize_fiscal_year(parse_str_list(fiscal_year) or None)
-    periods = _normalize_periods(parse_str_list(period) or None)
+    fy = _normalize_fiscal_year(fiscal_year)
+    periods = _normalize_periods(period)
     headers = get_authorization_headers()
 
     if not end_date and start_date:

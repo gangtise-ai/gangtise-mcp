@@ -2,3 +2,18 @@ name: get_chiefs
 title: Get Chiefs
 description: 检索首席分析师列表，支持按姓名、机构、团队组合搜索，返回候选 ID 与简介。
 parameters:
+  keyword:
+    type: string
+    description: 综合检索词；可与 name/institution/group 组合
+  name:
+    type: string
+    description: 首席姓名（模糊匹配，结果二次过滤）
+  institution:
+    type: string
+    description: 所属机构名称关键词
+  group:
+    type: string
+    description: 团队/小组名称
+  top:
+    type: integer
+    description: 返回条数上限，最大 10

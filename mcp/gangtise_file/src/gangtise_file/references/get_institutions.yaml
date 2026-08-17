@@ -2,3 +2,14 @@ name: get_institutions
 title: Get Institutions
 description: 检索卖方/买方等机构列表，返回机构 ID，供研报、观点等检索工具筛选使用。
 parameters:
+  keyword:
+    type: string
+    description: 机构名称或简称搜索关键词，必填
+  category_list:
+    type: array
+    description: 机构分类：domesticBroker、foreignInstitution、foreignOpinionInstitution、leadInstitution、opinionInstitution
+    items:
+      type: string
+  top:
+    type: integer
+    description: 返回条数上限，最大 10

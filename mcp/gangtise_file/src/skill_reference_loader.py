@@ -206,6 +206,7 @@ _TOOL_SOURCES: Dict[str, Tuple[str, str, Optional[str], Optional[str]]] = {
     "report": ("gangtise-file", "report.md", None, None),
     "report_image": ("gangtise-file", "report_image.md", None, None),
     "summary": ("gangtise-file", "summary.md", None, None),
+    "pamirs_summary": ("gangtise-file", "pamirs_summary.md", None, None),
     "get_file": ("gangtise-file", "get_file.md", None, None),
     "get_announcement_types": ("gangtise-file", "announcement.md", None, "announcement_types"),
     "kb": ("gangtise-kb", "SKILL.md", None, "kb"),

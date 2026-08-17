@@ -95,7 +95,8 @@ def extract_local_paths(text: str) -> List[Tuple[str, str]]:
 
     def _add(raw: str) -> None:
         p = raw.strip().rstrip(".,;:)")
-        if not p.startswith("/") or p.startswith("//"):
+        # 仅处理服务端 Unix 路径；跳过客户端 Windows 路径（含 \），避免正则 \U 转义错误
+        if not p.startswith("/") or p.startswith("//") or "\\" in p:
             return
         try:
             norm = os.path.abspath(p)

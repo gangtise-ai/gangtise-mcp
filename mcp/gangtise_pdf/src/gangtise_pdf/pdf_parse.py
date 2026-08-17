@@ -165,7 +165,11 @@ def _action_submit(
     if not get_authorization_token():
         return "错误：未配置 Authorization，请设置 GTS_AUTHORIZATION 或 AK/SK"
 
-    out = Path(output_dir).expanduser().resolve() if output_dir else _default_output_dir(path)
+    out = (
+        Path(output_dir).expanduser().resolve()
+        if output_dir and not (os.name != "nt" and ("\\" in output_dir or (len(output_dir) >= 2 and output_dir[1] == ":")))
+        else _default_output_dir(path)
+    )
     out.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -207,9 +211,16 @@ def _action_result(
         return "错误：未配置 Authorization，请设置 GTS_AUTHORIZATION 或 AK/SK"
 
     pdf = Path(pdf_path).expanduser().resolve() if pdf_path else None
+    use_client_dir = bool(
+        output_dir
+        and not (
+            os.name != "nt"
+            and ("\\" in output_dir or (len(output_dir) >= 2 and output_dir[1] == ":"))
+        )
+    )
     out = (
         Path(output_dir).expanduser().resolve()
-        if output_dir
+        if use_client_dir
         else _default_output_dir(pdf if pdf and pdf.is_file() else None, tid)
     )
     out.mkdir(parents=True, exist_ok=True)

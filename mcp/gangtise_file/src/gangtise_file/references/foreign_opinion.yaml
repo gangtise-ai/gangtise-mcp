@@ -4,60 +4,57 @@ description: 检索外资/海外机构观点索引，支持地区、评级、证
 parameters:
   source:
     type: string
-    description: institution（默认）— 外资机构观点；independent — 外资独立观点
+    description: 来源类型列表，如 researchReport、conference、announcement、view
   keyword:
     type: string
-    description: 关键词
+    description: 搜索关键词
   securities:
     type: array
-    description: 证券列表，逗号分隔；经 security 解析为代码后传入 securityList
+    description: 证券名称或代码列表
     items:
       type: string
   start_date:
     type: string
-    description: "开始时间；支持 YYYY-MM-DD（自动补 00:00:00）或 yyyy-MM-dd HH:mm:ss"
+    description: 起始日期，格式 yyyy-MM-dd
   end_date:
     type: string
-    description: "结束时间；支持 YYYY-MM-DD（自动补 23:59:59）或完整时间串"
+    description: 结束日期，格式 yyyy-MM-dd
   institutions:
     type: array
-    description: 券商关键词，逗号分隔，解析为 brokerList；仅 source institution 生效
+    description: institutions
     items:
       type: string
   industries:
     type: array
-    description: 行业关键词，逗号分隔，解析为行业 ID 列表
+    description: 行业或研究方向名称列表；可选值见 get_industries
     items:
       type: string
   region_list:
     type: array
-    description: 区域关键词或代码，逗号分隔，解析为 regionList；仅 source institution 生效
+    description: region_list
     items:
       type: string
   rating_list:
     type: array
-    description: 评级：buy / overweight / neutral / underweight / sell
+    description: rating_list
     items:
       type: string
   rating_change_list:
     type: array
-    description: 评级变动：upgrade / maintain / downgrade / initiate
+    description: rating_change_list
     items:
       type: string
   rank_type:
     type: integer
-    description: 1 综合排序，2 时间倒序（默认 1）
+    description: 排序方式：1 综合排序，2 时间倒序
   limit:
     type: integer
-    description: 返回条数上限；不传时用检索默认，开启 download 时默认 5
+    description: 返回条数上限
   download:
     type: boolean
-    description: 检索后自动下载；仅对 source independent 有效（下载 HTML）。机构观点若指定 -d，脚本会提示无列表侧原文下载接口
+    description: 是否下载文件全文
   download_types:
     type: array
-    description: 仅独立观点下载：逗号分隔，默认 html。html — 原文 HTML（fileType=1）；zh / 中文 — 中文翻译 HTML（fileType=2）。与 get_file.py 一致
+    description: 下载格式列表，如 pdf、markdown；帕米尔专家纪要为 original、html
     items:
       type: string
-  output_dir:
-    type: string
-    description: 下载保存目录，建议绝对路径；须与 -d 同时使用

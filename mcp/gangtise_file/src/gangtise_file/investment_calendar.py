@@ -12,7 +12,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search
 
-from .utils import (check_version, DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, format_response, FORUM_LIST_URL, get_authorization_headers, match_best, PERFORMANCE_CALENDAR_LIST_URL, remove_html_tags, RESEARCH_AREA_MAP, resolve_result_limit, ROADSHOW_LIST_URL, SITE_VISIT_LIST_URL, STRATEGY_MEETING_LIST_URL)
+from .utils import (DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, FORUM_LIST_URL, PERFORMANCE_CALENDAR_LIST_URL, RESEARCH_AREA_MAP, ROADSHOW_LIST_URL, SITE_VISIT_LIST_URL, STRATEGY_MEETING_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
 from .search_institution import (
     CATEGORY_LEAD_INSTITUTION,
     USAGE_PARAM_INSTITUTION_LIST,

@@ -1,6 +1,6 @@
-name: foreign_report
-title: Foreign Report
-description: 检索外资/海外研报索引，支持页数、评级、行业、地区等筛选；可选下载。
+name: pamirs_summary
+title: Pamirs Summary
+description: 检索帕米尔牵头机构下的专家纪要，支持关键词、证券、研究方向、类别、市场筛选；可选下载原始文件或 HTML。需已购买专家纪要数据库权限。
 parameters:
   keyword:
     type: string
@@ -16,19 +16,14 @@ parameters:
   end_date:
     type: string
     description: 结束日期，格式 yyyy-MM-dd
-  institutions:
-    type: array
-    description: institutions
-    items:
-      type: string
   industries:
     type: array
     description: 行业或研究方向名称列表；可选值见 get_industries
     items:
       type: string
-  region_list:
+  market_list:
     type: array
-    description: region_list
+    description: 市场类别列表；可选 aShares/hkStocks/usChinaConcept/usStocks（或中文：A股/港股/美股中概/美股）
     items:
       type: string
   category_list:
@@ -36,27 +31,6 @@ parameters:
     description: 分类/类型列表；帕米尔专家纪要可选 companyAnalysis/industryAnalysis（或中文：公司分析/行业分析）
     items:
       type: string
-  llm_tag_list:
-    type: array
-    description: llm_tag_list
-    items:
-      type: string
-  rating_list:
-    type: array
-    description: rating_list
-    items:
-      type: string
-  rating_change_list:
-    type: array
-    description: rating_change_list
-    items:
-      type: string
-  min_report_pages:
-    type: integer
-    description: min_report_pages
-  max_report_pages:
-    type: integer
-    description: max_report_pages
   search_type:
     type: integer
     description: 搜索类型：1 标题搜索，2 全文搜索

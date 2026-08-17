@@ -14,6 +14,7 @@ from .qa import qa_finder as qa
 from .report import report_finder as report
 from .report_image import report_image_finder as report_image
 from .summary import summary_finder as summary
+from .pamirs_summary import pamirs_summary_finder as pamirs_summary
 from .get_announcement_types import main as get_announcement_types
 from .get_chiefs import get_chiefs as _get_chiefs
 from .get_industries import main as get_industries
@@ -39,7 +40,7 @@ def _get_industries() -> str:
         for sub_key, sub_value in value.items():
             lines.append(f"- {sub_key}: {sub_value}")
         lines.append("")
-    lines.append("# 研究领域（仅 opinion, summary, calendar 支持）")
+    lines.append("# 研究领域（仅 opinion, summary, pamirs_summary, calendar 支持）")
     for key, value in RESEARCH_AREA_MAP.items():
         lines.append(f"- {key}: {value}")
     return "\n".join(lines).strip()
@@ -56,6 +57,7 @@ ToolHandler = Callable[..., Any]
 TOOL_HANDLERS: Dict[str, ToolHandler] = {
     "report": report,
     "summary": summary,
+    "pamirs_summary": pamirs_summary,
     "opinion": opinion,
     "announcement": announcement,
     "foreign_report": foreign_report,

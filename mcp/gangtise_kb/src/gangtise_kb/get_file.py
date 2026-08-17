@@ -104,33 +104,57 @@ def _is_windows_style_path(path: str) -> bool:
     return "\\" in path
 
 
+class UnsupportedClientPathError(ValueError):
+    """远程非 Windows 服务无法写入客户端 Windows 路径。"""
+
+
+def _strip_path_quotes(path: str) -> str:
+    path = (path or "").strip()
+    if len(path) >= 2 and path[0] == path[-1] == '"':
+        return path[1:-1]
+    if path.startswith('"'):
+        return path[1:]
+    if path.endswith('"'):
+        return path[:-1]
+    return path
+
+
 def _normalize_user_path(path: str) -> str:
-    """Normalize user-supplied path; supports Windows paths like C:\\path\\to\\file.ext."""
+    """规范化用户路径。
+
+    - 本机 Windows：保留盘符，统一为系统分隔符。
+    - 非 Windows 服务：拒绝 ``C:\\...`` 客户端路径（避免 ``\\U`` 正则/转义问题，且无法写入客户端盘）。
+    """
     if not path:
         return path
-    path = path.strip()
-    if len(path) >= 2 and path[0] == path[-1] == '"':
-        path = path[1:-1]
-    elif path.startswith('"'):
-        path = path[1:]
-    elif path.endswith('"'):
-        path = path[:-1]
+    path = _strip_path_quotes(path)
+    if not path:
+        return path
     if _is_windows_style_path(path):
-        return str(PureWindowsPath(path.replace("\\", "/")))
+        forward = path.replace("\\", "/")
+        if os.name == "nt":
+            return os.path.normpath(str(PureWindowsPath(forward)))
+        raise UnsupportedClientPathError(
+            "检测到 Windows 路径（如 C:\\...）；远程 MCP 无法写入客户端本地磁盘。"
+            "请勿传 output_dir/output，使用默认目录（返回附件或 OBS 下载链接）"
+        )
     return os.path.normpath(path)
 
 
 def _split_user_path(path: str) -> tuple[str, str]:
-    """Return (directory, filename); handles Windows-style paths on any OS."""
+    """Return (directory, filename); handles Windows-style paths on Windows."""
     path = _normalize_user_path(path)
-    if _is_windows_style_path(path):
+    if os.name == "nt" and _is_windows_style_path(path):
         p = PureWindowsPath(path.replace("\\", "/"))
-        return str(p.parent), p.name
+        parent = str(p.parent)
+        if parent in (".", ""):
+            return "", p.name
+        return parent, p.name
     return os.path.split(path)
 
 
 def _join_user_path(directory: str, filename: str) -> str:
-    if _is_windows_style_path(directory) or "\\" in directory:
+    if os.name == "nt" and (_is_windows_style_path(directory) or "\\" in directory):
         base = PureWindowsPath(directory.replace("\\", "/"))
         return str(base / filename)
     return os.path.join(directory, filename)
@@ -205,8 +229,14 @@ def get_file(
             downgrade_note = f"（{requested_type} 不可用，已改下载 {used_type}）"
 
         return_message = ""
+        path_warn = ""
         if output:
-            output = _normalize_user_path(output)
+            try:
+                output = _normalize_user_path(output)
+            except UnsupportedClientPathError as e:
+                path_warn = f"[WARNING]{e}\n"
+                output = None
+        if output:
             _, output_filename = _split_user_path(output)
             if len(response.headers["Content-Disposition"].lower().split("filename*=utf-8''")) > 1:
                 resp_ext = unquote(
@@ -224,30 +254,37 @@ def get_file(
             abs_output = os.path.abspath(output)
             return_message = f"文件保存路径已自动修正，并保存到：`{abs_output}`"
         elif output_dir:
-            output_dir = _normalize_user_path(output_dir)
+            try:
+                output_dir = _normalize_user_path(output_dir)
+            except UnsupportedClientPathError as e:
+                path_warn = f"[WARNING]{e}\n"
+                output_dir = None
+        if not output and output_dir:
             if len(response.headers["Content-Disposition"].lower().split("filename*=utf-8''")) > 1:
                 file_name = unquote(response.headers["Content-Disposition"].lower().split("filename*=utf-8''")[1])
             elif len(response.headers["Content-Disposition"].lower().split("filename=")) > 1:
                 file_name = unquote(response.headers["Content-Disposition"].lower().split("filename=")[1])
             else:
-                return f"获取文件失败：无法获取文件名"
+                return path_warn + "获取文件失败：无法获取文件名"
             file_name = os.path.basename(file_name)
             if title:
                 file_name = title + os.path.splitext(file_name)[1]
             output = _safe_output_path(_join_user_path(output_dir, file_name))
             abs_output = os.path.abspath(output)
             return_message = f"文件已保存到：`{abs_output}`"
-        else:
+        if not output:
             if len(response.headers["Content-Disposition"].lower().split("filename*=utf-8''")) > 1:
                 file_name = unquote(response.headers["Content-Disposition"].lower().split("filename*=utf-8''")[1])
             elif len(response.headers["Content-Disposition"].lower().split("filename=")) > 1:
                 file_name = unquote(response.headers["Content-Disposition"].lower().split("filename=")[1])
             else:
-                return f"获取文件失败：无法获取文件名"
+                return path_warn + "获取文件失败：无法获取文件名"
             file_name = os.path.basename(file_name)
             output = _safe_output_path(_join_user_path(file_dir, file_name))
             abs_output = os.path.abspath(output)
             return_message = f"文件已保存到：`{abs_output}`"
+        if path_warn:
+            return_message = path_warn + return_message
         output_dirname, _ = _split_user_path(output)
         if output_dirname:
             os.makedirs(output_dirname, exist_ok=True)
@@ -275,7 +312,15 @@ def get_file(
         return f"获取文件失败：{str(e)}"
 
 def download_files(files: List[dict], method_name: str, output_dir: Optional[str] = None, download_types: Optional[List[str]] = None):
-    target_dir = _normalize_user_path(output_dir) if output_dir else os.path.join(WORK_PATH, method_name)
+    path_warn = ""
+    if output_dir:
+        try:
+            target_dir = _normalize_user_path(output_dir)
+        except UnsupportedClientPathError as e:
+            path_warn = f"[WARNING]{e}\n"
+            target_dir = os.path.join(WORK_PATH, method_name)
+    else:
+        target_dir = os.path.join(WORK_PATH, method_name)
     os.makedirs(target_dir, exist_ok=True)
     failed_message = []
 
@@ -315,7 +360,7 @@ def download_files(files: List[dict], method_name: str, output_dir: Optional[str
         return_message += "; 其中有下载失败的文件：\n" + "\n".join([f"- {x['title']}({x['download_type']})：{'是网络文件' if x['web_file'] else x['message']}" for x in failed_message])
     else:
         return_message = f"文件全部下载成功，并保存到：`{os.path.abspath(target_dir)}`"
-    return return_message
+    return path_warn + return_message
 
 def main():
     import argparse

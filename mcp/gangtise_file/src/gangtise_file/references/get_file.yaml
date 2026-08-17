@@ -4,18 +4,15 @@ description: 按 file_id 与 file_type 下载检索结果中的单个文件（PD
 parameters:
   file_id:
     type: string
-    description: 文件ID
+    description: 文件 ID（来自检索类接口返回）
     required: true
   file_type:
     type: string
-    description: 文件类型
+    description: 文件类型，如 report、announcement、summary、帕米尔专家纪要
     required: true
   download_type:
     type: string
-    description: 单文件下载格式：pdf 或 markdown
-  output_dir:
-    type: string
-    description: 批量下载输出目录
+    description: 单文件下载格式：pdf 或 markdown；帕米尔专家纪要为 original 或 html
   title:
     type: string
     description: title

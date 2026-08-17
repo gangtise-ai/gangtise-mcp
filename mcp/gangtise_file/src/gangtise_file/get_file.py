@@ -15,7 +15,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (COMPANY_ANNOUNCEMENT_DOWNLOAD_URL, FILE_TYPE_MAP, FILE_URL, FOREIGN_REPORT_DOWNLOAD_URL, HK_ANNOUNCEMENT_DOWNLOAD_URL, INDEPENDENT_OPINION_DOWNLOAD_URL, OFFICIAL_ACCOUNT_DOWNLOAD_URL, PERFORMANCE_CALENDAR_DOWNLOAD_URL, REPORT_DOWNLOAD_URL, SUMMARY_DOWNLOAD_URL, TRY_MORE_DOWNLOAD, US_ANNOUNCEMENT_DOWNLOAD_URL, WORK_PATH, check_version, file_dir, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (COMPANY_ANNOUNCEMENT_DOWNLOAD_URL, FILE_TYPE_MAP, FILE_URL, FOREIGN_REPORT_DOWNLOAD_URL, HK_ANNOUNCEMENT_DOWNLOAD_URL, INDEPENDENT_OPINION_DOWNLOAD_URL, OFFICIAL_ACCOUNT_DOWNLOAD_URL, PAMIRS_SUMMARY_DOWNLOAD_URL, PERFORMANCE_CALENDAR_DOWNLOAD_URL, REPORT_DOWNLOAD_URL, SUMMARY_DOWNLOAD_URL, TRY_MORE_DOWNLOAD, US_ANNOUNCEMENT_DOWNLOAD_URL, WORK_PATH, check_version, file_dir, get_authorization_headers, get_authorization_token, get_headers_extra)
 
 def _has_cjk(text: str) -> bool:
     return any("\u4e00" <= ch <= "\u9fff" for ch in text)
@@ -154,8 +154,29 @@ def _download_type_fallback_chain(file_type: str, download_type: str) -> List[st
     return []
 
 
+def _pamirs_summary_file_type(download_type: Optional[str]) -> int:
+    """帕米尔专家纪要 download/file：1 原始文件，2 HTML。"""
+    s = (download_type or "original").strip().lower()
+    if s in ("2", "html", "markdown", "md"):
+        return 2
+    if s in ("1", "original", "pdf", "raw", "原文", "原始文件"):
+        return 1
+    raise ValueError(
+        f"帕米尔专家纪要不支持的下载类型: {download_type}，"
+        "可选 original、html（或 1/2）"
+    )
+
+
 def _uses_download_file_type(file_type: str) -> bool:
-    return file_type in ("研究报告", "外资研报", "公司公告", "美股公告", "外资独立观点", "公众号")
+    return file_type in (
+        "研究报告",
+        "外资研报",
+        "公司公告",
+        "美股公告",
+        "外资独立观点",
+        "公众号",
+        "帕米尔专家纪要",
+    )
 
 
 def _response_unavailable(response: requests.Response, file_type: str | None = None) -> Optional[str]:
@@ -188,6 +209,11 @@ def _build_download_params(file_id: str, file_type: str, download_type: str) -> 
     }
     if file_type == "会议纪要":
         return {"summaryId": file_id}
+    if file_type == "帕米尔专家纪要":
+        return {
+            "summaryId": file_id,
+            "fileType": _pamirs_summary_file_type(download_type),
+        }
     if file_type == "研究报告":
         return {
             "reportId": file_id,
@@ -229,6 +255,7 @@ def _build_download_params(file_id: str, file_type: str, download_type: str) -> 
 def _request_download(file_id: str, file_type: str, download_type: str, headers: dict) -> requests.Response:
     url_map = {
         "会议纪要": SUMMARY_DOWNLOAD_URL,
+        "帕米尔专家纪要": PAMIRS_SUMMARY_DOWNLOAD_URL,
         "公司公告": COMPANY_ANNOUNCEMENT_DOWNLOAD_URL,
         "港股公告": HK_ANNOUNCEMENT_DOWNLOAD_URL,
         "美股公告": US_ANNOUNCEMENT_DOWNLOAD_URL,
@@ -286,33 +313,58 @@ def _is_windows_style_path(path: str) -> bool:
     return "\\" in path
 
 
+class UnsupportedClientPathError(ValueError):
+    """远程非 Windows 服务无法写入客户端 Windows 路径。"""
+
+
+def _strip_path_quotes(path: str) -> str:
+    path = (path or "").strip()
+    if len(path) >= 2 and path[0] == path[-1] == '"':
+        return path[1:-1]
+    if path.startswith('"'):
+        return path[1:]
+    if path.endswith('"'):
+        return path[:-1]
+    return path
+
+
 def _normalize_user_path(path: str) -> str:
-    """Normalize user-supplied path; supports Windows paths like C:\\path\\to\\file.ext."""
+    """规范化用户路径。
+
+    - 本机 Windows：保留盘符，统一为系统分隔符。
+    - 非 Windows 服务：拒绝 ``C:\\...`` 客户端路径（避免 ``\\U`` 正则/转义问题，且无法写入客户端盘）。
+    """
     if not path:
         return path
-    path = path.strip()
-    if len(path) >= 2 and path[0] == path[-1] == '"':
-        path = path[1:-1]
-    elif path.startswith('"'):
-        path = path[1:]
-    elif path.endswith('"'):
-        path = path[:-1]
+    path = _strip_path_quotes(path)
+    if not path:
+        return path
     if _is_windows_style_path(path):
-        return str(PureWindowsPath(path.replace("\\", "/")))
+        forward = path.replace("\\", "/")
+        if os.name == "nt":
+            return os.path.normpath(str(PureWindowsPath(forward)))
+        raise UnsupportedClientPathError(
+            "检测到 Windows 路径（如 C:\\...）；远程 MCP 无法写入客户端本地磁盘。"
+            "请勿传 output_dir/output，使用默认目录（返回附件或 OBS 下载链接）"
+        )
     return os.path.normpath(path)
 
 
 def _split_user_path(path: str) -> tuple[str, str]:
-    """Return (directory, filename); handles Windows-style paths on any OS."""
+    """Return (directory, filename); handles Windows-style paths on Windows."""
     path = _normalize_user_path(path)
-    if _is_windows_style_path(path):
+    if os.name == "nt" and _is_windows_style_path(path):
         p = PureWindowsPath(path.replace("\\", "/"))
-        return str(p.parent), p.name
+        parent = str(p.parent)
+        # PureWindowsPath('.') parent edge
+        if parent in (".", ""):
+            return "", p.name
+        return parent, p.name
     return os.path.split(path)
 
 
 def _join_user_path(directory: str, filename: str) -> str:
-    if _is_windows_style_path(directory) or "\\" in directory:
+    if os.name == "nt" and (_is_windows_style_path(directory) or "\\" in directory):
         base = PureWindowsPath(directory.replace("\\", "/"))
         return str(base / filename)
     return os.path.join(directory, filename)
@@ -469,6 +521,12 @@ def get_file(
         requested_type = _normalize_download_type(download_type)
         if file_type == "公众号" and (download_type is None or not str(download_type).strip()):
             requested_type = "txt"
+        if file_type == "帕米尔专家纪要":
+            # get_file 默认 download_type=markdown；帕米尔仅支持 original/html
+            if download_type is None or not str(download_type).strip():
+                requested_type = "original"
+            elif requested_type in ("markdown", "md"):
+                requested_type = "html"
         try_types = [requested_type]
         if TRY_MORE_DOWNLOAD:
             if _uses_download_file_type(file_type):
@@ -501,9 +559,15 @@ def get_file(
             downgrade_note = f"（{requested_type} 不可用，已改下载 {used_type}）"
 
         return_message = ""
+        path_warn = ""
         resp_filename = _parse_content_disposition_filename(response.headers)
         if output:
-            output = _normalize_user_path(output)
+            try:
+                output = _normalize_user_path(output)
+            except UnsupportedClientPathError as e:
+                path_warn = f"[WARNING]{e}\n"
+                output = None
+        if output:
             _, output_filename = _split_user_path(output)
             if resp_filename:
                 resp_ext = os.path.splitext(resp_filename)[1].lstrip(".")
@@ -516,9 +580,14 @@ def get_file(
                 [abs_output],
             )
         elif output_dir:
-            output_dir = _normalize_user_path(output_dir)
+            try:
+                output_dir = _normalize_user_path(output_dir)
+            except UnsupportedClientPathError as e:
+                path_warn = f"[WARNING]{e}\n"
+                output_dir = None
+        if not output and output_dir:
             if not resp_filename:
-                return "获取文件失败：无法获取文件名"
+                return path_warn + "获取文件失败：无法获取文件名"
             file_name = os.path.basename(resp_filename)
             if title:
                 file_name = safe_file_title({"title": title, "url": ""}) + os.path.splitext(file_name)[1]
@@ -528,9 +597,9 @@ def get_file(
                 f"文件已保存到：`{abs_output}`",
                 [abs_output],
             )
-        else:
+        if not output:
             if not resp_filename:
-                return "获取文件失败：无法获取文件名"
+                return path_warn + "获取文件失败：无法获取文件名"
             file_name = os.path.basename(resp_filename)
             output = _safe_output_path(_join_user_path(file_dir, file_name))
             abs_output = os.path.abspath(output)
@@ -538,6 +607,8 @@ def get_file(
                 f"文件已保存到：`{abs_output}`",
                 [abs_output],
             )
+        if path_warn:
+            return_message = path_warn + return_message
         output_dirname, output_basename = _split_user_path(output)
         if output_dirname:
             os.makedirs(output_dirname, exist_ok=True)
@@ -642,7 +713,15 @@ def _should_mark_web_file(file: dict) -> bool:
 
 
 def download_files(files: List[dict], method_name: str, output_dir: Optional[str] = None, download_types: Optional[List[str]] = None):
-    target_dir = _normalize_user_path(output_dir) if output_dir else os.path.join(WORK_PATH, method_name)
+    path_warn = ""
+    if output_dir:
+        try:
+            target_dir = _normalize_user_path(output_dir)
+        except UnsupportedClientPathError as e:
+            path_warn = f"[WARNING]{e}\n"
+            target_dir = os.path.join(WORK_PATH, method_name)
+    else:
+        target_dir = os.path.join(WORK_PATH, method_name)
     os.makedirs(target_dir, exist_ok=True)
     failed_message = []
     total_saved_files = 0
@@ -653,6 +732,8 @@ def download_files(files: List[dict], method_name: str, output_dir: Optional[str
         default_types = ["txt"]
     elif method_name == "foreign_opinion":
         default_types = ["html"]
+    elif method_name == "pamirs_summary":
+        default_types = ["original"]
     else:
         default_types = ["markdown"]
     effective_types = download_types or default_types
@@ -712,7 +793,7 @@ def download_files(files: List[dict], method_name: str, output_dir: Optional[str
             return_message = _format_download_summary(
                 "文件全部下载成功", total_saved_files, all_saved_paths
             )
-    return return_message
+    return path_warn + return_message
 
 def main():
     import argparse
@@ -728,7 +809,10 @@ def main():
         "-dt",
         "--download-type",
         default="markdown",
-        help="下载类型：A 股研报/公告等为 pdf|markdown；外资研报为 pdf|markdown|zh_pdf|zh_markdown（或 1/2/3/4）；外资独立观点为 html|zh",
+        help=(
+            "下载类型：A 股研报/公告等为 pdf|markdown；外资研报为 pdf|markdown|zh_pdf|zh_markdown（或 1/2/3/4）；"
+            "外资独立观点为 html|zh；财报日历仅原文件（忽略本参数）"
+        ),
     )
 
     args = parser.parse_args()
