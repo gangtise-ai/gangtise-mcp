@@ -16,7 +16,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search
 
-from .utils import (INDICATOR_CROSS_SECTION_URL, INDICATOR_SEARCH_URL, INDICATOR_TIME_SERIES_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, normalize_securities_arg, parse_str_list)
+from .utils import (INDICATOR_SEARCH_URL, INDICATOR_TIME_SERIES_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, normalize_securities_arg, parse_str_list)
 
 INDICATORS_FILE_HINT = (
     "可以删除行或编辑参数列，再通过--indicators-file参数读取文件查询指标代码和参数"
@@ -922,77 +922,53 @@ def company_indicator_get(
 
     param_dict = _normalize_params_input(params)
     root_opts, indicator_param_list = _build_request_options(param_dict, indicators)
-    span = _date_span_days(start_date, end_date)
-    use_timeseries = span > min(len(indicators), len(codes))
 
     frames: List[pd.DataFrame] = []
     errors: List[str] = []
     total_cells = 0
 
-    if use_timeseries:
-        base_payload: Dict[str, Any] = {
-            "startDate": start_date,
-            "endDate": end_date,
-            "calendarType": root_opts.get("calendarType", "TD"),
-            "currency": root_opts.get("currency", "DFT"),
-            "scale": root_opts.get("scale", "0"),
-            "indicatorParamList": indicator_param_list if indicator_param_list is not None else [],
-        }
+    base_payload: Dict[str, Any] = {
+        "startDate": start_date,
+        "endDate": end_date,
+        "calendarType": root_opts.get("calendarType", "TD"),
+        "currency": root_opts.get("currency", "DFT"),
+        "scale": root_opts.get("scale", "0"),
+        "indicatorParamList": indicator_param_list if indicator_param_list is not None else [],
+    }
 
-        if len(codes) > len(indicators):
-            for ind in indicators:
-                payload = {
-                    **base_payload,
-                    "indicatorCodeList": [ind],
-                    "universe": codes,
-                }
-                body, err = _post_indicator_api(INDICATOR_TIME_SERIES_URL, headers, payload)
-                if err:
-                    errors.append(f"{ind}: {err}")
-                    continue
-                block = body.get("data") or {}
-                total_cells += _count_value_cells(block)
-                df_part = _parse_timeseries_block(block)
-                if not df_part.empty:
-                    frames.append(df_part)
-        else:
-            for sec in codes:
-                payload = {
-                    **base_payload,
-                    "indicatorCodeList": indicators,
-                    "universe": [sec],
-                }
-                body, err = _post_indicator_api(INDICATOR_TIME_SERIES_URL, headers, payload)
-                if err:
-                    errors.append(f"{sec}: {err}")
-                    continue
-                block = body.get("data") or {}
-                total_cells += _count_value_cells(block)
-                df_part = _parse_timeseries_block(block)
-                if not df_part.empty:
-                    frames.append(df_part)
-        api_label = "时序"
+    if len(codes) > len(indicators):
+        for ind in indicators:
+            payload = {
+                **base_payload,
+                "indicatorCodeList": [ind],
+                "universe": codes,
+            }
+            body, err = _post_indicator_api(INDICATOR_TIME_SERIES_URL, headers, payload)
+            if err:
+                errors.append(f"{ind}: {err}")
+                continue
+            block = body.get("data") or {}
+            total_cells += _count_value_cells(block)
+            df_part = _parse_timeseries_block(block)
+            if not df_part.empty:
+                frames.append(df_part)
     else:
-        payload: Dict[str, Any] = {
-            "indicatorCodeList": indicators,
-            "universe": codes,
-            "date": end_date,
-            "currency": root_opts.get("currency", "DFT"),
-            "scale": root_opts.get("scale", "0"),
-            "indicatorParamList": indicator_param_list if indicator_param_list is not None else [],
-        }
-        body, err = _post_indicator_api(INDICATOR_CROSS_SECTION_URL, headers, payload)
-        if err:
-            return format_response(
-                {"state": "error", "message": err, "data": [], "usage": usage},
-                "company_indicator",
-            )
-        block = body.get("data") or {}
-        total_cells += _count_value_cells(block)
-        df_part = _parse_cross_section_block(block)
-        if not df_part.empty:
-            frames.append(df_part)
-        api_label = "截面"
+        for sec in codes:
+            payload = {
+                **base_payload,
+                "indicatorCodeList": indicators,
+                "universe": [sec],
+            }
+            body, err = _post_indicator_api(INDICATOR_TIME_SERIES_URL, headers, payload)
+            if err:
+                errors.append(f"{sec}: {err}")
+                continue
+            block = body.get("data") or {}
+            total_cells += _count_value_cells(block)
+            df_part = _parse_timeseries_block(block)
+            if not df_part.empty:
+                frames.append(df_part)
+    api_label = "时序"
 
     if not frames:
         err_tail = "；".join(errors) if errors else "未获取到指标数据"

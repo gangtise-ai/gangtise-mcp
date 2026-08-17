@@ -1,6 +1,6 @@
 name: private_meeting
 title: Private Meeting
-description: 检索个人电话会议列表，或按 conference_ids 获取会议语音识别或 AI 速记内容。
+description: 检索用户上传的音频文件，或按conference_ids获取ASR语音识别或AI速记内容
 parameters:
   keyword:
     type: string

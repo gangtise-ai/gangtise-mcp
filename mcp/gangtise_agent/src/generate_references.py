@@ -49,7 +49,7 @@ TOOL_DESCRIPTIONS: Dict[str, str] = {
         "可作为撰写长篇研报的骨架。"
     ),
     "stock_one_line_summary": (
-        "批量获取个股「一句话总结」；支持具体证券列表，或 aShares/hkStocks 全市场扫描。"
+        "批量获取个股「一句话总结」；支持 A 股/港股个股批量查询。"
         "无总结的标的不会返回。"
     ),
     "hot_topic": (
