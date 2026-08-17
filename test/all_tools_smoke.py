@@ -113,9 +113,9 @@ def _classify(tool: str, returncode: int, text: str) -> Tuple[str, str]:
         return "fail", snippet or f"rc={returncode}"
     if "traceback" in low or "ImportError" in text or "unrecognized arguments" in text:
         return "fail", snippet
+    if "RESOURCE_NO_PERMISSION" in text or "无权访问该资源" in text or any(m in text for m in PERM_MARKERS):
+        return "ok_perm", snippet or "permission denied but reachable"
     if tool == "pamirs_summary":
-        if "RESOURCE_NO_PERMISSION" in text or any(m in text for m in PERM_MARKERS):
-            return "ok_perm", snippet or "permission denied but reachable"
         if returncode == 0:
             return "ok", snippet or "exit 0"
         return "ok_reachable", snippet or f"rc={returncode}"
@@ -123,7 +123,7 @@ def _classify(tool: str, returncode: int, text: str) -> Tuple[str, str]:
         if "未配置 Gangtise 授权" in text or "登录失败" in text:
             return "fail_auth", snippet
         # 业务侧“未找到/失败”但 CLI 已调通
-        if "调用" in text or "未找到" in text or "失败" in text:
+        if "调用" in text or "未找到" in text or "失败" in text or "HTTP 403" in text or "HTTP 404" in text:
             return "ok_reachable", snippet
         return "fail", snippet or f"rc={returncode}"
     return "ok", snippet or "exit 0"
