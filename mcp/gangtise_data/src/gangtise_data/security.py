@@ -11,7 +11,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (SECURITIES_SEARCH_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, remove_html_tags)
+from .utils import (authorized_request, SECURITIES_SEARCH_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, remove_html_tags)
 
 
 _WEIGHT_MATCH = 0.62
@@ -346,7 +346,7 @@ def security_search(
         payload["category"] = category
 
     try:
-        r = requests.post(SECURITIES_SEARCH_URL, headers=headers, json=payload, timeout=60)
+        r = authorized_request("POST", SECURITIES_SEARCH_URL, headers=headers, json=payload, timeout=60)
         body = r.json()
     except Exception as e:
         return format_response(
@@ -469,7 +469,7 @@ def security_search_basic(
         payload["category"] = category
 
     try:
-        r = requests.post(SECURITIES_SEARCH_URL, headers=headers, json=payload, timeout=60)
+        r = authorized_request("POST", SECURITIES_SEARCH_URL, headers=headers, json=payload, timeout=60)
         body = r.json()
     except Exception as e:
         return {"state": "error", "message": f"证券搜索请求失败: {e}", "data": [], "usage": usage}

@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (FILE_TYPE_MAP, FILE_TYPE_MAP_REVERSE, RAG_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (authorized_request, FILE_TYPE_MAP, FILE_TYPE_MAP_REVERSE, RAG_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
 
 from .get_file import download_files
 
@@ -132,7 +132,7 @@ def rag_files_finder(
             "resourceTypes": [FILE_TYPE_MAP[file_type] for file_type in file_types] if file_types else None,
             "top": limit,
         }
-        response = requests.post(RAG_URL, headers=headers, json=payload, timeout=300)
+        response = authorized_request("POST", RAG_URL, headers=headers, json=payload, timeout=300)
         if response.status_code != 200:
             return format_response({"state": "error", "message": response.text}, "rag")
         response = response.json()

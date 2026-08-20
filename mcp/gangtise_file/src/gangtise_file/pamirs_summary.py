@@ -9,19 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (
-    DOWNLOAD_DEFAULT,
-    DOWNLOAD_TYPE_DEFAULT,
-    INDUSTRIES_MAP,
-    PAMIRS_SUMMARY_URL,
-    RESEARCH_AREA_MAP,
-    check_version,
-    format_response,
-    get_authorization_headers,
-    match_best,
-    remove_html_tags,
-    resolve_result_limit,
-)
+from .utils import (authorized_request, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, INDUSTRIES_MAP, PAMIRS_SUMMARY_URL, RESEARCH_AREA_MAP, check_version, format_response, get_authorization_headers, match_best, remove_html_tags, resolve_result_limit)
 from .get_file import download_files
 from .security import batch_security_search
 
@@ -258,7 +246,7 @@ def _fetch_pamirs_summaries(headers, payload_base, keyword, search_type, rank_ty
         if rank_type:
             data["rankType"] = rank_type
 
-        response = requests.post(PAMIRS_SUMMARY_URL, headers=headers, json=data)
+        response = authorized_request("POST", PAMIRS_SUMMARY_URL, headers=headers, json=data)
         if response.status_code != 200:
             if all_results:
                 return all_results, response.text.replace("\n", " ").replace("\r", " ").strip()

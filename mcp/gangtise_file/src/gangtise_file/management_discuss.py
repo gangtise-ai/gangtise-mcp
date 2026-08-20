@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (MANAGEMENT_DISCUSS_DIMENSION_LABEL, MANAGEMENT_DISCUSS_DIMENSION_MAP, MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL, MANAGEMENT_DISCUSS_FROM_EARNINGS_CALL_URL, MANAGEMENT_DISCUSS_TYPE_MAP, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best)
+from .utils import (authorized_request, MANAGEMENT_DISCUSS_DIMENSION_LABEL, MANAGEMENT_DISCUSS_DIMENSION_MAP, MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL, MANAGEMENT_DISCUSS_FROM_EARNINGS_CALL_URL, MANAGEMENT_DISCUSS_TYPE_MAP, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best)
 from .security import batch_security_search
 
 EARNINGS_CALL_ALL_DIMENSIONS = [
@@ -97,7 +97,7 @@ def _fetch_management_discuss(
         "discussionDimension": discussion_dimension,
     }
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=120)
+        response = authorized_request("POST", url, headers=headers, json=payload, timeout=120)
         if response.status_code != 200:
             return None, f"接口请求失败: HTTP {response.status_code}"
         body = response.json()

@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (FILE_DEFAULT_LIMIT, WECHAT_GROUP_CHATROOM_URL, WECHAT_GROUP_MSG_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
+from .utils import (authorized_request, FILE_DEFAULT_LIMIT, WECHAT_GROUP_CHATROOM_URL, WECHAT_GROUP_MSG_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
 
 _CATEGORY_VALID = {"text", "image", "documents", "url"}
 DEFAULT_ROOM_LIMIT = 50
@@ -161,7 +161,7 @@ def _format_chatroom_rows(rows: List[dict]) -> List[dict]:
 
 def _post_json(url: str, headers: dict, payload: dict) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     try:
-        r = requests.post(url, headers=headers, json=payload, timeout=300)
+        r = authorized_request("POST", url, headers=headers, json=payload, timeout=300)
         if r.status_code != 200:
             return None, r.text
         return r.json(), None

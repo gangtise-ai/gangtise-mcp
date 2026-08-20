@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (ANNOUNCEMENT_CATEGORY_MAP, COMPANY_ANNOUNCEMENT_URL, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, HK_ANNOUNCEMENT_CATEGORY_MAP, HK_ANNOUNCEMENT_LIST_URL, US_ANNOUNCEMENT_CATEGORY_MAP, US_ANNOUNCEMENT_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
+from .utils import (authorized_request, ANNOUNCEMENT_CATEGORY_MAP, COMPANY_ANNOUNCEMENT_URL, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, HK_ANNOUNCEMENT_CATEGORY_MAP, HK_ANNOUNCEMENT_LIST_URL, US_ANNOUNCEMENT_CATEGORY_MAP, US_ANNOUNCEMENT_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
 from .get_file import download_files
 from .security import batch_security_search
 
@@ -146,7 +146,7 @@ def _fetch_announcements(headers, payload_base, keyword, search_type, rank_type,
             data["searchType"] = search_type
         if rank_type:
             data["rankType"] = rank_type
-        response = requests.post(COMPANY_ANNOUNCEMENT_URL, headers=headers, json=data, timeout=120)
+        response = authorized_request("POST", COMPANY_ANNOUNCEMENT_URL, headers=headers, json=data, timeout=120)
         if response.status_code != 200:
             if all_results:
                 return all_results, response.text.replace("\n", " ").replace("\r", " ").strip()
@@ -191,7 +191,7 @@ def _fetch_hk_announcements(headers, payload_base, keyword, search_type, rank_ty
         if keyword:
             data["keyword"] = keyword
 
-        response = requests.post(HK_ANNOUNCEMENT_LIST_URL, headers=headers, json=data, timeout=120)
+        response = authorized_request("POST", HK_ANNOUNCEMENT_LIST_URL, headers=headers, json=data, timeout=120)
         if response.status_code != 200:
             if all_results:
                 return all_results, response.text.replace("\n", " ").replace("\r", " ").strip()
@@ -239,7 +239,7 @@ def _fetch_us_announcements(headers, payload_base, keyword, search_type, rank_ty
         if keyword:
             data["keyword"] = keyword
 
-        response = requests.post(US_ANNOUNCEMENT_LIST_URL, headers=headers, json=data, timeout=120)
+        response = authorized_request("POST", US_ANNOUNCEMENT_LIST_URL, headers=headers, json=data, timeout=120)
         if response.status_code != 200:
             if all_results:
                 return all_results, response.text.replace("\n", " ").replace("\r", " ").strip()

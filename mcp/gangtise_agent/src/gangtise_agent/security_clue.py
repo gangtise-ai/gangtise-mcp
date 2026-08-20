@@ -11,7 +11,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import GANGTISE_OPENAI_DOMAIN, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra
+from .utils import authorized_request, GANGTISE_OPENAI_DOMAIN, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra
 from .security import security_search_basic
 
 # 未传起止时间时默认前溯窗口（与试用账号权限长度对齐；正式账号可显式传更长区间）
@@ -283,7 +283,7 @@ def post_security_clue_list(
 ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     url = f"{GANGTISE_OPENAI_DOMAIN}/security-clue/getList"
     headers = get_authorization_headers()
-    resp = requests.post(url, headers=headers, json=payload, timeout=300)
+    resp = authorized_request("POST", url, headers=headers, json=payload, timeout=300)
     if resp.status_code != 200:
         return None, resp.text
     try:

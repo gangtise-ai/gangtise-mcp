@@ -10,7 +10,7 @@ if script_dir not in sys.path:
     sys.path.append(script_dir)
 
 from .search_account import SEARCH_TOP_DEFAULT, resolve_account_token  # noqa: E402
-from .utils import (DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, INDUSTRIES_MAP, OFFICIAL_ACCOUNT_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
+from .utils import (authorized_request, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, INDUSTRIES_MAP, OFFICIAL_ACCOUNT_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
 from .get_file import download_files
 from .security import batch_security_search
 
@@ -160,7 +160,7 @@ def _fetch_official_accounts(
             data["keyword"] = keyword
             data["searchType"] = search_type
 
-        response = requests.post(OFFICIAL_ACCOUNT_LIST_URL, headers=headers, json=data, timeout=120)
+        response = authorized_request("POST", OFFICIAL_ACCOUNT_LIST_URL, headers=headers, json=data, timeout=120)
         if response.status_code != 200:
             text = response.text.replace("\n", " ").replace("\r", " ").strip()
             if not all_results:

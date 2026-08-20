@@ -15,7 +15,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (COMPANY_ANNOUNCEMENT_DOWNLOAD_URL, FILE_TYPE_MAP, FILE_URL, FOREIGN_REPORT_DOWNLOAD_URL, HK_ANNOUNCEMENT_DOWNLOAD_URL, INDEPENDENT_OPINION_DOWNLOAD_URL, OFFICIAL_ACCOUNT_DOWNLOAD_URL, PAMIRS_SUMMARY_DOWNLOAD_URL, PERFORMANCE_CALENDAR_DOWNLOAD_URL, REPORT_DOWNLOAD_URL, SUMMARY_DOWNLOAD_URL, TRY_MORE_DOWNLOAD, US_ANNOUNCEMENT_DOWNLOAD_URL, WORK_PATH, check_version, file_dir, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (authorized_request, COMPANY_ANNOUNCEMENT_DOWNLOAD_URL, FILE_TYPE_MAP, FILE_URL, FOREIGN_REPORT_DOWNLOAD_URL, HK_ANNOUNCEMENT_DOWNLOAD_URL, INDEPENDENT_OPINION_DOWNLOAD_URL, OFFICIAL_ACCOUNT_DOWNLOAD_URL, PAMIRS_SUMMARY_DOWNLOAD_URL, PERFORMANCE_CALENDAR_DOWNLOAD_URL, REPORT_DOWNLOAD_URL, SUMMARY_DOWNLOAD_URL, TRY_MORE_DOWNLOAD, US_ANNOUNCEMENT_DOWNLOAD_URL, WORK_PATH, check_version, file_dir, get_authorization_headers, get_authorization_token, get_headers_extra)
 
 def _has_cjk(text: str) -> bool:
     return any("\u4e00" <= ch <= "\u9fff" for ch in text)
@@ -267,14 +267,14 @@ def _request_download(file_id: str, file_type: str, download_type: str, headers:
     }
     if file_type in url_map:
         params = _build_download_params(file_id, file_type, download_type)
-        response = requests.get(url_map[file_type], headers=headers, params=params, timeout=300)
+        response = authorized_request("GET", url_map[file_type], headers=headers, params=params, timeout=300)
         return response
 
     params = {
         "sourceId": file_id,
         "resourceType": FILE_TYPE_MAP[file_type],
     }
-    return requests.get(FILE_URL, headers=headers, params=params, timeout=300)
+    return authorized_request("GET", FILE_URL, headers=headers, params=params, timeout=300)
 
 
 def _independent_opinion_file_type(download_type: Optional[str]) -> int:

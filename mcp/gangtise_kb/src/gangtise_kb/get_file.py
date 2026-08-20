@@ -12,7 +12,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (COMPANY_ANNOUNCEMENT_DOWNLOAD_URL, FILE_TYPE_MAP, FILE_URL, FOREIGN_REPORT_DOWNLOAD_URL, REPORT_DOWNLOAD_URL, SUMMARY_DOWNLOAD_URL, WORK_PATH, check_version, file_dir, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (authorized_request, COMPANY_ANNOUNCEMENT_DOWNLOAD_URL, FILE_TYPE_MAP, FILE_URL, FOREIGN_REPORT_DOWNLOAD_URL, REPORT_DOWNLOAD_URL, SUMMARY_DOWNLOAD_URL, WORK_PATH, check_version, file_dir, get_authorization_headers, get_authorization_token, get_headers_extra)
 
 def _normalize_download_type(download_type: Optional[str]) -> str:
     return (download_type or "markdown").strip().lower()
@@ -75,13 +75,13 @@ def _request_download(file_id: str, file_type: str, download_type: str, headers:
     if file_type in url_map:
         if _uses_download_file_type(file_type) and download_type not in download_type_map:
             raise ValueError(f"不支持的下载类型: {download_type}")
-        return requests.get(url_map[file_type], headers=headers, params=params_map[file_type], timeout=300)
+        return authorized_request("GET", url_map[file_type], headers=headers, params=params_map[file_type], timeout=300)
 
     params = {
         "sourceId": file_id,
         "resourceType": FILE_TYPE_MAP[file_type],
     }
-    return requests.get(FILE_URL, headers=headers, params=params, timeout=300)
+    return authorized_request("GET", FILE_URL, headers=headers, params=params, timeout=300)
 
 
 def safe_file_title(file_item):

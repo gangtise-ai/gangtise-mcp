@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import HOT_TOPIC_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra
+from .utils import authorized_request, HOT_TOPIC_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra
 
 
 HOT_TOPIC_CATEGORY_LABEL = {
@@ -227,7 +227,7 @@ def post_hot_topic_list(
     payload: Dict[str, Any],
 ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     headers = get_authorization_headers()
-    resp = requests.post(HOT_TOPIC_LIST_URL, headers=headers, json=payload, timeout=300)
+    resp = authorized_request("POST", HOT_TOPIC_LIST_URL, headers=headers, json=payload, timeout=300)
     if resp.status_code != 200:
         return None, resp.text
     try:

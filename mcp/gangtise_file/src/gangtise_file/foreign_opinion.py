@@ -11,7 +11,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, FOREIGN_OPINION_URL, INDEPENDENT_OPINION_LIST_URL, INDUSTRIES_MAP, REGIONS_MAP, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
+from .utils import (authorized_request, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, FOREIGN_OPINION_URL, INDEPENDENT_OPINION_LIST_URL, INDUSTRIES_MAP, REGIONS_MAP, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
 from .get_file import download_files
 from .security import batch_security_search
 from .search_institution import (
@@ -216,7 +216,7 @@ def _fetch_opinion_pages(
         if keyword:
             data["keyword"] = keyword
 
-        response = requests.post(url, headers=headers, json=data, timeout=120)
+        response = authorized_request("POST", url, headers=headers, json=data, timeout=120)
         if response.status_code != 200:
             text = response.text.replace("\n", " ").replace("\r", " ").strip()
             if not all_rows:

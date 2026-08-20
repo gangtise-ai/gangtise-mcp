@@ -11,7 +11,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (DRIVE_DOWNLOAD_URL, DRIVE_LIST_URL, FILE_DEFAULT_LIMIT, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
+from .utils import (authorized_request, DRIVE_DOWNLOAD_URL, DRIVE_LIST_URL, FILE_DEFAULT_LIMIT, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
 
 DEFAULT_LIST_LIMIT = FILE_DEFAULT_LIMIT.get("private_cloud", 100)
 IDS_FILE_HINT = "可以删除行或保留需要的文件，再通过 --files-file 参数下载"
@@ -167,7 +167,7 @@ def _fetch_drive_list(
             payload["spaceTypeList"] = space_type_list
 
         try:
-            r = requests.post(DRIVE_LIST_URL, headers=headers, json=payload, timeout=300)
+            r = authorized_request("POST", DRIVE_LIST_URL, headers=headers, json=payload, timeout=300)
             if r.status_code != 200:
                 if not aggregated:
                     return [], 0, r.text[:500]
@@ -219,7 +219,7 @@ def _download_drive_file(
 
     params = {"fileId": fid}
     try:
-        r = requests.get(DRIVE_DOWNLOAD_URL, headers=headers, params=params, timeout=300)
+        r = authorized_request("GET", DRIVE_DOWNLOAD_URL, headers=headers, params=params, timeout=300)
     except Exception as e:
         return None, str(e)
 

@@ -115,6 +115,26 @@ _SNAP_PRICE_COLUMNS = (
     "preClose",
 )
 
+CLOSE_CN = "收盘价"
+CLOSE_OR_LATEST_CN = "收盘价/最新价"
+
+
+def _daily_close_col(df: pd.DataFrame) -> str:
+    """识别收盘价列；复权后只剩「收盘价/最新价(前复权)」时也要算 snap 补全列。"""
+    cols = [str(c) for c in df.columns]
+    if CLOSE_OR_LATEST_CN in cols or any(c.startswith(CLOSE_OR_LATEST_CN) for c in cols):
+        return CLOSE_OR_LATEST_CN
+    return CLOSE_CN
+
+
+def _rename_daily_close_for_snap(data: pd.DataFrame) -> pd.DataFrame:
+    """snap 补全的当日 close 来自 latestPrice，列名改为 收盘价/最新价。"""
+    if data.empty or CLOSE_CN not in data.columns:
+        return data
+    if CLOSE_OR_LATEST_CN in data.columns:
+        return data
+    return data.rename(columns={CLOSE_CN: CLOSE_OR_LATEST_CN})
+
 
 def _snap_row_has_valid_price(row: pd.Series) -> bool:
     """实时行情行是否含有效价格（非零且非 NaN）。全零/NaN 常见于美股未开市等场景。"""
@@ -272,6 +292,7 @@ def _quote_format_output_table(
     prefer_adjusted_columns: bool,
 ) -> pd.DataFrame:
     """列顺序、排序、导出列名。prefer_adjusted_columns 仅当该表确有复权列时使用。"""
+    close_cn = _daily_close_col(data)
     preferred = [
         "证券简称",
         "证券代码",
@@ -279,7 +300,7 @@ def _quote_format_output_table(
         "开盘价",
         "最高价",
         "最低价",
-        "收盘价",
+        close_cn,
         "昨收价",
         "涨跌额",
         "涨跌幅",
@@ -295,7 +316,7 @@ def _quote_format_output_table(
             f"开盘价{sfx}",
             f"最高价{sfx}",
             f"最低价{sfx}",
-            f"收盘价{sfx}",
+            f"{close_cn}{sfx}",
             f"昨收价{sfx}",
             f"涨跌额{sfx}",
             f"涨跌幅{sfx}",
@@ -795,7 +816,8 @@ def _apply_daily_adjust_with_factors(
     """
     if factors.empty:
         return pd.DataFrame(), data.copy(), "未获取到复权因子，相关行情按不复权输出"
-    need = {"证券代码", "日期", "开盘价", "最高价", "最低价", "收盘价"}
+    close_cn = _daily_close_col(data)
+    need = {"证券代码", "日期", "开盘价", "最高价", "最低价", close_cn}
     if not need.issubset(data.columns):
         return pd.DataFrame(), data.copy(), "行情数据缺少 OHLC 列，无法复权"
 
@@ -841,12 +863,12 @@ def _apply_daily_adjust_with_factors(
     mult = mult.mask(d["_f_anchor"].isna() | (d["_f_anchor"] == 0))
 
     suffix = _adj_price_suffix(mode)
-    for col in ["开盘价", "最高价", "最低价", "收盘价"]:
+    for col in ["开盘价", "最高价", "最低价", close_cn]:
         if col in d.columns:
             v = pd.to_numeric(d[col], errors="coerce")
             d[f"{col}{suffix}"] = (v * mult).round(2)
 
-    close_adj = f"收盘价{suffix}"
+    close_adj = f"{close_cn}{suffix}"
     raw_pre = pd.to_numeric(d["昨收价"], errors="coerce") if "昨收价" in d.columns else pd.Series(pd.NA, index=d.index)
     d = d.sort_values(by=["证券代码", "_dt"])
     pre_from_shift = d.groupby("证券代码", sort=False)[close_adj].shift(1)
@@ -862,7 +884,7 @@ def _apply_daily_adjust_with_factors(
     pct = pct.replace([float("inf"), float("-inf")], pd.NA)
     d[f"涨跌幅{suffix}"] = pct.round(4)
 
-    drop_cols = ["开盘价", "最高价", "最低价", "收盘价", "昨收价", "涨跌额", "涨跌幅", "_dt", "_f", "_f_anchor"]
+    drop_cols = ["开盘价", "最高价", "最低价", close_cn, "昨收价", "涨跌额", "涨跌幅", "_dt", "_f", "_f_anchor"]
     adj_result = d.drop(columns=[c for c in drop_cols if c in d.columns], errors="ignore")
     return adj_result, data_unadj, warn
 
@@ -873,7 +895,8 @@ def _daily_today_rows_as_adjusted(data_today: pd.DataFrame, mode: str) -> pd.Dat
         return data_today
     d = data_today.copy()
     suffix = _adj_price_suffix(mode)
-    for col in ["开盘价", "最高价", "最低价", "收盘价"]:
+    close_cn = _daily_close_col(d)
+    for col in ["开盘价", "最高价", "最低价", close_cn]:
         if col in d.columns:
             d[f"{col}{suffix}"] = pd.to_numeric(d[col], errors="coerce").round(2)
     if "昨收价" in d.columns:
@@ -882,7 +905,7 @@ def _daily_today_rows_as_adjusted(data_today: pd.DataFrame, mode: str) -> pd.Dat
         d[f"涨跌额{suffix}"] = pd.to_numeric(d["涨跌额"], errors="coerce").round(4)
     if "涨跌幅" in d.columns:
         d[f"涨跌幅{suffix}"] = pd.to_numeric(d["涨跌幅"], errors="coerce").round(4)
-    drop_cols = ["开盘价", "最高价", "最低价", "收盘价", "昨收价", "涨跌额", "涨跌幅"]
+    drop_cols = ["开盘价", "最高价", "最低价", close_cn, "昨收价", "涨跌额", "涨跌幅"]
     return d.drop(columns=[c for c in drop_cols if c in d.columns], errors="ignore")
 
 
@@ -1166,6 +1189,7 @@ def quote_data(
 
     data_parts: List[pd.DataFrame] = []
     snap_daily_supplement: Optional[pd.DataFrame] = None
+    snap_filled_today = False
     request_errors: List[str] = []
     capped_limit = min(limit, 10000)
     extra_notes: List[str] = []
@@ -1205,6 +1229,7 @@ def quote_data(
                         fallback_note = f"{fallback_note}；{note}" if fallback_note else note
                     if used_snap:
                         all_market_snap_done.add(mkt)
+                        snap_filled_today = True
                         extra_notes.append(
                             f"{label}当日行情由实时快照接口补全（日K接口不提供当天数据）"
                         )
@@ -1339,6 +1364,7 @@ def quote_data(
         )
         if not snap_daily_supplement.empty:
             data = pd.concat([data, snap_daily_supplement], ignore_index=True)
+            snap_filled_today = True
 
     if data_type == "daily":
         field_map = API_FIELD_TO_CN
@@ -1348,6 +1374,8 @@ def quote_data(
         field_map = SNAP_API_FIELD_TO_CN
     rename_map = {k: v for k, v in field_map.items() if k in data.columns}
     data = data.rename(columns=rename_map)
+    if data_type == "daily" and snap_filled_today:
+        data = _rename_daily_close_for_snap(data)
 
     if "证券代码" in data.columns:
         codes_u = data["证券代码"].astype(str).str.strip().str.upper()

@@ -13,7 +13,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (TOP_HOLDERS_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (authorized_request, TOP_HOLDERS_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 HOLDER_TYPE_MAP = {
     "top10": "top10",
@@ -125,7 +125,7 @@ def _fetch_shareholder(
         payload["fiscalYear"] = fiscal_year
 
     try:
-        r = requests.post(TOP_HOLDERS_URL, headers=headers, json=payload, timeout=120)
+        r = authorized_request("POST", TOP_HOLDERS_URL, headers=headers, json=payload, timeout=120)
         if r.status_code != 200:
             return pd.DataFrame()
         body = r.json()

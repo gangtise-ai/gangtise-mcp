@@ -16,7 +16,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search
 
-from .utils import (INDICATOR_SEARCH_URL, INDICATOR_TIME_SERIES_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, normalize_securities_arg, parse_str_list)
+from .utils import (authorized_request, INDICATOR_SEARCH_URL, INDICATOR_TIME_SERIES_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, normalize_securities_arg, parse_str_list)
 
 INDICATORS_FILE_HINT = (
     "可以删除行或编辑参数列，再通过--indicators-file参数读取文件查询指标代码和参数"
@@ -410,7 +410,7 @@ def _search_indicators(headers: dict, keyword: str, limit: int) -> Tuple[List[di
     req_limit = max(1, min(int(limit), SEARCH_MAX_LIMIT))
     payload = {"keyword": keyword.strip(), "limit": req_limit}
     try:
-        r = requests.post(INDICATOR_SEARCH_URL, headers=headers, json=payload, timeout=120)
+        r = authorized_request("POST", INDICATOR_SEARCH_URL, headers=headers, json=payload, timeout=120)
         if r.status_code != 200:
             return [], f"指标检索 HTTP {r.status_code}: {r.text[:500]}"
         body = r.json()
@@ -578,7 +578,7 @@ def _items_to_markdown(keyword: str, items: List[dict], exact_only: bool) -> str
 
 def _post_indicator_api(url: str, headers: dict, payload: dict) -> Tuple[Optional[dict], Optional[str]]:
     try:
-        r = requests.post(url, headers=headers, json=payload, timeout=300)
+        r = authorized_request("POST", url, headers=headers, json=payload, timeout=300)
         if r.status_code != 200:
             return None, f"HTTP {r.status_code}: {r.text[:500]}"
         body = r.json()

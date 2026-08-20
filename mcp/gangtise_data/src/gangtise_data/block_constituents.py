@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (SECTOR_CONSTITUENTS_URL, SECTOR_SEARCH_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (authorized_request, SECTOR_CONSTITUENTS_URL, SECTOR_SEARCH_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
 
 MATCH_SCORE_THRESHOLD = 0.6
 SEARCH_TOP_DEFAULT = 10
@@ -37,7 +37,7 @@ def _search_sectors(
     req_top = max(1, min(int(top), SEARCH_TOP_MAX))
     payload = {"keyword": keyword.strip(), "top": req_top}
     try:
-        r = requests.post(SECTOR_SEARCH_URL, headers=headers, json=payload, timeout=120)
+        r = authorized_request("POST", SECTOR_SEARCH_URL, headers=headers, json=payload, timeout=120)
         if r.status_code != 200:
             return [], f"板块检索 HTTP {r.status_code}: {r.text[:500]}"
         body = r.json()
@@ -60,7 +60,7 @@ def _fetch_constituents(
 ) -> Tuple[List[dict], Optional[str]]:
     payload = {"sectorId": str(sector_id).strip()}
     try:
-        r = requests.post(SECTOR_CONSTITUENTS_URL, headers=headers, json=payload, timeout=120)
+        r = authorized_request("POST", SECTOR_CONSTITUENTS_URL, headers=headers, json=payload, timeout=120)
         if r.status_code != 200:
             return [], f"成分股 HTTP {r.status_code}: {r.text[:500]}"
         body = r.json()

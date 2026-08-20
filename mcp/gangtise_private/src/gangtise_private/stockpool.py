@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (GET_POOL_LIST_URL, GET_STOCK_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg, load_pool_ids_from_file)
+from .utils import (authorized_request, GET_POOL_LIST_URL, GET_STOCK_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg, load_pool_ids_from_file)
 
 DEFAULT_POOL_LIMIT = 100
 IDS_FILE_HINT = "可以删除行或保留需要的池，再通过 --pool-file 参数读取文件获取证券"
@@ -30,7 +30,7 @@ def _api_error_message(body: dict, fallback: str = "") -> str:
 
 def _fetch_pool_list(headers: dict) -> Tuple[List[dict], Optional[str]]:
     try:
-        r = requests.post(GET_POOL_LIST_URL, headers=headers, json={}, timeout=120)
+        r = authorized_request("POST", GET_POOL_LIST_URL, headers=headers, json={}, timeout=120)
         if r.status_code != 200:
             return [], f"股票池列表 HTTP {r.status_code}: {r.text[:500]}"
         body = r.json()
@@ -53,7 +53,7 @@ def _fetch_stock_list(headers: dict, pool_id_list: List[str]) -> Tuple[List[dict
 
     payload = {"poolIdList": ids}
     try:
-        r = requests.post(GET_STOCK_LIST_URL, headers=headers, json=payload, timeout=120)
+        r = authorized_request("POST", GET_STOCK_LIST_URL, headers=headers, json=payload, timeout=120)
         if r.status_code != 200:
             return [], f"证券明细 HTTP {r.status_code}: {r.text[:500]}"
         body = r.json()

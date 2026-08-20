@@ -12,7 +12,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (VALUATION_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (authorized_request, VALUATION_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 from .security import batch_security_search, resolved_code_abbr_map
 
@@ -135,7 +135,7 @@ def _fetch_one_indicator(
         "fieldList": list(_FIELD_LIST),
     }
     try:
-        r = requests.post(
+        r = authorized_request("POST", 
             VALUATION_URL,
             headers=headers,
             json=payload,

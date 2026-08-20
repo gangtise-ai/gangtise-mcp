@@ -9,8 +9,7 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 import requests
-
-from authorization import get_authorization_headers, get_authorization_token
+from authorization import authorized_request, get_authorization_headers, get_authorization_token
 
 GANGTISE_TOOL_DOMAIN = os.getenv(
     "GANGTISE_TOOL_DOMAIN",
@@ -77,7 +76,7 @@ def _default_output_dir(pdf_path: Optional[Path] = None, task_id: Optional[str] 
 def _submit(pdf_path: Path, headers: dict) -> str:
     with open(pdf_path, "rb") as f:
         files = {"file": (pdf_path.name, f, "application/pdf")}
-        resp = requests.post(FILE_PARSE_SUBMIT_URL, headers=headers, files=files, timeout=120)
+        resp = authorized_request("POST", FILE_PARSE_SUBMIT_URL, headers=headers, files=files, timeout=120)
     try:
         body = resp.json()
     except Exception as e:
@@ -93,7 +92,7 @@ def _submit(pdf_path: Path, headers: dict) -> str:
 def _fetch_result_once(task_id: str, headers: dict) -> Tuple[Optional[bytes], Optional[str], Optional[str]]:
     """返回 (zip_bytes|None, status, message)。status: ready|generating|error。"""
     json_headers = {**headers, "Content-Type": "application/json"}
-    resp = requests.post(
+    resp = authorized_request("POST", 
         FILE_PARSE_RESULT_URL,
         headers=json_headers,
         json={"taskId": task_id},

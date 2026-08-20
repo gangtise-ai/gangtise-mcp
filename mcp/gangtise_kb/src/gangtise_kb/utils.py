@@ -12,6 +12,7 @@ import requests
 # 通过 ak/sk 获取 临时 authorization
 
 from authorization import (
+    authorized_request,
     get_authorization_headers,
     get_authorization_token,
     get_headers_extra,

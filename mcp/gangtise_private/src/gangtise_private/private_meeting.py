@@ -11,7 +11,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (FILE_DEFAULT_LIMIT, MY_CONFERENCE_DOWNLOAD_URL, MY_CONFERENCE_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
+from .utils import (authorized_request, FILE_DEFAULT_LIMIT, MY_CONFERENCE_DOWNLOAD_URL, MY_CONFERENCE_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
 
 DEFAULT_LIST_LIMIT = FILE_DEFAULT_LIMIT.get("private_meeting", 100)
 IDS_FILE_HINT = "可以删除行或保留需要的会议，再通过 --conference-file 参数下载内容"
@@ -195,7 +195,7 @@ def _fetch_conference_list(
             payload["categoryList"] = category_list
 
         try:
-            r = requests.post(MY_CONFERENCE_LIST_URL, headers=headers, json=payload, timeout=300)
+            r = authorized_request("POST", MY_CONFERENCE_LIST_URL, headers=headers, json=payload, timeout=300)
             if r.status_code != 200:
                 if not aggregated:
                     return [], 0, r.text[:500]
@@ -245,7 +245,7 @@ def _download_conference_content(
 
     params = {"conferenceId": cid, "contentType": ctype}
     try:
-        r = requests.get(
+        r = authorized_request("GET", 
             MY_CONFERENCE_DOWNLOAD_URL,
             headers=headers,
             params=params,

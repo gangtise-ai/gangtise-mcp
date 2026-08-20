@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, REPORT_IMAGE_DOWNLOAD_URL, REPORT_IMAGE_URL, WORK_PATH, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, resolve_result_limit)
+from .utils import (authorized_request, DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, REPORT_IMAGE_DOWNLOAD_URL, REPORT_IMAGE_URL, WORK_PATH, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, resolve_result_limit)
 from .get_file import (  # noqa: E402
     UnsupportedClientPathError,
     _download_success_info,
@@ -137,7 +137,7 @@ def _download_report_image(
     output_dir: str,
     headers: dict,
 ) -> str:
-    response = requests.get(
+    response = authorized_request("GET", 
         REPORT_IMAGE_DOWNLOAD_URL,
         headers=headers,
         params={"chunkId": chunk_id},
@@ -278,7 +278,7 @@ def report_image_finder(
         if source_id and str(source_id).strip():
             payload["sourceId"] = str(source_id).strip()
 
-        response = requests.post(REPORT_IMAGE_URL, headers=headers, json=payload, timeout=120)
+        response = authorized_request("POST", REPORT_IMAGE_URL, headers=headers, json=payload, timeout=120)
         if response.status_code != 200:
             return format_response(
                 {

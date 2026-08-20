@@ -12,7 +12,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search
 
-from .utils import (DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, FORUM_LIST_URL, PERFORMANCE_CALENDAR_LIST_URL, RESEARCH_AREA_MAP, ROADSHOW_LIST_URL, SITE_VISIT_LIST_URL, STRATEGY_MEETING_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
+from .utils import (authorized_request, DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, FORUM_LIST_URL, PERFORMANCE_CALENDAR_LIST_URL, RESEARCH_AREA_MAP, ROADSHOW_LIST_URL, SITE_VISIT_LIST_URL, STRATEGY_MEETING_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
 from .search_institution import (
     CATEGORY_LEAD_INSTITUTION,
     USAGE_PARAM_INSTITUTION_LIST,
@@ -285,7 +285,7 @@ def _fetch_list(url: str, headers: dict, payload_base: dict, keyword: str, limit
         # 财报日历接口无 keyword 字段
         if keyword and kind != "performance":
             data["keyword"] = keyword
-        response = requests.post(url, headers=headers, json=data)
+        response = authorized_request("POST", url, headers=headers, json=data)
         if response.status_code != 200:
             if all_results:
                 return all_results, response.text.replace("\n", " ").replace("\r", " ").strip()

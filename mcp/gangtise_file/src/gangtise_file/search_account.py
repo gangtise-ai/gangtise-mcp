@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 
 import requests
 
-from .utils import OFFICIAL_ACCOUNT_SEARCH_URL
+from .utils import authorized_request, OFFICIAL_ACCOUNT_SEARCH_URL
 
 MATCH_SCORE_THRESHOLD = 0.6
 SEARCH_TOP_DEFAULT = 10
@@ -90,7 +90,7 @@ def search_official_accounts(
         payload["category"] = categories
 
     try:
-        r = requests.post(
+        r = authorized_request("POST", 
             OFFICIAL_ACCOUNT_SEARCH_URL, headers=headers, json=payload, timeout=120
         )
         if r.status_code != 200:
