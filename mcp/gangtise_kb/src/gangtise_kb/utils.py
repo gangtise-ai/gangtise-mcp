@@ -5,29 +5,32 @@ from typing import Dict, List, Any, Optional
 # from logging.handlers import TimedRotatingFileHandler
 import pandas as pd
 import datetime
+import time
 import json
 import requests
 
+# 通过 ak/sk 获取 临时 authorization
+
 from authorization import (
+    authorized_request,
     get_authorization_headers,
     get_authorization_token,
     get_headers_extra,
+    gangtise_domain,
     invalidate_authorization,
 )
 
 GTS_SAVE_FILE = os.getenv("GTS_SAVE_FILE", True)
 GTS_SAVE_EXTENSION = os.getenv("GTS_SAVE_EXTENSION", "md")
 
-GANGTISE_DATA_DOMAIN = os.getenv("GANGTISE_DATA_DOMAIN", "https://openapi.gangtise.com/application/open-data")
-GANGTISE_INSIGHT_DOMAIN = os.getenv("GANGTISE_INSIGHT_DOMAIN", "https://openapi.gangtise.com/application/open-insight")
-
-RAG_URL = f"{GANGTISE_DATA_DOMAIN}/ai/search/knowledge_base"
-FILE_URL = f"{GANGTISE_DATA_DOMAIN}/ai/resource/download"
-SUMMARY_DOWNLOAD_URL = f"{GANGTISE_INSIGHT_DOMAIN}/summary/v2/download/file"
-COMPANY_ANNOUNCEMENT_DOWNLOAD_URL = f"{GANGTISE_INSIGHT_DOMAIN}/announcement/download/file"
-REPORT_DOWNLOAD_URL = f"{GANGTISE_INSIGHT_DOMAIN}/broker-report/download/file"
-FOREIGN_REPORT_DOWNLOAD_URL = f"{GANGTISE_INSIGHT_DOMAIN}/foreign-report/download/file"
-
+GANGTISE_DATA_DOMAIN = gangtise_domain("GANGTISE_DATA_DOMAIN", "https://openapi.gangtise.com/application/open-data")
+GANGTISE_INSIGHT_DOMAIN = gangtise_domain("GANGTISE_INSIGHT_DOMAIN", "https://openapi.gangtise.com/application/open-insight")
+RAG_URL = GANGTISE_DATA_DOMAIN + "/ai/search/knowledge_base"
+FILE_URL = GANGTISE_DATA_DOMAIN + "/ai/resource/download"
+SUMMARY_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/summary/v2/download/file"
+COMPANY_ANNOUNCEMENT_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/announcement/download/file"
+REPORT_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/broker-report/download/file"
+FOREIGN_REPORT_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/foreign-report/download/file"
 WORK_PATH = os.getenv("WORK_PATH", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "workspace"))
 if not os.path.exists(WORK_PATH):
     os.makedirs(WORK_PATH, exist_ok=True)
@@ -173,19 +176,14 @@ def format_response(response: dict, method_name: str, output: Optional[str] = No
                     process_dir = os.path.join(WORK_PATH, method_name)
                     if not os.path.exists(process_dir):
                         os.makedirs(process_dir, exist_ok=True)
-                    # now = datetime.datetime.now().strftime("%H%M%S")
-                    now = 1
+                    now = datetime.datetime.now().strftime("%H%M%S")
                     process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
                     max_retries = 10
-                    for file in os.listdir(process_dir):
-                        if file.startswith(f"{module_name}_") and file.endswith(f".{extension}"):
-                            max_retries = max(max_retries, int(file.split("_")[-1].split(".")[0])+10)
                     while os.path.exists(process_path) and max_retries > 0:
-                        # now = datetime.datetime.now().strftime("%H%M%S")
-                        now += 1
+                        time.sleep(1)
+                        now = datetime.datetime.now().strftime("%H%M%S")
                         process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
                         max_retries -= 1
-                        # sleep(1)
                     if max_retries == 0:
                         return_message = "错误信息：文件存储系统繁忙，请稍后再试"
                         return return_message
@@ -259,7 +257,7 @@ def load_securities_from_file(path: str) -> List[str]:
         return [str(x) for x in df["security_code"].dropna().tolist()]
     raise ValueError("证券文件必须包含 security_code 或 security_abbr 列")
 
-OPENAPI_SKILL_VERSION = "1.6.7"
+OPENAPI_SKILL_VERSION = "1.7.0"
 SKILL_CHECK_URL = "https://open.gangtise.com/application/skills-backend/version?skill=openapi"
 
 def check_version(large_version: bool = True):

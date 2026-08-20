@@ -14,7 +14,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (QUOTE_ADJUST_FACTOR_URL, QUOTE_HK_URL, QUOTE_INDEX_DAILY_URL, QUOTE_MINUTE_URL, QUOTE_REALTIME_URL, QUOTE_URL, QUOTE_US_DAILY_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (QUOTE_ADJUST_FACTOR_URL, QUOTE_MINUTE_URL, QUOTE_REALTIME_URL, QUOTE_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 # 与 open 日 K 文档一致
 _FIELD_LIST = [
@@ -115,6 +115,26 @@ _SNAP_PRICE_COLUMNS = (
     "preClose",
 )
 
+CLOSE_CN = "收盘价"
+CLOSE_OR_LATEST_CN = "收盘价/最新价"
+
+
+def _daily_close_col(df: pd.DataFrame) -> str:
+    """识别收盘价列；复权后只剩「收盘价/最新价(前复权)」时也要算 snap 补全列。"""
+    cols = [str(c) for c in df.columns]
+    if CLOSE_OR_LATEST_CN in cols or any(c.startswith(CLOSE_OR_LATEST_CN) for c in cols):
+        return CLOSE_OR_LATEST_CN
+    return CLOSE_CN
+
+
+def _rename_daily_close_for_snap(data: pd.DataFrame) -> pd.DataFrame:
+    """snap 补全的当日 close 来自 latestPrice，列名改为 收盘价/最新价。"""
+    if data.empty or CLOSE_CN not in data.columns:
+        return data
+    if CLOSE_OR_LATEST_CN in data.columns:
+        return data
+    return data.rename(columns={CLOSE_CN: CLOSE_OR_LATEST_CN})
+
 
 def _snap_row_has_valid_price(row: pd.Series) -> bool:
     """实时行情行是否含有效价格（非零且非 NaN）。全零/NaN 常见于美股未开市等场景。"""
@@ -146,12 +166,7 @@ DEFAULT_QUOTE_LOOKBACK_DAYS = 7
 ALL_MARKET_DATE_LOOKBACK_DAYS = 15
 
 _ALL_MARKET_LABEL = {"cn": "A股", "hk": "H股", "us": "美股"}
-_ALL_MARKET_TO_SNAP_TOKEN = {"cn": "aShares", "hk": "hkStocks", "us": "usStocks"}
-_ALL_MARKET_TO_DAILY_URL = {
-    "cn": QUOTE_URL,
-    "hk": QUOTE_HK_URL,
-    "us": QUOTE_US_DAILY_URL,
-}
+_ALL_MARKET_TO_TOKEN = {"cn": "aShares", "hk": "hkStocks", "us": "usStocks"}
 
 
 def _parse_all_market_arg(value: Optional[str]) -> Optional[Tuple[str, ...]]:
@@ -180,7 +195,7 @@ def _parse_all_market_arg(value: Optional[str]) -> Optional[Tuple[str, ...]]:
 
 
 def _snap_tokens_for_markets(markets: Tuple[str, ...]) -> Tuple[str, ...]:
-    return tuple(_ALL_MARKET_TO_SNAP_TOKEN[m] for m in markets if m in _ALL_MARKET_TO_SNAP_TOKEN)
+    return tuple(_ALL_MARKET_TO_TOKEN[m] for m in markets if m in _ALL_MARKET_TO_TOKEN)
 
 
 def _market_code_mask(codes_u: pd.Series, market: str) -> pd.Series:
@@ -196,7 +211,7 @@ def _market_code_mask(codes_u: pd.Series, market: str) -> pd.Series:
 def _partition_daily_quote_codes(
     codes: List[str], types: List[str]
 ) -> Tuple[List[str], List[str], List[str], List[str], List[Tuple[str, str]]]:
-    """返回 (A股, 港股, 交易所指数, 美股, 不支持的 (code, security_type))。指数日 K 仅支持交易所指数。"""
+    """返回 (A股, 港股, 指数, 美股, 不支持的 (code, security_type))。指数日 K 支持交易所/概念/行业指数。"""
     a_list: List[str] = []
     hk_list: List[str] = []
     idx_list: List[str] = []
@@ -210,10 +225,8 @@ def _partition_daily_quote_codes(
             hk_list.append(c)
         elif t == "美股":
             us_list.append(c)
-        elif t == "交易所指数":
+        elif t in ("交易所指数", "行业指数", "概念指数", "其他指数", "指数"):
             idx_list.append(c)
-        elif t in ("行业指数", "概念指数", "其他指数", "指数"):
-            skipped.append((c, t))
         else:
             skipped.append((c, t or "未知类型"))
     return a_list, hk_list, idx_list, us_list, skipped
@@ -222,15 +235,13 @@ def _partition_daily_quote_codes(
 def _partition_snap_quote_codes(
     codes: List[str], types: List[str]
 ) -> Tuple[List[str], List[Tuple[str, str]]]:
-    """截面行情：A/港/美股走同一实时接口；指数类跳过。"""
+    """截面行情：A/港/美股及交易所/概念/行业指数走同一实时接口。"""
     ok_list: List[str] = []
     skipped: List[Tuple[str, str]] = []
     for i, c in enumerate(codes):
         t = types[i] if i < len(types) else ""
-        if t in ("A股", "港股", "美股"):
+        if t in ("A股", "港股", "美股", "交易所指数", "行业指数", "概念指数", "其他指数", "指数"):
             ok_list.append(c)
-        elif t in ("行业指数", "概念指数", "其他指数", "指数", "交易所指数"):
-            skipped.append((c, t))
         else:
             skipped.append((c, t or "未知类型"))
     return ok_list, skipped
@@ -281,6 +292,7 @@ def _quote_format_output_table(
     prefer_adjusted_columns: bool,
 ) -> pd.DataFrame:
     """列顺序、排序、导出列名。prefer_adjusted_columns 仅当该表确有复权列时使用。"""
+    close_cn = _daily_close_col(data)
     preferred = [
         "证券简称",
         "证券代码",
@@ -288,7 +300,7 @@ def _quote_format_output_table(
         "开盘价",
         "最高价",
         "最低价",
-        "收盘价",
+        close_cn,
         "昨收价",
         "涨跌额",
         "涨跌幅",
@@ -304,7 +316,7 @@ def _quote_format_output_table(
             f"开盘价{sfx}",
             f"最高价{sfx}",
             f"最低价{sfx}",
-            f"收盘价{sfx}",
+            f"{close_cn}{sfx}",
             f"昨收价{sfx}",
             f"涨跌额{sfx}",
             f"涨跌幅{sfx}",
@@ -400,7 +412,7 @@ def _quote_title_segment_for_block(
     adj_map = {"none": "不复权", "forward": "前复权", "backward": "后复权"}
 
     if data_type == "minute":
-        return f"{body}（A股 不复权）"
+        return f"{body}（不复权）"
 
     if segment == "all_market":
         markets = all_market_markets or ("cn",)
@@ -435,9 +447,9 @@ def _quote_title_segment_for_block(
         if in_hk and not in_idx:
             mkt = "H股"
         elif in_idx and not in_hk:
-            mkt = "沪深京指数"
+            mkt = "指数"
         else:
-            mkt = "港股及沪深京指数"
+            mkt = "港股及指数"
         return f"{body}（{mkt} 不复权）"
 
     if segment == "single":
@@ -465,7 +477,7 @@ def _quote_title_segment_for_block(
                 return f"{body}（美股 {adj_map[adj_mode]}）"
             return f"{body}（美股 不复权）"
         if all_idx and not (all_a or all_hk or all_us):
-            return f"{body}（沪深京指数 不复权）"
+            return f"{body}（指数 不复权）"
         if prefer_adj and adj_mode != "none":
             return f"{body}（多品种 {adj_map[adj_mode]}）"
         return f"{body}（多品种 不复权）"
@@ -523,7 +535,13 @@ def _code_max_kline_date(df: pd.DataFrame, code: str) -> Optional[str]:
 def _codes_needing_snap_supplement(
     data_parts: List[pd.DataFrame], candidate_codes: List[str], check_date: str
 ) -> List[str]:
-    """候选证券中，日 K 在 check_date（通常为 end_date）尚无行情的才需实时补全。"""
+    """候选证券中，日 K 在 check_date（通常为 end_date）尚无行情的才需实时补全。
+
+    注意：当整批日 K 都还没有 check_date（例如港股盘中，日 K 最新只到昨收）时，
+    不得用「该券已有全局最大交易日」跳过补全——否则单查一只港股时永远补不上当天。
+    「== global_max」启发式仅在全局日 K 已覆盖到 check_date 及以后时启用
+    （如美股时区导致 end 为日历次日、但 K 线已到 T 日）。
+    """
     kline_all = (
         pd.concat(data_parts, ignore_index=True) if data_parts else pd.DataFrame()
     )
@@ -542,8 +560,16 @@ def _codes_needing_snap_supplement(
         cu = code.upper()
         if cu in have_on_date:
             continue
-        # 日 K 已含该证券最新交易日（如美股 end 为日历次日但 K 线已到 T 日），无需 snap
-        if global_max_date and _code_max_kline_date(kline_all, cu) == global_max_date:
+        code_max = _code_max_kline_date(kline_all, cu)
+        # 日 K 已覆盖到目标日（或更晚）则无需 snap
+        if code_max and code_max >= check_date:
+            continue
+        # 仅当批内已有 ≥ check_date 的日 K 时，才用「已对齐全局最新」跳过（美股时区边界）
+        if (
+            global_max_date
+            and global_max_date >= check_date
+            and code_max == global_max_date
+        ):
             continue
         out.append(code)
     return out
@@ -743,7 +769,7 @@ def _fetch_adjust_factor_body(
         "limit": min(int(limit), 10000),
     }
     try:
-        r = requests.post(QUOTE_ADJUST_FACTOR_URL, headers=headers, json=payload, timeout=300)
+        r = authorized_request("POST", QUOTE_ADJUST_FACTOR_URL, headers=headers, json=payload, timeout=300)
         if r.status_code != 200:
             return pd.DataFrame(), r.text
         body = r.json()
@@ -790,7 +816,8 @@ def _apply_daily_adjust_with_factors(
     """
     if factors.empty:
         return pd.DataFrame(), data.copy(), "未获取到复权因子，相关行情按不复权输出"
-    need = {"证券代码", "日期", "开盘价", "最高价", "最低价", "收盘价"}
+    close_cn = _daily_close_col(data)
+    need = {"证券代码", "日期", "开盘价", "最高价", "最低价", close_cn}
     if not need.issubset(data.columns):
         return pd.DataFrame(), data.copy(), "行情数据缺少 OHLC 列，无法复权"
 
@@ -836,12 +863,12 @@ def _apply_daily_adjust_with_factors(
     mult = mult.mask(d["_f_anchor"].isna() | (d["_f_anchor"] == 0))
 
     suffix = _adj_price_suffix(mode)
-    for col in ["开盘价", "最高价", "最低价", "收盘价"]:
+    for col in ["开盘价", "最高价", "最低价", close_cn]:
         if col in d.columns:
             v = pd.to_numeric(d[col], errors="coerce")
             d[f"{col}{suffix}"] = (v * mult).round(2)
 
-    close_adj = f"收盘价{suffix}"
+    close_adj = f"{close_cn}{suffix}"
     raw_pre = pd.to_numeric(d["昨收价"], errors="coerce") if "昨收价" in d.columns else pd.Series(pd.NA, index=d.index)
     d = d.sort_values(by=["证券代码", "_dt"])
     pre_from_shift = d.groupby("证券代码", sort=False)[close_adj].shift(1)
@@ -857,7 +884,7 @@ def _apply_daily_adjust_with_factors(
     pct = pct.replace([float("inf"), float("-inf")], pd.NA)
     d[f"涨跌幅{suffix}"] = pct.round(4)
 
-    drop_cols = ["开盘价", "最高价", "最低价", "收盘价", "昨收价", "涨跌额", "涨跌幅", "_dt", "_f", "_f_anchor"]
+    drop_cols = ["开盘价", "最高价", "最低价", close_cn, "昨收价", "涨跌额", "涨跌幅", "_dt", "_f", "_f_anchor"]
     adj_result = d.drop(columns=[c for c in drop_cols if c in d.columns], errors="ignore")
     return adj_result, data_unadj, warn
 
@@ -868,7 +895,8 @@ def _daily_today_rows_as_adjusted(data_today: pd.DataFrame, mode: str) -> pd.Dat
         return data_today
     d = data_today.copy()
     suffix = _adj_price_suffix(mode)
-    for col in ["开盘价", "最高价", "最低价", "收盘价"]:
+    close_cn = _daily_close_col(d)
+    for col in ["开盘价", "最高价", "最低价", close_cn]:
         if col in d.columns:
             d[f"{col}{suffix}"] = pd.to_numeric(d[col], errors="coerce").round(2)
     if "昨收价" in d.columns:
@@ -877,7 +905,7 @@ def _daily_today_rows_as_adjusted(data_today: pd.DataFrame, mode: str) -> pd.Dat
         d[f"涨跌额{suffix}"] = pd.to_numeric(d["涨跌额"], errors="coerce").round(4)
     if "涨跌幅" in d.columns:
         d[f"涨跌幅{suffix}"] = pd.to_numeric(d["涨跌幅"], errors="coerce").round(4)
-    drop_cols = ["开盘价", "最高价", "最低价", "收盘价", "昨收价", "涨跌额", "涨跌幅"]
+    drop_cols = ["开盘价", "最高价", "最低价", close_cn, "昨收价", "涨跌额", "涨跌幅"]
     return d.drop(columns=[c for c in drop_cols if c in d.columns], errors="ignore")
 
 
@@ -947,7 +975,7 @@ def _parse_kline_body(body: dict) -> pd.DataFrame:
 
 def _fetch_kline_data(url: str, headers: dict, payload: dict) -> Tuple[pd.DataFrame, Optional[str]]:
     try:
-        r = requests.post(url, headers=headers, json=payload, timeout=300)
+        r = authorized_request("POST", url, headers=headers, json=payload, timeout=300)
         if r.status_code != 200:
             return pd.DataFrame(), r.text
         body = r.json()
@@ -990,7 +1018,7 @@ def _resolve_quote_dates(
 
 def _fetch_full_market_daily_with_date_fallback(
     headers: dict,
-    url: str,
+    security_token: str,
     adj_mode: str,
     limit: int,
     snap_markets: Optional[Tuple[str, ...]] = None,
@@ -998,6 +1026,7 @@ def _fetch_full_market_daily_with_date_fallback(
 ) -> Tuple[pd.DataFrame, Optional[str], Optional[str], Optional[str], bool]:
     """全市场日 K 未指定日期时：从当天起逐日向前查询，当天可先尝试实时快照补全。
 
+    security_token 为市场标识（aShares/hkStocks/usStocks），统一走日 K 接口。
     返回 (data, err, used_date, fallback_note, used_snap_supplement)。
     """
     today = date.today()
@@ -1012,9 +1041,9 @@ def _fetch_full_market_daily_with_date_fallback(
             "endDate": query_date,
             "limit": limit,
             "fieldList": daily_fields,
-            "securityList": ["all"],
+            "securityList": [security_token],
         }
-        data_one, err_one = _fetch_kline_data(url, headers, payload)
+        data_one, err_one = _fetch_kline_data(QUOTE_URL, headers, payload)
         if not err_one and not data_one.empty:
             fb_note = None
             if offset > 0:
@@ -1150,16 +1179,17 @@ def quote_data(
         elif data_type == "snap":
             snap_codes, skipped_quote = _partition_snap_quote_codes(codes, resolved_types)
         else:
-            # 分钟 K 仅支持 A 股接口，其余类型跳过不报错
+            # 分钟 K 支持 A 股个股及交易所/概念/行业指数；港股/美股等跳过不报错
             for i, c in enumerate(codes):
                 t = resolved_types[i] if i < len(resolved_types) else ""
-                if t == "A股":
+                if t in ("A股", "交易所指数", "行业指数", "概念指数", "其他指数", "指数"):
                     daily_a_codes.append(c)
                 else:
                     skipped_quote.append((c, t or "未知类型"))
 
     data_parts: List[pd.DataFrame] = []
     snap_daily_supplement: Optional[pd.DataFrame] = None
+    snap_filled_today = False
     request_errors: List[str] = []
     capped_limit = min(limit, 10000)
     extra_notes: List[str] = []
@@ -1180,13 +1210,13 @@ def quote_data(
 
         if all_market_markets:
             for mkt in all_market_markets:
-                url = _ALL_MARKET_TO_DAILY_URL[mkt]
+                token = _ALL_MARKET_TO_TOKEN[mkt]
                 label = _ALL_MARKET_LABEL[mkt]
                 if all_market_date_fallback:
                     data_m, err_m, used_date, fb_note, used_snap = (
                         _fetch_full_market_daily_with_date_fallback(
                             headers,
-                            url,
+                            token,
                             adj_mode,
                             capped_limit,
                             snap_markets=(mkt,),
@@ -1199,6 +1229,7 @@ def quote_data(
                         fallback_note = f"{fallback_note}；{note}" if fallback_note else note
                     if used_snap:
                         all_market_snap_done.add(mkt)
+                        snap_filled_today = True
                         extra_notes.append(
                             f"{label}当日行情由实时快照接口补全（日K接口不提供当天数据）"
                         )
@@ -1208,55 +1239,35 @@ def quote_data(
                         data_parts.append(data_m)
                 else:
                     payload_m = dict(payload)
-                    payload_m["securityList"] = ["all"]
-                    data_m, err_m = _fetch_kline_data(url, headers, payload_m)
+                    payload_m["securityList"] = [token]
+                    data_m, err_m = _fetch_kline_data(QUOTE_URL, headers, payload_m)
                     if err_m:
                         request_errors.append(f"{label}接口请求失败: {err_m}")
                     elif not data_m.empty:
                         data_parts.append(data_m)
         else:
-            if daily_a_codes:
-                payload_a = dict(payload)
-                payload_a["securityList"] = daily_a_codes
-                data_a, err_a = _fetch_kline_data(QUOTE_URL, headers, payload_a)
-                if err_a:
-                    request_errors.append(f"A股接口请求失败: {err_a}")
-                elif not data_a.empty:
-                    data_parts.append(data_a)
-
-            if daily_hk_codes:
-                payload_hk = dict(payload)
-                payload_hk["securityList"] = daily_hk_codes
-                data_hk, err_hk = _fetch_kline_data(QUOTE_HK_URL, headers, payload_hk)
-                if err_hk:
-                    request_errors.append(f"港股接口请求失败: {err_hk}")
-                elif not data_hk.empty:
-                    data_parts.append(data_hk)
-
-            if daily_idx_codes:
-                payload_idx = dict(payload)
-                payload_idx["securityList"] = daily_idx_codes
-                data_idx, err_idx = _fetch_kline_data(QUOTE_INDEX_DAILY_URL, headers, payload_idx)
-                if err_idx:
-                    request_errors.append(f"指数日K接口请求失败: {err_idx}")
-                elif not data_idx.empty:
-                    data_parts.append(data_idx)
-
-            if daily_us_codes:
-                payload_us = dict(payload)
-                payload_us["securityList"] = daily_us_codes
-                data_us, err_us = _fetch_kline_data(QUOTE_US_DAILY_URL, headers, payload_us)
-                if err_us:
-                    request_errors.append(f"美股日K接口请求失败: {err_us}")
-                elif not data_us.empty:
-                    data_parts.append(data_us)
+            daily_all_codes = list(
+                dict.fromkeys(
+                    daily_a_codes + daily_hk_codes + daily_idx_codes + daily_us_codes
+                )
+            )
+            if daily_all_codes:
+                payload_all = dict(payload)
+                payload_all["securityList"] = daily_all_codes
+                data_all, err_all = _fetch_kline_data(QUOTE_URL, headers, payload_all)
+                if err_all:
+                    request_errors.append(f"日K接口请求失败: {err_all}")
+                elif not data_all.empty:
+                    data_parts.append(data_all)
 
         if _end_date_includes_today(end_date):
             check_date = end_date[:10]
             snap_codes_for_supplement: List[str] = []
             if not all_market_markets:
                 candidates = list(
-                    dict.fromkeys(daily_a_codes + daily_hk_codes + daily_us_codes)
+                    dict.fromkeys(
+                        daily_a_codes + daily_hk_codes + daily_idx_codes + daily_us_codes
+                    )
                 )
                 snap_codes_for_supplement = _codes_needing_snap_supplement(
                     data_parts, candidates, check_date
@@ -1353,6 +1364,7 @@ def quote_data(
         )
         if not snap_daily_supplement.empty:
             data = pd.concat([data, snap_daily_supplement], ignore_index=True)
+            snap_filled_today = True
 
     if data_type == "daily":
         field_map = API_FIELD_TO_CN
@@ -1362,6 +1374,8 @@ def quote_data(
         field_map = SNAP_API_FIELD_TO_CN
     rename_map = {k: v for k, v in field_map.items() if k in data.columns}
     data = data.rename(columns=rename_map)
+    if data_type == "daily" and snap_filled_today:
+        data = _rename_daily_close_for_snap(data)
 
     if "证券代码" in data.columns:
         codes_u = data["证券代码"].astype(str).str.strip().str.upper()

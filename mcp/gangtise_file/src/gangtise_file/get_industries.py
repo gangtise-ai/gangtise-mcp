@@ -21,7 +21,7 @@ def main():
         for sub_key, sub_value in value.items():
             return_message += f"- {sub_key}: {sub_value}\n"
         return_message += "\n\n"
-    return_message += "# 研究领域（仅opinion, summary, calendar 支持）\n"
+    return_message += "# 研究领域（仅 opinion, summary, pamirs_summary, calendar 支持）\n"
     for key, value in RESEARCH_AREA_MAP.items():
         return_message += f"- {key}: {value}\n"
     return_message += "\n\n"

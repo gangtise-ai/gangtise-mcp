@@ -8,13 +8,13 @@ parameters:
     required: true
   report_date:
     type: string
-    description: 报告期，严格为 yyyy-MM-dd 格式
+    description: 报告期日期
     required: true
   securities:
     type: string
-    description: 证券列表，逗号分隔；可为证券名称、代码或拼音首字母
+    description: 证券名称或代码列表
     required: true
   discussion_dimension:
     type: string
-    description: 讨论维度，见下表
+    description: 讨论维度
     required: true

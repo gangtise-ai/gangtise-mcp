@@ -25,8 +25,8 @@ uv run gangtise-hub --help
 
 ```bash
 uvx --default-index https://pypi.tuna.tsinghua.edu.cn/simple \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_hub" \
-  --from "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=cli/gangtise_hub" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_hub" \
+  --from "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=cli/gangtise_hub" \
   gangtise-hub list
 ```
 
@@ -61,4 +61,4 @@ uv run gangtise-hub gangtise-data  # 域说明 / 叶子列表
 
 ---
 
-English: [README.en.md](README.md) · 总览: [../../README.md](../../README.cn.md)
+English: [README.md](README.md) · 总览: [../../README.cn.md](../../README.cn.md)

@@ -20,8 +20,8 @@ uv run gangtise-hub --help
 ```
 
 ```bash
-uvx --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_hub" \
-  --from "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=cli/gangtise_hub" \
+uvx --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_hub" \
+  --from "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=cli/gangtise_hub" \
   gangtise-hub list
 ```
 
@@ -38,4 +38,4 @@ uvx --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mc
 
 ---
 
-Chinese: [README.md](README.cn.md) · Overview: [../../README.en.md](../../README.md)
+Chinese: [README.cn.md](README.cn.md) · Overview: [../../README.md](../../README.md)

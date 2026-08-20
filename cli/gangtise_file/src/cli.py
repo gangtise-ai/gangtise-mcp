@@ -88,7 +88,7 @@ _LONG_ALIASES: Dict[str, str] = {
 }
 
 _TOOL_GROUPS: List[Tuple[str, List[str]]] = [
-    ("File 文件", ['report', 'summary', 'opinion', 'announcement', 'foreign_report', 'foreign_opinion', 'official_account', 'management_discuss', 'qa', 'report_image', 'investment_calendar', 'get_file', 'get_chiefs', 'get_institutions', 'get_industries', 'get_regions', 'get_announcement_types']),
+    ("File 文件", ['report', 'summary', 'pamirs_summary', 'opinion', 'announcement', 'foreign_report', 'foreign_opinion', 'official_account', 'management_discuss', 'qa', 'report_image', 'investment_calendar', 'get_file', 'get_chiefs', 'get_institutions', 'get_industries', 'get_regions', 'get_announcement_types']),
 ]
 
 

@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, INDUSTRIES_MAP, RESEARCH_AREA_MAP, SUMMARY_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags)
+from .utils import (authorized_request, DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, INDUSTRIES_MAP, RESEARCH_AREA_MAP, SUMMARY_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
 from .get_file import download_files
 from .security import batch_security_search
 from .search_institution import (
@@ -265,7 +265,7 @@ def _fetch_summaries(headers, payload_base, keyword, search_type, limit):
             data["keyword"] = keyword
             data["searchType"] = search_type
 
-        response = requests.post(SUMMARY_URL, headers=headers, json=data)
+        response = authorized_request("POST", SUMMARY_URL, headers=headers, json=data)
         if response.status_code != 200:
             if all_results:
                 return all_results, response.text.replace("\n", " ").replace("\r", " ").strip()
@@ -303,11 +303,12 @@ def summary_finder(
     participant_role_list: Optional[List[str]] = None,
     category_list: Optional[List[str]] = None,
     columns: Optional[List[str]] = None,
-    limit: int = FILE_DEFAULT_LIMIT["summary"],
+    limit: Optional[int] = None,
     download: bool = False,
     output_dir: Optional[str] = None,
 ):
     try:
+        limit = resolve_result_limit(limit, download, "summary")
         headers = get_authorization_headers()
         
         industry_ids = _resolve_industries(industries) if industries else []
@@ -460,9 +461,9 @@ def main():
     parser.add_argument(
         "-l",
         "--limit",
-        default=FILE_DEFAULT_LIMIT["summary"],
+        default=None,
         type=int,
-        help="返回文件数量上限",
+        help="返回条数上限；不传时用检索默认，开启 -d 下载时默认 5",
     )
     parser.add_argument(
         "--securities",
@@ -531,7 +532,7 @@ def main():
     participant_role_list = _parse_str_list(args.participant_role_list)
     start_date = args.start_date or None
     end_date = args.end_date or None
-    limit = int(args.limit)
+    limit = resolve_result_limit(args.limit, bool(args.download), "summary")
     download = args.download or False
     output_dir = args.output_dir or None
     if not download and output_dir:

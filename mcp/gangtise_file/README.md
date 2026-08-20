@@ -16,7 +16,7 @@ Reports, filings, notes, opinions, calendar, and file retrieval.
 
 ## Tools
 
-`report`, `summary`, `opinion`, `announcement`, `foreign_report`, `foreign_opinion`, `official_account`, `management_discuss`, `qa`, `report_image`, `investment_calendar`, `get_file`, `get_chiefs`, `get_institutions`, `get_industries`, `get_regions`, `get_announcement_types`
+`report`, `summary`, `pamirs_summary`, `opinion`, `announcement`, `foreign_report`, `foreign_opinion`, `official_account`, `management_discuss`, `qa`, `report_image`, `investment_calendar`, `get_file`, `get_chiefs`, `get_institutions`, `get_industries`, `get_regions`, `get_announcement_types`
 
 ---
 
@@ -34,9 +34,9 @@ Get keys from the [open platform](https://open-platform.gangtise.com/). Requires
       "command": "uvx",
       "args": [
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_file",
         "--from",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_file",
         "gangtise-file-mcp"
       ],
       "env": {
@@ -56,8 +56,8 @@ Full platform folds: [`gangtise_mcp`](../gangtise_mcp/README.md) and [repo READM
 <details>
 <summary><b>Remote HTTP / Docker</b></summary>
 
-- HTTP / SSE / OAuth: [http-sse.en.md](../../docs/http-sse.md)
-- Docker: all-in-one only — [docker-deploy.en.md](../../docs/docker-deploy.md)
+- HTTP / SSE / OAuth: [http-sse.md](../../docs/http-sse.md)
+- Docker: all-in-one only — [docker-deploy.md](../../docs/docker-deploy.md)
 
 </details>
 
@@ -76,4 +76,4 @@ CLI: [`cli/gangtise_file`](../../cli/gangtise_file/). Recommended client package
 
 </details>
 
-Chinese: [README.md](README.cn.md)
+Chinese: [README.cn.md](README.cn.md)

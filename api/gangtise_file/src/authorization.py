@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import time
 import os
 import stat
 import threading
@@ -20,14 +21,16 @@ import requests
 GTS_ACCESS_KEY = os.getenv("GTS_ACCESS_KEY")
 GTS_SECRET_KEY = os.getenv("GTS_SECRET_KEY")
 
-DEPLOY_ENV = os.getenv("DEPLOY_ENV", "local")
-if DEPLOY_ENV in ("prod", "local"):
-    AUTHORIZATION_URL = "https://openapi.gangtise.com/application/auth/oauth/open/loginV2"
-else:
-    AUTHORIZATION_URL = "http://10.78.10.43:30901/application/auth/oauth/open/loginV2"
+GANGTISE_AUTH_DOMAIN = os.getenv(
+    "GANGTISE_AUTH_DOMAIN", "https://openapi.gangtise.com/application/auth"
+).rstrip("/")
+AUTHORIZATION_URL = f"{GANGTISE_AUTH_DOMAIN}/oauth/open/loginV2"
 
-AUTH_EXPIRED_CODES = frozenset({"8000014", "8000013", 8000014, 8000013})
+AUTH_EXPIRED_CODES = frozenset({"8000014", "8000013", 8000014, 8000013, "999002", 999002})
 LOGIN_TIMEOUT = 30
+# loginV2 未返回 expiresIn 时的默认缓存时长；刷新预留余量避免临界过期
+TOKEN_DEFAULT_TTL_SEC = 3600.0
+TOKEN_REFRESH_SKEW_SEC = 60.0
 
 _lock = threading.Lock()
 _session: Optional[Dict[str, Optional[str]]] = None
@@ -120,36 +123,43 @@ def get_request_headers_extra() -> Dict[str, str]:
     return dict(_request_headers_extra.get() or {})
 
 
-def _login(ak: str, sk: str) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
+def _login(ak: str, sk: str) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[float]]:
     payload = {"accessKey": ak, "secretKey": sk}
     try:
         response = requests.post(AUTHORIZATION_URL, json=payload, timeout=LOGIN_TIMEOUT)
     except requests.RequestException as exc:
         print(f"获取 authorization 失败, 网络错误: {exc}")
-        return None, None, None, None
+        return None, None, None, None, None
     if response.status_code != 200:
         print(f"获取 authorization 失败, HTTP {response.status_code}: {response.text}")
-        return None, None, None, None
+        return None, None, None, None, None
     try:
         body = response.json()
     except ValueError:
         print(f"获取 authorization 失败, 非 JSON 响应: {response.text}")
-        return None, None, None, None
-    if not body.get("state", True):
+        return None, None, None, None, None
+    # 新旧接口字段并存：历史用 state，当前 loginV2 用 status
+    ok = body.get("state")
+    if ok is None:
+        ok = body.get("status", True)
+    if not ok:
         print(f"获取 authorization 失败, 错误信息: {response.text}")
-        return None, None, None, None
+        return None, None, None, None, None
     try:
         data = body["data"]
         token = _ensure_bearer(str(data["accessToken"]))
+        # loginV2 现可能只返回 accessToken / userName，不再带 uid/tenantId
+        expires_at = _expires_at_from_login(data.get("expiresIn"))
         return (
             token,
-            str(data["uid"]),
-            str(data["tenantId"]),
-            str(data.get("productCode", 10018)),
+            None if data.get("uid") is None else str(data.get("uid")),
+            None if data.get("tenantId") is None else str(data.get("tenantId")),
+            None if data.get("productCode") is None else str(data.get("productCode")),
+            expires_at,
         )
     except (KeyError, TypeError) as exc:
         print(f"获取 authorization 失败, 响应格式异常: {exc}")
-        return None, None, None, None
+        return None, None, None, None, None
 
 
 def _session_from_file() -> Optional[Dict[str, Optional[str]]]:
@@ -168,7 +178,7 @@ def _session_from_file() -> Optional[Dict[str, Optional[str]]]:
     ak = content.get("accessKey")
     sk = content.get("secretKey") or content.get("secretAccessKey")
     if ak and sk:
-        token, uid, tenantid, productcode = _login(ak, sk)
+        token, uid, tenantid, productcode, expires_at = _login(ak, sk)
         if not token:
             return None
         return {
@@ -176,6 +186,7 @@ def _session_from_file() -> Optional[Dict[str, Optional[str]]]:
             "uid": uid,
             "tenantid": tenantid,
             "productcode": productcode,
+            "expires_at": expires_at,
         }
     return None
 
@@ -191,15 +202,39 @@ def invalidate_authorization() -> None:
         _session = None
 
 
+def _session_fresh(session: Optional[Dict[str, Optional[str]]]) -> bool:
+    """缓存会话是否仍可用（尊重 loginV2 expiresIn）。"""
+    if not session or not session.get("authorization"):
+        return False
+    exp = session.get("expires_at")
+    if exp is None:
+        return True
+    try:
+        return time.time() < float(exp)
+    except (TypeError, ValueError):
+        return True
+
+
+def _expires_at_from_login(expires_in: Any) -> Optional[float]:
+    """loginV2 expiresIn（秒）→ 绝对过期时间；预留 60s 余量。无字段时默认 1h。"""
+    ttl = TOKEN_DEFAULT_TTL_SEC
+    if expires_in is not None:
+        try:
+            ttl = max(60.0, float(expires_in))
+        except (TypeError, ValueError):
+            pass
+    return time.time() + ttl - TOKEN_REFRESH_SKEW_SEC
+
+
 def _build_request_session(
     ak: str, sk: str, *, force: bool = False
 ) -> Optional[Dict[str, Optional[str]]]:
     key = (ak, sk)
     with _request_sessions_lock:
         cached = _request_sessions.get(key)
-        if cached is not None and not force:
+        if cached is not None and not force and _session_fresh(cached):
             return cached
-    token, uid, tenantid, productcode = _login(ak, sk)
+    token, uid, tenantid, productcode, expires_at = _login(ak, sk)
     if not token:
         with _request_sessions_lock:
             _request_sessions.pop(key, None)
@@ -209,6 +244,7 @@ def _build_request_session(
         "uid": uid,
         "tenantid": tenantid,
         "productcode": productcode,
+        "expires_at": expires_at,
     }
     with _request_sessions_lock:
         _request_sessions[key] = session
@@ -221,12 +257,12 @@ def _build_session(force: bool = False) -> Optional[Dict[str, Optional[str]]]:
         return _build_request_session(req[0], req[1], force=force)
 
     global _session
-    if _session is not None and not force:
+    if _session is not None and not force and _session_fresh(_session):
         return _session
     ak = os.getenv("GTS_ACCESS_KEY") or GTS_ACCESS_KEY
     sk = os.getenv("GTS_SECRET_KEY") or GTS_SECRET_KEY
     if ak and sk:
-        token, uid, tenantid, productcode = _login(ak, sk)
+        token, uid, tenantid, productcode, expires_at = _login(ak, sk)
         if not token:
             _session = None
             return None
@@ -235,6 +271,7 @@ def _build_session(force: bool = False) -> Optional[Dict[str, Optional[str]]]:
             "uid": uid,
             "tenantid": tenantid,
             "productcode": productcode,
+            "expires_at": expires_at,
         }
         return _session
     file_session = _session_from_file()
@@ -367,6 +404,128 @@ def get_headers_extra() -> Dict[str, str]:
     return out
 
 
+def is_authorization_passthrough() -> bool:
+    """裸 Authorization 透传（未走请求级 AK/SK→loginV2）。
+
+    云端若配置了内部 GANGTISE_*_DOMAIN，通常要求 uid；透传场景无 uid，
+    应改用公网默认域名（见 resolve_gangtise_domain / gangtise_domain）。
+    """
+    if get_request_credentials() is not None:
+        return False
+    if get_request_authorization() is not None:
+        return True
+    if _env_authorization() is not None:
+        return True
+    return False
+
+
+def resolve_gangtise_domain(env_key: str, default: str) -> str:
+    """解析业务域名：Authorization 透传时忽略环境变量，固定返回 default。"""
+    default_url = (default or "").strip().rstrip("/")
+    if is_authorization_passthrough():
+        return default_url
+    raw = (os.getenv(env_key) or "").strip().rstrip("/")
+    return raw or default_url
+
+
+class GangtiseDomain:
+    """惰性域名：请求时按鉴权模式解析。与路径用 ``+`` 拼接（勿用 f-string 赋模块常量）。"""
+
+    __slots__ = ("env_key", "default")
+
+    def __init__(self, env_key: str, default: str) -> None:
+        self.env_key = env_key
+        self.default = default
+
+    def resolve(self) -> str:
+        return resolve_gangtise_domain(self.env_key, self.default)
+
+    def __str__(self) -> str:
+        return self.resolve()
+
+    def __repr__(self) -> str:
+        return f"GangtiseDomain({self.env_key!r}, {self.default!r})"
+
+    def __format__(self, spec: str) -> str:
+        return format(self.resolve(), spec)
+
+    def __add__(self, other: object) -> "GangtiseUrl":
+        if not isinstance(other, str):
+            return NotImplemented
+        return GangtiseUrl(self, other)
+
+    def __radd__(self, other: object) -> str:
+        if not isinstance(other, str):
+            return NotImplemented
+        return other + self.resolve()
+
+    def rstrip(self, *args: Any, **kwargs: Any) -> str:
+        return self.resolve().rstrip(*args, **kwargs)
+
+
+class GangtiseUrl:
+    """惰性完整 URL（域名 + path），``str(url)`` / requests 调用时再解析。"""
+
+    __slots__ = ("_domain", "_path")
+
+    def __init__(self, domain: GangtiseDomain, path: str) -> None:
+        self._domain = domain
+        self._path = path if path.startswith("/") else f"/{path}"
+
+    def resolve(self) -> str:
+        return self._domain.resolve().rstrip("/") + self._path
+
+    def __str__(self) -> str:
+        return self.resolve()
+
+    def __repr__(self) -> str:
+        return f"GangtiseUrl({self._domain!r}, {self._path!r})"
+
+    def __format__(self, spec: str) -> str:
+        return format(self.resolve(), spec)
+
+    def __add__(self, other: object) -> str:
+        if not isinstance(other, str):
+            return NotImplemented
+        return self.resolve() + other
+
+    def __radd__(self, other: object) -> str:
+        if not isinstance(other, str):
+            return NotImplemented
+        return other + self.resolve()
+
+
+def gangtise_domain(env_key: str, default: str) -> GangtiseDomain:
+    """utils 中替代 ``os.getenv("GANGTISE_*_DOMAIN", default)``。"""
+    return GangtiseDomain(env_key, default)
+
+
+def rewrite_url_for_auth_mode(url: str) -> str:
+    """Authorization 透传时，把命中的内部域名改写回公网 default（兜底）。"""
+    if not url or not is_authorization_passthrough():
+        return url
+    text = str(url)
+    # 常见 GANGTISE_*_DOMAIN：用当前 env 值匹配前缀，替换为公网默认
+    for key, default in (
+        ("GANGTISE_DATA_DOMAIN", "https://openapi.gangtise.com/application/open-data"),
+        ("GANGTISE_INSIGHT_DOMAIN", "https://openapi.gangtise.com/application/open-insight"),
+        ("GANGTISE_REFERENCE_DOMAIN", "https://openapi.gangtise.com/application/open-reference"),
+        ("GANGTISE_OPENAI_DOMAIN", "https://openapi.gangtise.com/application/open-ai"),
+        ("GANGTISE_QUOTE_DOMAIN", "https://openapi.gangtise.com/application/open-quote"),
+        ("GANGTISE_FUNDAMENTAL_DOMAIN", "https://openapi.gangtise.com/application/open-fundamental"),
+        ("GANGTISE_ALTERNATIVE_DOMAIN", "https://openapi.gangtise.com/application/open-alternative"),
+        ("GANGTISE_INDICATOR_DOMAIN", "https://openapi.gangtise.com/application/open-indicator"),
+        ("GANGTISE_VAULT_DOMAIN", "https://openapi.gangtise.com/application/open-vault"),
+    ):
+        internal = (os.getenv(key) or "").strip().rstrip("/")
+        public = default.rstrip("/")
+        if not internal or internal == public:
+            continue
+        if text == internal or text.startswith(internal + "/"):
+            return public + text[len(internal) :]
+    return text
+
+
 def get_authorization_headers() -> Dict[str, str]:
     token = get_authorization_token()
     if not token:
@@ -391,6 +550,9 @@ def is_auth_error_response(
     code = str(data.get("code", "")).strip()
     if code in {str(c) for c in AUTH_EXPIRED_CODES}:
         return True
+    error_type = str(data.get("errorType") or data.get("error_type") or "").strip().upper()
+    if error_type in {"TOKEN_INVALID", "CREDENTIAL_INVALID", "UNAUTHORIZED"}:
+        return True
     for key in ("code", "errorCode", "errCode", "state", "error"):
         val = data.get(key)
         if val in AUTH_EXPIRED_CODES or str(val) in {str(c) for c in AUTH_EXPIRED_CODES}:
@@ -407,7 +569,8 @@ def authorized_request(method: str, url: str, *, retry_on_auth: bool = True, **k
     headers = dict(kwargs.pop("headers", {}) or {})
     timeout = kwargs.pop("timeout", 120)
     headers.update(get_authorization_headers())
-    response = requests.request(method, url, headers=headers, timeout=timeout, **kwargs)
+    target = rewrite_url_for_auth_mode(str(url))
+    response = requests.request(method, target, headers=headers, timeout=timeout, **kwargs)
     if retry_on_auth and is_auth_error_response(response):
         # 直传 token 无法通过 loginV2 刷新
         if get_request_authorization() or _env_authorization():
@@ -420,5 +583,5 @@ def authorized_request(method: str, url: str, *, retry_on_auth: bool = True, **k
             invalidate_authorization()
             refresh_authorization(force=True)
             headers.update(get_authorization_headers())
-            response = requests.request(method, url, headers=headers, timeout=timeout, **kwargs)
+            response = requests.request(method, target, headers=headers, timeout=timeout, **kwargs)
     return response

@@ -5,13 +5,16 @@ from typing import Dict, List, Any, Optional
 # from logging.handlers import TimedRotatingFileHandler
 import pandas as pd
 import datetime
+import time
 import requests
 import json
 
 from authorization import (
+    authorized_request,
     get_authorization_headers,
     get_authorization_token,
     get_headers_extra,
+    gangtise_domain,
     invalidate_authorization,
 )
 
@@ -24,57 +27,55 @@ DOWNLOAD_TYPE_DEFAULT_STR = os.getenv("DOWNLOAD_TYPE_DEFAULT", """
     "foreign_opinion": "html",
     "foreign_report": "pdf",
     "official_account": "txt",
+    "pamirs_summary": "original",
     "report": "pdf"
 }
 """)
 DOWNLOAD_TYPE_DEFAULT = json.loads(DOWNLOAD_TYPE_DEFAULT_STR)
 TRY_MORE_DOWNLOAD = os.getenv("TRY_MORE_DOWNLOAD", False)
+# 开启下载（-d）且未显式传 -l/--limit 时的条数上限
+FILE_DOWNLOAD_DEFAULT_LIMIT = int(os.getenv("FILE_DOWNLOAD_DEFAULT_LIMIT", "5"))
 
-GANGTISE_DATA_DOMAIN = os.getenv("GANGTISE_DATA_DOMAIN", "https://openapi.gangtise.com/application/open-data")
-GANGTISE_INSIGHT_DOMAIN = os.getenv("GANGTISE_INSIGHT_DOMAIN", "https://openapi.gangtise.com/application/open-insight")
-GANGTISE_REFERENCE_DOMAIN = os.getenv("GANGTISE_REFERENCE_DOMAIN", "https://openapi.gangtise.com/application/open-reference")
-GANGTISE_OPENAI_DOMAIN = os.getenv("GANGTISE_OPENAI_DOMAIN", "https://openapi.gangtise.com/application/open-ai")
-SECURITIES_SEARCH_URL = f"{GANGTISE_REFERENCE_DOMAIN}/securities/search"
-CHIEFS_SEARCH_URL = f"{GANGTISE_REFERENCE_DOMAIN}/chiefs/search"
-INSTITUTIONS_SEARCH_URL = f"{GANGTISE_REFERENCE_DOMAIN}/institutions/search"
-OFFICIAL_ACCOUNT_SEARCH_URL = f"{GANGTISE_REFERENCE_DOMAIN}/officialAccount/search"
-
-REPORT_URL = f"{GANGTISE_INSIGHT_DOMAIN}/broker-report/getList"
-REPORT_DOWNLOAD_URL = f"{GANGTISE_INSIGHT_DOMAIN}/broker-report/download/file"
-REPORT_IMAGE_URL = f"{GANGTISE_INSIGHT_DOMAIN}/report-image/getList"
-REPORT_IMAGE_DOWNLOAD_URL = f"{GANGTISE_INSIGHT_DOMAIN}/report-image/download/file"
-QA_DATA_LIST_URL = f"{GANGTISE_INSIGHT_DOMAIN}/Q&A-data/getList"
-
-FOREIGN_REPORT_URL = f"{GANGTISE_INSIGHT_DOMAIN}/foreign-report/getList"
-FOREIGN_REPORT_DOWNLOAD_URL = f"{GANGTISE_INSIGHT_DOMAIN}/foreign-report/download/file"
-INDEPENDENT_OPINION_DOWNLOAD_URL = f"{GANGTISE_INSIGHT_DOMAIN}/independent-opinion/download/file"
-FOREIGN_OPINION_URL = f"{GANGTISE_INSIGHT_DOMAIN}/foreign-opinion/getList"
-INDEPENDENT_OPINION_LIST_URL = f"{GANGTISE_INSIGHT_DOMAIN}/independent-opinion/getList"
-
-COMPANY_ANNOUNCEMENT_URL = f"{GANGTISE_INSIGHT_DOMAIN}/announcement/getList"
-COMPANY_ANNOUNCEMENT_DOWNLOAD_URL = f"{GANGTISE_INSIGHT_DOMAIN}/announcement/download/file"
-HK_ANNOUNCEMENT_LIST_URL = f"{GANGTISE_INSIGHT_DOMAIN}/announcement-hk/getList"
-HK_ANNOUNCEMENT_DOWNLOAD_URL = f"{GANGTISE_INSIGHT_DOMAIN}/announcement-hk/download/file"
-US_ANNOUNCEMENT_LIST_URL = f"{GANGTISE_INSIGHT_DOMAIN}/announcement-us/getList"
-US_ANNOUNCEMENT_DOWNLOAD_URL = f"{GANGTISE_INSIGHT_DOMAIN}/announcement-us/download/file"
-
-SUMMARY_URL = f"{GANGTISE_INSIGHT_DOMAIN}/summary/v2/getList"
-SUMMARY_DOWNLOAD_URL = f"{GANGTISE_INSIGHT_DOMAIN}/summary/v2/download/file"
-
-OPINION_URL = f"{GANGTISE_INSIGHT_DOMAIN}/chief-opinion/getList"
-
-OFFICIAL_ACCOUNT_LIST_URL = f"{GANGTISE_INSIGHT_DOMAIN}/officialAccount/getList"
-OFFICIAL_ACCOUNT_DOWNLOAD_URL = f"{GANGTISE_INSIGHT_DOMAIN}/officialAccount/download/file"
-
-ROADSHOW_LIST_URL = f"{GANGTISE_INSIGHT_DOMAIN}/schedule/roadshow/getList"
-SITE_VISIT_LIST_URL = f"{GANGTISE_INSIGHT_DOMAIN}/schedule/site-visit/getList"
-STRATEGY_MEETING_LIST_URL = f"{GANGTISE_INSIGHT_DOMAIN}/schedule/strategy-meeting/getList"
-FORUM_LIST_URL = f"{GANGTISE_INSIGHT_DOMAIN}/schedule/forum/getList"
-
-FILE_URL = f"{GANGTISE_DATA_DOMAIN}/ai/resource/download"
-MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL = f"{GANGTISE_OPENAI_DOMAIN}/management_discuss/from-announcement"
-MANAGEMENT_DISCUSS_FROM_EARNINGS_CALL_URL = f"{GANGTISE_OPENAI_DOMAIN}/management_discuss/from-earningsCall"
-
+GANGTISE_DATA_DOMAIN = gangtise_domain("GANGTISE_DATA_DOMAIN", "https://openapi.gangtise.com/application/open-data")
+GANGTISE_INSIGHT_DOMAIN = gangtise_domain("GANGTISE_INSIGHT_DOMAIN", "https://openapi.gangtise.com/application/open-insight")
+GANGTISE_REFERENCE_DOMAIN = gangtise_domain("GANGTISE_REFERENCE_DOMAIN", "https://openapi.gangtise.com/application/open-reference")
+GANGTISE_OPENAI_DOMAIN = gangtise_domain("GANGTISE_OPENAI_DOMAIN", "https://openapi.gangtise.com/application/open-ai")
+SECURITIES_SEARCH_URL = GANGTISE_REFERENCE_DOMAIN + "/securities/search"
+CHIEFS_SEARCH_URL = GANGTISE_REFERENCE_DOMAIN + "/chiefs/search"
+INSTITUTIONS_SEARCH_URL = GANGTISE_REFERENCE_DOMAIN + "/institutions/search"
+OFFICIAL_ACCOUNT_SEARCH_URL = GANGTISE_REFERENCE_DOMAIN + "/officialAccount/search"
+REPORT_URL = GANGTISE_INSIGHT_DOMAIN + "/broker-report/getList"
+REPORT_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/broker-report/download/file"
+REPORT_IMAGE_URL = GANGTISE_INSIGHT_DOMAIN + "/report-image/getList"
+REPORT_IMAGE_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/report-image/download/file"
+QA_DATA_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/Q&A-data/getList"
+FOREIGN_REPORT_URL = GANGTISE_INSIGHT_DOMAIN + "/foreign-report/getList"
+FOREIGN_REPORT_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/foreign-report/download/file"
+INDEPENDENT_OPINION_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/independent-opinion/download/file"
+FOREIGN_OPINION_URL = GANGTISE_INSIGHT_DOMAIN + "/foreign-opinion/getList"
+INDEPENDENT_OPINION_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/independent-opinion/getList"
+COMPANY_ANNOUNCEMENT_URL = GANGTISE_INSIGHT_DOMAIN + "/announcement/getList"
+COMPANY_ANNOUNCEMENT_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/announcement/download/file"
+HK_ANNOUNCEMENT_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/announcement-hk/getList"
+HK_ANNOUNCEMENT_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/announcement-hk/download/file"
+US_ANNOUNCEMENT_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/announcement-us/getList"
+US_ANNOUNCEMENT_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/announcement-us/download/file"
+SUMMARY_URL = GANGTISE_INSIGHT_DOMAIN + "/summary/v2/getList"
+SUMMARY_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/summary/v2/download/file"
+PAMIRS_SUMMARY_URL = GANGTISE_INSIGHT_DOMAIN + "/pamirs-summary/getList"
+PAMIRS_SUMMARY_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/pamirs-summary/download/file"
+OPINION_URL = GANGTISE_INSIGHT_DOMAIN + "/chief-opinion/getList"
+OFFICIAL_ACCOUNT_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/officialAccount/getList"
+OFFICIAL_ACCOUNT_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/officialAccount/download/file"
+ROADSHOW_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/schedule/roadshow/getList"
+SITE_VISIT_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/schedule/site-visit/getList"
+STRATEGY_MEETING_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/schedule/strategy-meeting/getList"
+FORUM_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/schedule/forum/getList"
+PERFORMANCE_CALENDAR_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/schedule/performance-calendar/getList"
+PERFORMANCE_CALENDAR_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/schedule/performance-calendar/download/file"
+FILE_URL = GANGTISE_DATA_DOMAIN + "/ai/resource/download"
+MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL = GANGTISE_OPENAI_DOMAIN + "/management-discuss/from-announcement"
+MANAGEMENT_DISCUSS_FROM_EARNINGS_CALL_URL = GANGTISE_OPENAI_DOMAIN + "/management-discuss/from-earningsCall"
 MANAGEMENT_DISCUSS_TYPE_MAP = {
     "announcement": "半年报/年报",
     "earningsCall": "业绩会",
@@ -119,8 +120,23 @@ FILE_DEFAULT_LIMIT = {
     "foreign_opinion": 100,
     "official_account": 100,
     "summary": 100,
+    "pamirs_summary": 100,
     "qa": 100,
 }
+
+def resolve_result_limit(
+    limit: Optional[int],
+    download: bool = False,
+    method: Optional[str] = None,
+) -> int:
+    """解析返回条数：显式 limit 优先；开启下载时默认 FILE_DOWNLOAD_DEFAULT_LIMIT；否则用 FILE_DEFAULT_LIMIT。"""
+    if limit is not None:
+        return int(limit)
+    if download:
+        return FILE_DOWNLOAD_DEFAULT_LIMIT
+    if method and method in FILE_DEFAULT_LIMIT:
+        return int(FILE_DEFAULT_LIMIT[method])
+    return FILE_DOWNLOAD_DEFAULT_LIMIT
 
 QA_SOURCE_CODE_MAP = {
     "电话会议": "conference",
@@ -1408,6 +1424,7 @@ def format_response(response: dict, method_name: str, output: Optional[str] = No
         "opinion": "首席观点",
         "announcement": "公司公告",
         "summary": "会议纪要",
+        "pamirs_summary": "帕米尔专家纪要",
         "calendar": "投研日程",
         "foreign_report": "外资研报",
         "foreign_opinion": "外资/独立观点",
@@ -1438,19 +1455,14 @@ def format_response(response: dict, method_name: str, output: Optional[str] = No
                     process_dir = os.path.join(WORK_PATH, method_name)
                     if not os.path.exists(process_dir):
                         os.makedirs(process_dir, exist_ok=True)
-                    # now = datetime.datetime.now().strftime("%H%M%S")
-                    now = 1
+                    now = datetime.datetime.now().strftime("%H%M%S")
                     process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
                     max_retries = 10
-                    for file in os.listdir(process_dir):
-                        if file.startswith(f"{module_name}_") and file.endswith(f".{extension}"):
-                            max_retries = max(max_retries, int(file.split("_")[-1].split(".")[0])+10)
                     while os.path.exists(process_path) and max_retries > 0:
-                        # now = datetime.datetime.now().strftime("%H%M%S")
-                        now += 1
+                        time.sleep(1)
+                        now = datetime.datetime.now().strftime("%H%M%S")
                         process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
                         max_retries -= 1
-                        # sleep(1)
                     if max_retries == 0:
                         return_message = "错误信息：文件存储系统繁忙，请稍后再试"
                         return return_message
@@ -1600,7 +1612,7 @@ def match_best(item: str, candidates, threshold: float = 0.6):
         return {best_key: candidates[best_key]} if is_dict else best_key
     return None
 
-OPENAPI_SKILL_VERSION = "1.6.7"
+OPENAPI_SKILL_VERSION = "1.7.0"
 SKILL_CHECK_URL = "https://open.gangtise.com/application/skills-backend/version?skill=openapi"
 
 def check_version(large_version: bool = True):

@@ -8,10 +8,10 @@ parameters:
     required: true
   start_date:
     type: string
-    description: 开始日期 yyyy-MM-dd。未指定时默认今天
+    description: 开始日期 yyyy-MM-dd。与 end_date 均不传时先查当天，无有效数据则向前回退至多 7 日并取最近有效日
   end_date:
     type: string
-    description: 结束日期 yyyy-MM-dd。未指定时默认今天
+    description: 结束日期 yyyy-MM-dd。与 start_date 均不传时先查当天，无有效数据则向前回退至多 7 日并取最近有效日
   limit:
     type: integer
     description: 单次指标请求最大行数，默认 2000（接口上限以官方文档为准）

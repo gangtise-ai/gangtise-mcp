@@ -34,9 +34,9 @@ Get keys from the [open platform](https://open-platform.gangtise.com/). Requires
       "command": "uvx",
       "args": [
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_hub",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_hub",
         "--from",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_hub",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_hub",
         "gangtise-hub-mcp"
       ],
       "env": {
@@ -56,8 +56,8 @@ Full platform folds: [`gangtise_mcp`](../gangtise_mcp/README.md) and [repo READM
 <details>
 <summary><b>Remote HTTP / Docker</b></summary>
 
-- HTTP / SSE / OAuth: [http-sse.en.md](../../docs/http-sse.md)
-- Docker: all-in-one only — [docker-deploy.en.md](../../docs/docker-deploy.md)
+- HTTP / SSE / OAuth: [http-sse.md](../../docs/http-sse.md)
+- Docker: all-in-one only — [docker-deploy.md](../../docs/docker-deploy.md)
 
 </details>
 
@@ -76,4 +76,4 @@ CLI: [`cli/gangtise_hub`](../../cli/gangtise_hub/). Recommended client package: 
 
 </details>
 
-Chinese: [README.md](README.cn.md)
+Chinese: [README.cn.md](README.cn.md)

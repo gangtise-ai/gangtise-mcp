@@ -38,17 +38,17 @@
                 "--default-index",
         "https://pypi.tuna.tsinghua.edu.cn/simple",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_agent",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_data",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_file",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_kb",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_private",
         "--from",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_mcp",
         "gangtise-mcp"
       ],
       "env": {
@@ -70,6 +70,8 @@
 1. 将 MCP 配置 JSON（与上方 Cursor 示例相同，server 键名可用 `gangtise_mcp`；先填好 ak/sk）发给 WorkBuddy **智能体**，请其完成安装。
 2. 安装完成后，打开侧边栏 **专家 · 技能 · 连接器** → 顶部 **连接器** → **自定义连接器** / **我的 MCP**，对 `gangtise_mcp` 依次 **信任** 并 **开启**（首次信任可能等待数秒）。
 
+远程 HTTP：`https://openapi.gangtise.com/application/open-mcp/` — [http-sse.cn.md](../../docs/http-sse.cn.md)。
+
 </details>
 
 <details>
@@ -86,7 +88,7 @@
 https://<host>:<port>/open-mcp
 ```
 
-OAuth 或 `X-GTS-Credentials` 见 [docs/http-sse.md](../../docs/http-sse.cn.md)。
+OAuth 或 `X-GTS-Credentials` 见 [docs/http-sse.cn.md](../../docs/http-sse.cn.md)。
 
 </details>
 
@@ -95,12 +97,12 @@ OAuth 或 `X-GTS-Credentials` 见 [docs/http-sse.md](../../docs/http-sse.cn.md)�
 
 ```bash
 uvx --default-index https://pypi.tuna.tsinghua.edu.cn/simple \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent" \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data" \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file" \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb" \
-  --with "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private" \
-  --from "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_agent" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_data" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_file" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_kb" \
+  --with "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_private" \
+  --from "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_mcp" \
   gangtise-mcp
 ```
 
@@ -131,7 +133,7 @@ docker build -t gangtise-mcp -f Dockerfile \
   .
 ```
 
-运行时建议设置 `GTS_JWT_SECRET` / `GTS_CRED_ENC_KEY`。详见 [docker-deploy.md](../../docs/docker-deploy.cn.md)。
+运行时建议设置 `GTS_JWT_SECRET` / `GTS_CRED_ENC_KEY`。详见 [docker-deploy.cn.md](../../docs/docker-deploy.cn.md)。
 
 </details>
 
@@ -152,4 +154,4 @@ CLI 调试见 [`cli/gangtise_mcp`](../../cli/gangtise_mcp/)。日常客户端接
 
 </details>
 
-English: [README.en.md](README.md) · 总览: [../../README.md](../../README.cn.md)
+English: [README.md](README.md) · 总览: [../../README.cn.md](../../README.cn.md)

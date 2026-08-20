@@ -16,7 +16,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search
 
-from .utils import (INDICATOR_CROSS_SECTION_URL, INDICATOR_SEARCH_URL, INDICATOR_TIME_SERIES_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, normalize_securities_arg, parse_str_list)
+from .utils import (authorized_request, INDICATOR_SEARCH_URL, INDICATOR_TIME_SERIES_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, normalize_securities_arg, parse_str_list)
 
 INDICATORS_FILE_HINT = (
     "可以删除行或编辑参数列，再通过--indicators-file参数读取文件查询指标代码和参数"
@@ -29,7 +29,7 @@ ROOT_PARAM_ALIASES: Dict[str, str] = {
     "量纲": "scale",
     "日期类型": "calendarType",
 }
-ROOT_PARAM_KEYS = frozenset({"scale", "calendarType"})
+ROOT_PARAM_KEYS = frozenset({"scale", "calendarType", "currency"})
 CALENDAR_TYPE_VALUES: Dict[str, str] = {
     "ND": "ND",
     "nd": "ND",
@@ -110,6 +110,30 @@ def _parse_indicator_params_cell(raw: Any) -> Dict[str, Any]:
     return obj if isinstance(obj, dict) else {}
 
 
+def _normalize_params_input(params: Any) -> Dict[str, Any]:
+    """将 params 入参统一转为 dict。MCP 传输层可能以 JSON 字符串形式传递。"""
+    if params is None:
+        return {}
+    if isinstance(params, dict):
+        return params
+    if isinstance(params, str):
+        text = params.strip()
+        if not text:
+            return {}
+        try:
+            from json_repair import repair_json
+            obj = repair_json(text, return_objects=True)
+        except Exception:
+            try:
+                obj = json.loads(text)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"params 须为合法 JSON: {e}") from e
+        if not isinstance(obj, dict):
+            raise ValueError("params 须为 JSON 对象（字典）")
+        return obj
+    return {}
+
+
 def _default_indicator_params_from_item(item: dict) -> Dict[str, Any]:
     params: Dict[str, Any] = {}
     for p in item.get("parameterList") or []:
@@ -134,24 +158,6 @@ def _search_items_to_config_records(items: List[dict]) -> List[dict]:
             continue
         name = str(item.get("indicatorName", "")).strip()
         params = _default_indicator_params_from_item(item)
-        records.append(
-            {
-                "indicator_code": code,
-                "indicator_name": name,
-                "indicator_params": json.dumps(params, ensure_ascii=False),
-            }
-        )
-    return records
-
-
-def _indicator_params_config_records(indicator_meta: List[Dict[str, Any]]) -> List[dict]:
-    records = []
-    for item in indicator_meta:
-        code = str(item.get("code", "")).strip()
-        if not code:
-            continue
-        name = str(item.get("name") or code).strip()
-        params = item.get("params") if isinstance(item.get("params"), dict) else {}
         records.append(
             {
                 "indicator_code": code,
@@ -239,7 +245,7 @@ def _build_request_options(
     作为共享指标参数应用到本次全部指标；也可按指标编码嵌套覆盖，如
     {"adjustmentType":"3","qte_close":{"adjustmentType":"1"}}。
     """
-    root_keys = {"scale", "calendarType"}
+    root_keys = {"scale", "calendarType", "currency"}
     root: Dict[str, Any] = {}
     nested_by_code: Dict[str, Dict[str, Any]] = {}
     shared_params: Dict[str, Any] = {}
@@ -404,7 +410,7 @@ def _search_indicators(headers: dict, keyword: str, limit: int) -> Tuple[List[di
     req_limit = max(1, min(int(limit), SEARCH_MAX_LIMIT))
     payload = {"keyword": keyword.strip(), "limit": req_limit}
     try:
-        r = requests.post(INDICATOR_SEARCH_URL, headers=headers, json=payload, timeout=120)
+        r = authorized_request("POST", INDICATOR_SEARCH_URL, headers=headers, json=payload, timeout=120)
         if r.status_code != 200:
             return [], f"指标检索 HTTP {r.status_code}: {r.text[:500]}"
         body = r.json()
@@ -506,6 +512,9 @@ def _format_scope_list(scope_list: Optional[List[dict]]) -> str:
         market = s.get("market") or ""
         st = s.get("securityType") or ""
         label = " / ".join(x for x in (market, st) if x)
+        restriction = s.get("usageRestriction")
+        if restriction and str(restriction).strip() and str(restriction).strip().lower() != "null":
+            label = f"{label}（{str(restriction).strip()}）" if label else str(restriction).strip()
         if label:
             parts.append(label)
     return "；".join(parts) if parts else "—"
@@ -569,7 +578,7 @@ def _items_to_markdown(keyword: str, items: List[dict], exact_only: bool) -> str
 
 def _post_indicator_api(url: str, headers: dict, payload: dict) -> Tuple[Optional[dict], Optional[str]]:
     try:
-        r = requests.post(url, headers=headers, json=payload, timeout=300)
+        r = authorized_request("POST", url, headers=headers, json=payload, timeout=300)
         if r.status_code != 200:
             return None, f"HTTP {r.status_code}: {r.text[:500]}"
         body = r.json()
@@ -660,9 +669,15 @@ def _parse_timeseries_block(block: dict) -> pd.DataFrame:
     dates = block.get("dates") or []
     codes = block.get("securityCodeList") or []
     names = block.get("securityNameList") or []
-    ind_codes = block.get("indicatorCodeList") or []
-    ind_names = block.get("indicatorNameList") or []
-    ind_types = _indicator_data_types(block, ind_codes)
+    indicator_list = block.get("indicatorList") or []
+    if indicator_list:
+        ind_codes = [str(i.get("code", "")) for i in indicator_list]
+        ind_names = [str(i.get("name", "")) for i in indicator_list]
+        ind_types = [str(i.get("dataType", "")) for i in indicator_list]
+    else:
+        ind_codes = block.get("indicatorCodeList") or []
+        ind_names = block.get("indicatorNameList") or []
+        ind_types = _indicator_data_types(block, ind_codes)
     values = block.get("values") or []
     records: List[dict] = []
 
@@ -711,9 +726,15 @@ def _parse_cross_section_block(block: dict) -> pd.DataFrame:
     dt = str(block.get("date", ""))[:10]
     codes = block.get("securityCodeList") or []
     names = block.get("securityNameList") or []
-    ind_codes = block.get("indicatorCodeList") or []
-    ind_names = block.get("indicatorNameList") or []
-    ind_types = _indicator_data_types(block, ind_codes)
+    indicator_list = block.get("indicatorList") or []
+    if indicator_list:
+        ind_codes = [str(i.get("code", "")) for i in indicator_list]
+        ind_names = [str(i.get("name", "")) for i in indicator_list]
+        ind_types = [str(i.get("dataType", "")) for i in indicator_list]
+    else:
+        ind_codes = block.get("indicatorCodeList") or []
+        ind_names = block.get("indicatorNameList") or []
+        ind_types = _indicator_data_types(block, ind_codes)
     values = block.get("values") or []
     records: List[dict] = []
     for i, ind_c in enumerate(ind_codes):
@@ -899,79 +920,55 @@ def company_indicator_get(
             "company_indicator",
         )
 
-    param_dict = params or {}
+    param_dict = _normalize_params_input(params)
     root_opts, indicator_param_list = _build_request_options(param_dict, indicators)
-    span = _date_span_days(start_date, end_date)
-    use_timeseries = span > min(len(indicators), len(codes))
 
     frames: List[pd.DataFrame] = []
     errors: List[str] = []
     total_cells = 0
 
-    if use_timeseries:
-        base_payload: Dict[str, Any] = {
-            "startDate": start_date,
-            "endDate": end_date,
-            "calendarType": root_opts.get("calendarType", "TD"),
-            "scale": root_opts.get("scale", "0"),
-        }
-        if indicator_param_list:
-            base_payload["indicatorParamList"] = indicator_param_list
+    base_payload: Dict[str, Any] = {
+        "startDate": start_date,
+        "endDate": end_date,
+        "calendarType": root_opts.get("calendarType", "TD"),
+        "currency": root_opts.get("currency", "DFT"),
+        "scale": root_opts.get("scale", "0"),
+        "indicatorParamList": indicator_param_list if indicator_param_list is not None else [],
+    }
 
-        if len(codes) > len(indicators):
-            for ind in indicators:
-                payload = {
-                    **base_payload,
-                    "indicatorCodeList": [ind],
-                    "securityCodeList": codes,
-                }
-                body, err = _post_indicator_api(INDICATOR_TIME_SERIES_URL, headers, payload)
-                if err:
-                    errors.append(f"{ind}: {err}")
-                    continue
-                block = body.get("data") or {}
-                total_cells += _count_value_cells(block)
-                df_part = _parse_timeseries_block(block)
-                if not df_part.empty:
-                    frames.append(df_part)
-        else:
-            for sec in codes:
-                payload = {
-                    **base_payload,
-                    "indicatorCodeList": indicators,
-                    "securityCodeList": [sec],
-                }
-                body, err = _post_indicator_api(INDICATOR_TIME_SERIES_URL, headers, payload)
-                if err:
-                    errors.append(f"{sec}: {err}")
-                    continue
-                block = body.get("data") or {}
-                total_cells += _count_value_cells(block)
-                df_part = _parse_timeseries_block(block)
-                if not df_part.empty:
-                    frames.append(df_part)
-        api_label = "时序"
+    if len(codes) > len(indicators):
+        for ind in indicators:
+            payload = {
+                **base_payload,
+                "indicatorCodeList": [ind],
+                "universe": codes,
+            }
+            body, err = _post_indicator_api(INDICATOR_TIME_SERIES_URL, headers, payload)
+            if err:
+                errors.append(f"{ind}: {err}")
+                continue
+            block = body.get("data") or {}
+            total_cells += _count_value_cells(block)
+            df_part = _parse_timeseries_block(block)
+            if not df_part.empty:
+                frames.append(df_part)
     else:
-        payload: Dict[str, Any] = {
-            "indicatorCodeList": indicators,
-            "securityCodeList": codes,
-            "date": end_date,
-            "scale": root_opts.get("scale", "0"),
-        }
-        if indicator_param_list:
-            payload["indicatorParamList"] = indicator_param_list
-        body, err = _post_indicator_api(INDICATOR_CROSS_SECTION_URL, headers, payload)
-        if err:
-            return format_response(
-                {"state": "error", "message": err, "data": [], "usage": usage},
-                "company_indicator",
-            )
-        block = body.get("data") or {}
-        total_cells += _count_value_cells(block)
-        df_part = _parse_cross_section_block(block)
-        if not df_part.empty:
-            frames.append(df_part)
-        api_label = "截面"
+        for sec in codes:
+            payload = {
+                **base_payload,
+                "indicatorCodeList": indicators,
+                "universe": [sec],
+            }
+            body, err = _post_indicator_api(INDICATOR_TIME_SERIES_URL, headers, payload)
+            if err:
+                errors.append(f"{sec}: {err}")
+                continue
+            block = body.get("data") or {}
+            total_cells += _count_value_cells(block)
+            df_part = _parse_timeseries_block(block)
+            if not df_part.empty:
+                frames.append(df_part)
+    api_label = "时序"
 
     if not frames:
         err_tail = "；".join(errors) if errors else "未获取到指标数据"
@@ -1005,12 +1002,7 @@ def company_indicator_get(
     if errors:
         msg += f"\n部分请求异常：{'；'.join(errors[:3])}"
 
-    meta = indicator_meta or [{"code": c, "name": c, "params": {}} for c in indicators]
-    meta_by_code = {str(m["code"]): m for m in meta}
-    params_records = _indicator_params_config_records(
-        [meta_by_code.get(c, {"code": c, "name": c, "params": {}}) for c in indicators]
-    )
-
+    # get 成功只返回时序/截面数据；参数模板仅 search（company_indicator_search）产出
     parts = [
         {
             "data": data.to_dict(orient="records"),
@@ -1018,15 +1010,6 @@ def company_indicator_get(
             "type": "data",
         }
     ]
-    if params_records:
-        parts.append(
-            {
-                "data": params_records,
-                "module": "company_indicator_params",
-                "type": "data",
-                "footer": INDICATORS_FILE_HINT,
-            }
-        )
     return format_response(
         {
             "state": "success",
@@ -1044,52 +1027,13 @@ def company_indicator_data(
     securities: Optional[Any] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    params: Optional[Any] = None,
+    params: Optional[Dict[str, Any]] = None,
 ):
     """检索公司指标元信息，或在提供 indicator_codes + securities 时拉取时序/截面数据。
 
     优先级：有 indicator_codes → get；否则有 keyword → search。
     仅有 securities 不会进入 get。
     """
-    if isinstance(params, str):
-        text = params.strip()
-        if not text:
-            params = None
-        else:
-            try:
-                parsed = json.loads(text)
-            except json.JSONDecodeError as e:
-                return format_response(
-                    {
-                        "state": "error",
-                        "message": f"params 须为 JSON object 字符串: {e}",
-                        "data": [],
-                        "usage": {},
-                    },
-                    "company_indicator",
-                )
-            if not isinstance(parsed, dict):
-                return format_response(
-                    {
-                        "state": "error",
-                        "message": "params JSON 须解析为 object",
-                        "data": [],
-                        "usage": {},
-                    },
-                    "company_indicator",
-                )
-            params = parsed
-    elif params is not None and not isinstance(params, dict):
-        return format_response(
-            {
-                "state": "error",
-                "message": f"params 类型无效: {type(params).__name__}",
-                "data": [],
-                "usage": {},
-            },
-            "company_indicator",
-        )
-
     indicators_raw = (indicator_codes or "").strip()
     sec_list = normalize_securities_arg(securities)
 
@@ -1135,7 +1079,7 @@ def company_indicator_data(
             )
         try:
             param_dict = _normalize_params_keys(
-                params or {},
+                _normalize_params_input(params),
                 indicator_aliases,
                 param_aliases,
             )

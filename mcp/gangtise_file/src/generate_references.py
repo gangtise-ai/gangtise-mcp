@@ -14,9 +14,9 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from skill_reference_loader import load_tool_reference, _sanitize_mcp_text  # noqa: E402
-from tools_registry import INTERNAL_PARAMS, TOOL_HANDLERS  # noqa: E402
+from gangtise_file.tools_registry import INTERNAL_PARAMS, TOOL_HANDLERS  # noqa: E402
 
-REFERENCES_DIR = SRC / "references"
+REFERENCES_DIR = SRC / "gangtise_file" / "references"
 
 # MCP 工具说明：面向调用方，说明用途、场景与关键限制（不含脚本路径、内部 API 名）
 TOOL_DESCRIPTIONS: Dict[str, str] = {
@@ -120,7 +120,8 @@ TOOL_DESCRIPTIONS: Dict[str, str] = {
         "检索外资/海外研报索引，支持页数、评级、行业、地区等筛选；可选下载。"
     ),
     "investment_calendar": (
-        "检索投资日历活动：路演、调研、线下策略会、论坛等，按活动类型与时间筛选。"
+        "检索投资日历：路演、调研、线下策略会、论坛、财报日历；"
+        "财报日历区分已发布（可下载原文件）与尚未发布（日程预告）。"
     ),
     "management_discuss": (
         "获取上市公司管理层讨论与分析（MD&A），含半年报/年报正文或业绩会口径，"
@@ -145,6 +146,10 @@ TOOL_DESCRIPTIONS: Dict[str, str] = {
     ),
     "summary": (
         "检索会议纪要/调研纪要，支持机构、行业、来源类型、参会角色等筛选；可选下载。"
+    ),
+    "pamirs_summary": (
+        "检索帕米尔牵头机构下的专家纪要，支持关键词、证券、研究方向、类别、市场筛选；"
+        "可选下载原始文件或 HTML。需已购买专家纪要数据库权限。"
     ),
     "get_announcement_types": (
         "返回公告分类树（A 股 cn 或港股 hk），用于 announcement 的 category_list 参数取值参考。"
@@ -202,7 +207,9 @@ PARAM_DESCRIPTIONS: Dict[str, str] = {
     "types": "资讯类型列表，如 morning、night",
     "page_from": "分页起始（从 0 开始）",
     "page_size": "每页条数",
-    "category_list": "分类/类型列表，具体取值可参考 get_* 参考工具",
+    "category_list": "分类/类型列表；帕米尔专家纪要可选 companyAnalysis/industryAnalysis（或中文：公司分析/行业分析）",
+    "market_list": "市场类别列表；可选 aShares/hkStocks/usChinaConcept/usStocks（或中文：A股/港股/美股中概/美股）",
+    "industries": "行业或研究方向名称列表；可选值见 get_industries",
     "query_mode": "查询模式：bySecurity（按证券）或 byIndustry（按行业）",
     "source": "来源类型列表，如 researchReport、conference、announcement、view",
     "sector_id": "板块 ID（已知时可直接指定，跳过关键词搜索）",
@@ -225,11 +232,13 @@ PARAM_DESCRIPTIONS: Dict[str, str] = {
     "breakdown": "主营拆分维度：product / industry / region",
     "consensus_list": "一致预期指标列表",
     "download": "是否下载文件全文",
-    "download_types": "下载格式列表，如 pdf、markdown",
+    "download_types": "下载格式列表，如 pdf、markdown；帕米尔专家纪要为 original、html",
     "output_dir": "批量下载输出目录",
     "file_id": "文件 ID（来自检索类接口返回）",
-    "file_type": "文件类型，如 report、announcement、summary",
-    "download_type": "单文件下载格式：pdf 或 markdown",
+    "file_type": "文件类型，如 report、announcement、summary、帕米尔专家纪要",
+    "download_type": "单文件下载格式：pdf 或 markdown；帕米尔专家纪要为 original 或 html",
+    "search_type": "搜索类型：1 标题搜索，2 全文搜索",
+    "rank_type": "排序方式：1 综合排序，2 时间倒序",
     "query": "自然语言检索问句（kb）",
     "file_types": "kb 检索限定的文件类型列表",
     "kind": "投资日历活动类型",
@@ -259,7 +268,7 @@ PARAM_DESCRIPTIONS: Dict[str, str] = {
     "with_close_reading": "热点报告是否包含话题精读",
 }
 
-SKIP_PARAMS = INTERNAL_PARAMS | frozenset({"output"})
+SKIP_PARAMS = INTERNAL_PARAMS | frozenset({"output", "output_dir"})
 
 
 def _sanitize_param_description(desc: str) -> str:

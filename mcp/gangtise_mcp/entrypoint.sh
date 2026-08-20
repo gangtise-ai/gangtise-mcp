@@ -16,10 +16,14 @@ export GTS_SAVE_FILE
 export GTS_MCP_ROOT
 export MCP_LAYOUT
 export MCP_REQUIRE_AUTH
-export MCP_PATH="${MCP_PATH:-/open-mcp}"
+export MCP_PATH="${MCP_PATH:-/}"
 export MCP_STATELESS="${MCP_STATELESS:-true}"
 export MCP_JSON_RESPONSE="${MCP_JSON_RESPONSE:-true}"
 
+# 空字符串视为根路径
+if [[ -z "${MCP_PATH// }" ]]; then
+  export MCP_PATH=/
+fi
 if [[ "${MCP_LAYOUT}" == "hub" ]]; then
   MCP_LAYOUT=unified
   export MCP_LAYOUT
@@ -43,7 +47,7 @@ _add_pkg() {
 }
 
 # 先加整合包，再加其它（_add_path 往前插，故后加的更靠前 → 先调用 mcp）
-for pkg in gangtise_private gangtise_kb gangtise_file gangtise_data gangtise_agent gangtise_hub; do
+for pkg in gangtise_private gangtise_kb gangtise_file gangtise_data gangtise_agent gangtise_pdf gangtise_hub; do
   _add_pkg mcp "${pkg}"
   _add_pkg api "${pkg}"
 done
@@ -115,6 +119,10 @@ run_api() {
 
 if [[ "${MCP_TRANSPORT}" == "stdio" ]]; then
   run_stdio "$@"
+fi
+
+if [[ -n "${MCP_TOOL_BLACKLIST:-}" ]]; then
+  echo "[gangtise-mcp] MCP_TOOL_BLACKLIST=${MCP_TOOL_BLACKLIST}" >&2
 fi
 
 EXTRA=(

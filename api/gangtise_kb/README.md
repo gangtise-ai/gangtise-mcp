@@ -19,7 +19,7 @@ Remote HTTP/SSE entry for knowledge-base semantic search.
 
 | Purpose | URL |
 |---------|-----|
-| MCP (streamable-http) | `https://<host>:<port>/open-mcp` |
+| MCP (streamable-http) | `https://<host>:<port>/` (root by default; gateway may add `/application/open-mcp`) |
 | SSE | `GET /sse` + `POST /messages/` |
 | Health | `GET /health` |
 
@@ -36,7 +36,7 @@ Default port is often `8000`. Responses echo `X-DashScope-Request-ID`.
 <details>
 <summary><b>Auth (request headers)</b></summary>
 
-**Authorization preferred**; AK/SK also supported. See [http-sse.en.md](../../docs/http-sse.md).
+**Authorization preferred**; AK/SK also supported. See [http-sse.md](../../docs/http-sse.md).
 
 ```http
 Authorization: Bearer <token>
@@ -48,7 +48,7 @@ Or:
 X-GTS-Credentials: {"accessKey":"<ak>","secretKey":"<sk>"}
 ```
 
-With `MCP_REQUIRE_AUTH=true` (default), `/open-mcp` without auth returns **401**.
+With `MCP_REQUIRE_AUTH=true` (default), the MCP path without auth returns **401**.
 
 </details>
 
@@ -61,7 +61,7 @@ Replace host/token, then send to Cursor **Agent** or write `~/.cursor/mcp.json`:
 {
   "mcpServers": {
     "gangtise-kb": {
-      "url": "https://<host>:<port>/open-mcp",
+      "url": "https://<host>:<port>/",
       "headers": {
         "Authorization": "Bearer <token>"
       }
@@ -70,7 +70,7 @@ Replace host/token, then send to Cursor **Agent** or write `~/.cursor/mcp.json`:
 }
 ```
 
-URL-based MCP clients: use the same `/open-mcp` URL and pass `Authorization`.
+URL-based MCP clients: use the same MCP URL (root or gateway-prefixed) and pass `Authorization`.
 
 </details>
 
@@ -81,12 +81,12 @@ URL-based MCP clients: use the same `/open-mcp` URL and pass `Authorization`.
 |----------|---------|--------|
 | `MCP_TRANSPORT` | `http` (image) | `http` / `sse` / `both` |
 | `MCP_HOST` / `MCP_PORT` | `0.0.0.0` / `8000` | Bind address |
-| `MCP_PATH` | `/open-mcp` | MCP path |
+| `MCP_PATH` | `/` | In-process mount path; empty/unset = root. Keep `/` when the gateway adds an `open-mcp` prefix |
 | `MCP_REQUIRE_AUTH` | `true` | 401 without auth |
 | `GTS_ACCESS_KEY` / `GTS_SECRET_KEY` | empty | Process-level AK/SK fallback |
 | `TOOL_URL_DEPS_PATH` | `/opt/mcp/tool_url_deps.json` | Tool URL dependency map (image) |
 
-See [docker-deploy.en.md](../../docs/docker-deploy.md).
+See [docker-deploy.md](../../docs/docker-deploy.md).
 
 </details>
 
@@ -103,4 +103,4 @@ No `--transport stdio` here; use [`mcp/gangtise_kb`](../../mcp/gangtise_kb/) for
 
 </details>
 
-Chinese: [README.md](README.cn.md)
+Chinese: [README.cn.md](README.cn.md)

@@ -5,7 +5,6 @@ parameters:
   securities:
     type: array
     description: 证券名称或代码列表，必填
-    required: true
     items:
       type: string
   start_date:

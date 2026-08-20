@@ -4,51 +4,51 @@ description: 检索国内机构首席观点，支持券商、首席、题材、�
 parameters:
   keyword:
     type: string
-    description: 搜索关键词；可为空
+    description: 搜索关键词
   securities:
     type: array
-    description: 证券列表，逗号分隔；可为证券名称、代码或拼音首字母
+    description: 证券名称或代码列表
     items:
       type: string
   start_date:
     type: string
-    description: 开始日期，格式 YYYY-MM-DD
+    description: 起始日期，格式 yyyy-MM-dd
   end_date:
     type: string
-    description: 结束日期，格式 YYYY-MM-DD
+    description: 结束日期，格式 yyyy-MM-dd
   institutions:
     type: array
-    description: 发布机构（券商），逗号分隔；可选值见枚举脚本
+    description: institutions
     items:
       type: string
   industries:
     type: array
-    description: 研究方向列表，逗号分隔；传入宏观/策略/固收/金工/海外等名称，脚本映射为 researchAreaList（不使用 industryList）
+    description: 行业或研究方向名称列表；可选值见 get_industries
     items:
       type: string
   chiefs:
     type: array
-    description: 首席分析师列表，逗号分隔：支持 P 开头 ID 或姓名（模糊匹配）；重名或未命中时请用 get_chiefs.py 查 ID
+    description: chiefs
     items:
       type: string
   concepts:
     type: array
-    description: 概念 ID 列表，逗号分隔。暂不支持匹配
+    description: 题材名称或 ID 列表
     items:
       type: string
   llm_tags:
     type: array
-    description: 投研业务标签，逗号分隔。可选：strongRcmd（强烈推荐）、earningsReview（业绩点评）、topBroker（头部券商）、newFortune（新财富团队）；也可传中文（强烈推荐/业绩点评/头部券商/新财富团队）
+    description: llm_tags
     items:
       type: string
   source_types:
     type: array
-    description: 来源，逗号分隔。可选：realTime（实时）、openSource（开放来源）；也可传中文（实时/开放来源）
+    description: source_types
     items:
       type: string
   rank_type:
     type: integer
-    description: 排序：1 综合排序（默认），2 时间倒序
+    description: 排序方式：1 综合排序，2 时间倒序
   limit:
     type: integer
-    description: 返回数量上限
+    description: 返回条数上限

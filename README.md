@@ -8,7 +8,8 @@ Gangtise financial data and research tools over the [Model Context Protocol](htt
 **Recommended package: [`gangtise_mcp`](mcp/gangtise_mcp/)** — all leaf tools from five domains in one server.
 
 [Get credentials](https://open-platform.gangtise.com/) ·
-[HTTP / SSE / OAuth](docs/http-sse.md) ·
+[HTTP / SSE](docs/http-sse.md) ·
+[CLI](docs/cli.md) ·
 [Docker](docs/docker-deploy.md)
 
 </div>
@@ -26,15 +27,16 @@ Gangtise financial data and research tools over the [Model Context Protocol](htt
 | Mode | Notes |
 |------|--------|
 | **Local stdio** | Run via `uvx`; set AK/SK in env |
-| **Remote HTTP / SSE** | Connect to `/open-mcp`; use **OAuth consent** (Bearer only) or send AK/SK in headers |
+| **CLI** | Full command `gangtise` via `uvx` (see [docs/cli.md](docs/cli.md)) |
+| **Remote HTTP / SSE** | HTTP `…/application/mcp/` · SSE `…/application/mcp/sse`; prefer AK/SK headers (or Authorization) |
 
-Repository used in examples below: [`https://github.com/XiaoYan3938/gangtise-data-mcp`](https://github.com/XiaoYan3938/gangtise-data-mcp). Chinese docs use Gitee — see [README.md](README.cn.md).
+Repository used in examples below: [`https://github.com/gangtise-ai/gangtise-mcp`](https://github.com/gangtise-ai/gangtise-mcp). Chinese docs use Gitee — see [README.cn.md](README.cn.md).
 
 ---
 
 ## Install by platform (recommended: `gangtise_mcp`)
 
-> **Tip**: On clients with an agent (Cursor, Claude, VS Code Copilot/Agent, etc.), prefer pasting the MCP JSON below into the agent and letting it install. You can also write the same JSON into the client config file manually.
+> **Tip**: On clients with an agent (Cursor, Claude, VS Code Copilot/Agent, WorkBuddy, etc.), prefer pasting the MCP JSON below into the agent and letting it install. You can also write the same JSON into the client config file manually.
 
 <details>
 <summary><b>Install in Cursor</b></summary>
@@ -52,17 +54,17 @@ Repository used in examples below: [`https://github.com/XiaoYan3938/gangtise-dat
       "command": "uvx",
       "args": [
                 "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_agent",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_data",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_file",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_kb",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_private",
         "--from",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_mcp",
         "gangtise-mcp"
       ],
       "env": {
@@ -90,10 +92,18 @@ Repository used in examples below: [`https://github.com/XiaoYan3938/gangtise-dat
 
 ![Check status and enable under Tools & MCP](assets/check_mcp_status.png)
 
-You can also edit `~/.cursor/mcp.json` or project `.cursor/mcp.json` manually (same content). Remote URL: [docs/http-sse.en.md](docs/http-sse.md).
+You can also edit `~/.cursor/mcp.json` or project `.cursor/mcp.json` manually (same content). Remote URL: [docs/http-sse.md](docs/http-sse.md).
 
 </details>
 
+<details>
+<summary><b>Install in WorkBuddy</b></summary>
+
+Official guide: [WorkBuddy MCP](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide). Prefer **`gangtise_mcp`**.
+
+Paste the same MCP JSON as Cursor into the WorkBuddy agent, then **trust** and **enable**. Remote HTTP (WorkBuddy): `https://openapi.gangtise.com/application/open-mcp/` (AK/SK headers; see [docs/http-sse.md](docs/http-sse.md)).
+
+</details>
 
 <details>
 <summary><b>Install in Claude Desktop</b></summary>
@@ -110,17 +120,17 @@ Prefer pasting the JSON below into the Claude **agent / chat** and asking it to 
       "command": "uvx",
       "args": [
                 "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_agent",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_data",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_file",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_kb",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_private",
         "--from",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_mcp",
         "gangtise-mcp"
       ],
       "env": {
@@ -143,12 +153,12 @@ Prefer sending the same MCP JSON (as Cursor / Claude Desktop) to the Claude Code
 
 ```bash
 claude mcp add gangtise -- uvx \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent" \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data" \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file" \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb" \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private" \
-  --from "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_agent" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_data" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_file" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_kb" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_private" \
+  --from "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_mcp" \
   gangtise-mcp
 ```
 
@@ -172,17 +182,17 @@ Prefer pasting the JSON below into Copilot Chat / Agent and asking it to write w
       "command": "uvx",
       "args": [
                 "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_agent",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_data",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_file",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_kb",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_private",
         "--from",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_mcp",
         "gangtise-mcp"
       ],
       "env": {
@@ -196,23 +206,26 @@ Prefer pasting the JSON below into Copilot Chat / Agent and asking it to write w
 
 </details>
 
-For remote HTTP, set `"type": "http"` and `"url": "https://<host>:<port>/open-mcp"`.
+For remote HTTP, set `"type": "http"` and `"url": "https://openapi.gangtise.com/application/mcp/"`.
 
 </details>
 
 <details>
-<summary><b>Remote HTTP / SSE (OAuth or headers)</b></summary>
+<summary><b>Remote HTTP / SSE</b></summary>
 
-Deploy with [docs/docker-deploy.en.md](docs/docker-deploy.md). Client URL:
+Production endpoints:
 
 ```
-https://<host>:<port>/open-mcp
+HTTP  https://openapi.gangtise.com/application/mcp/
+SSE   https://openapi.gangtise.com/application/mcp/sse
 ```
 
-- **OAuth**: set `GTS_JWT_SECRET` / `GTS_CRED_ENC_KEY`; clients open `/authorize`, users submit AK/SK, then use Bearer only (access 1h / refresh 30d).
-- **Headers**: `X-GTS-Credentials: {"accessKey":"...","secretKey":"..."}`.
+Self-host: [docs/docker-deploy.md](docs/docker-deploy.md). Auth via request headers:
 
-Details: [docs/http-sse.en.md](docs/http-sse.md).
+- **Authorization**: pass-through business Bearer.
+- **accessKey / secretKey** (or **X-GTS-Credentials**): AK/SK → loginV2.
+
+Details: [docs/http-sse.md](docs/http-sse.md).
 
 </details>
 
@@ -240,7 +253,7 @@ Prefer `gangtise_mcp` unless you need a single domain or the hub router.
 | Path | Role |
 |------|------|
 | [`mcp/`](mcp/) | Business scripts + **stdio** MCP (Cursor / local) |
-| [`api/`](api/) | **HTTP/SSE** MCP + OAuth/auth (depends on the matching mcp package) |
+| [`api/`](api/) | **HTTP/SSE** MCP + auth (depends on the matching mcp package) |
 | [`cli/`](cli/) | CLI (depends on mcp; all-tools command: `gangtise`) |
 
 `gangtise_hub` / `gangtise_mcp` do **not** vendor domain code; they depend on the five domain packages.  
@@ -257,11 +270,9 @@ Sync: `python3 sync_skills_to_mcp.py` (business → `mcps/mcp/`; auth SSOT → `
 |----------|--------|
 | `GTS_ACCESS_KEY` / `GTS_SECRET_KEY` | Process credentials for stdio |
 | `GTS_AUTHORIZATION_PATH` | Optional credentials file |
-| `GTS_JWT_SECRET` / `GTS_CRED_ENC_KEY` | Remote OAuth (Fernet key via `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`) |
-| `GTS_OAUTH_ISSUER` | Public issuer URL behind a reverse proxy |
 | `GTS_SAVE_FILE` / `WORK_PATH` | Persist outputs / workspace |
 | `GTS_MCP_ROOT` | Gateway root (default `/opt/mcp` in containers) |
-| `MCP_ATTACH_MAX_BYTES` / `OBS_*` | Attachment size / optional OBS — see [docs/docker-deploy.en.md](docs/docker-deploy.md) |
+| `MCP_ATTACH_MAX_BYTES` / `OBS_*` | Attachment size / optional OBS — see [docs/docker-deploy.md](docs/docker-deploy.md) |
 
 Without credentials you can still handshake and `tools/list`; tool calls prompt you to get keys on the open platform.
 
@@ -273,16 +284,17 @@ Without credentials you can still handshake and `tools/list`; tool calls prompt 
 ```bash
 cd gangtise-data-mcp
 docker build -t gangtise-mcp -f Dockerfile .
-docker run -d -p 8000:8000 \
-  -e GTS_JWT_SECRET='change-me' \
-  -e GTS_CRED_ENC_KEY="$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" \
-  gangtise-mcp
+docker run -d -p 8000:8000 gangtise-mcp
 ```
 
-See [docs/docker-deploy.en.md](docs/docker-deploy.md).
+See [docs/docker-deploy.md](docs/docker-deploy.md).
 
 </details>
 
 ---
 
-Credentials via the open platform. Docs issues welcome as GitHub Issues. Chinese: [README.md](README.cn.md).
+Credentials via the open platform. Docs issues welcome as GitHub Issues. Chinese: [README.cn.md](README.cn.md).
+
+## License
+
+[MIT](LICENSE) © 2026 Gangtise

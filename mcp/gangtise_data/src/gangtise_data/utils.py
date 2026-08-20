@@ -5,60 +5,58 @@ from typing import Dict, List, Any, Optional
 # from logging.handlers import TimedRotatingFileHandler
 import pandas as pd
 import datetime
+import time
 import requests
 import json
 
 from authorization import (
+    authorized_request,
     get_authorization_headers,
     get_authorization_token,
     get_headers_extra,
+    gangtise_domain,
     invalidate_authorization,
 )
 
 GTS_SAVE_FILE = os.getenv("GTS_SAVE_FILE", True)
 GTS_SAVE_EXTENSION = os.getenv("GTS_SAVE_EXTENSION", "md")
 
-GANGTISE_QUOTE_DOMAIN = os.getenv("GANGTISE_QUOTE_DOMAIN", "https://openapi.gangtise.com/application/open-quote")
-GANGTISE_FUNDAMENTAL_DOMAIN = os.getenv("GANGTISE_FUNDAMENTAL_DOMAIN", "https://openapi.gangtise.com/application/open-fundamental")
-GANGTISE_REFERENCE_DOMAIN = os.getenv("GANGTISE_REFERENCE_DOMAIN", "https://openapi.gangtise.com/application/open-reference")
-GANGTISE_ALTERNATIVE_DOMAIN = os.getenv("GANGTISE_ALTERNATIVE_DOMAIN", "https://openapi.gangtise.com/application/open-alternative")
-GANGTISE_INDICATOR_DOMAIN = os.getenv("GANGTISE_INDICATOR_DOMAIN", "https://openapi.gangtise.com/application/open-indicator")
-EDB_SEARCH_URL = f"{GANGTISE_ALTERNATIVE_DOMAIN}/EDB/search"
-EDB_GET_DATA_URL = f"{GANGTISE_ALTERNATIVE_DOMAIN}/EDB/getData"
-CONCEPT_URL = f"{GANGTISE_ALTERNATIVE_DOMAIN}/concept/info"
-CONCEPT_SECURITIES_URL = f"{GANGTISE_ALTERNATIVE_DOMAIN}/concept/securities"
-SECURITIES_SEARCH_URL = f"{GANGTISE_REFERENCE_DOMAIN}/securities/search"
-CONCEPT_SEARCH_URL = f"{GANGTISE_REFERENCE_DOMAIN}/concepts/search"
-SECTOR_SEARCH_URL = f"{GANGTISE_REFERENCE_DOMAIN}/sectors/search"
-SECTOR_CONSTITUENTS_URL = f"{GANGTISE_REFERENCE_DOMAIN}/sectors/constituents"
-QUOTE_URL = f"{GANGTISE_QUOTE_DOMAIN}/kline/daily"
-FUND_FLOW_DAILY_URL = f"{GANGTISE_QUOTE_DOMAIN}/fund-flow/daily"
-QUOTE_INDEX_DAILY_URL = f"{GANGTISE_QUOTE_DOMAIN}/index/kline/daily"
-QUOTE_HK_URL = f"{GANGTISE_QUOTE_DOMAIN}/kline-hk/daily"
-QUOTE_US_DAILY_URL = f"{GANGTISE_QUOTE_DOMAIN}/kline-us/daily"
-QUOTE_MINUTE_URL = f"{GANGTISE_QUOTE_DOMAIN}/kline/minute"
-QUOTE_REALTIME_URL = f"{GANGTISE_QUOTE_DOMAIN}/quote/realtime"
-QUOTE_ADJUST_FACTOR_URL = f"{GANGTISE_QUOTE_DOMAIN}/adjustFactor"
-EARNING_FORECAST_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/earning-forecast"
-TOP_HOLDERS_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/capital-structure/top-holders"
-FINANCIAL_REPORT_INCOME_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/financial-report/income-statement/accumulated"
-FINANCIAL_REPORT_INCOME_QUARTERLY_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/financial-report/income-statement/quarterly"
-HK_FINANCIAL_REPORT_INCOME_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/financial-report/income-statement/hk"
-US_FINANCIAL_REPORT_INCOME_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/financial-report/income-statement/us"
-FINANCIAL_REPORT_BALANCE_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/financial-report/balance-sheet/accumulated"
-HK_FINANCIAL_REPORT_BALANCE_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/financial-report/balance-sheet/hk"
-US_FINANCIAL_REPORT_BALANCE_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/financial-report/balance-sheet/us"
-FINANCIAL_REPORT_CASH_FLOW_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/financial-report/cash-flow-statement/accumulated"
-FINANCIAL_REPORT_CASH_FLOW_QUARTERLY_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/financial-report/cash-flow-statement/quarterly"
-HK_FINANCIAL_REPORT_CASH_FLOW_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/financial-report/cash-flow-statement/hk"
-US_FINANCIAL_REPORT_CASH_FLOW_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/financial-report/cash-flow-statement/us"
+GANGTISE_QUOTE_DOMAIN = gangtise_domain("GANGTISE_QUOTE_DOMAIN", "https://openapi.gangtise.com/application/open-quote")
+GANGTISE_FUNDAMENTAL_DOMAIN = gangtise_domain("GANGTISE_FUNDAMENTAL_DOMAIN", "https://openapi.gangtise.com/application/open-fundamental")
+GANGTISE_REFERENCE_DOMAIN = gangtise_domain("GANGTISE_REFERENCE_DOMAIN", "https://openapi.gangtise.com/application/open-reference")
+GANGTISE_ALTERNATIVE_DOMAIN = gangtise_domain("GANGTISE_ALTERNATIVE_DOMAIN", "https://openapi.gangtise.com/application/open-alternative")
+GANGTISE_INDICATOR_DOMAIN = gangtise_domain("GANGTISE_INDICATOR_DOMAIN", "https://openapi.gangtise.com/application/open-indicator")
+EDB_SEARCH_URL = GANGTISE_ALTERNATIVE_DOMAIN + "/EDB/search"
+EDB_GET_DATA_URL = GANGTISE_ALTERNATIVE_DOMAIN + "/EDB/getData"
+CONCEPT_URL = GANGTISE_ALTERNATIVE_DOMAIN + "/concept/info"
+CONCEPT_SECURITIES_URL = GANGTISE_ALTERNATIVE_DOMAIN + "/concept/securities"
+SECURITIES_SEARCH_URL = GANGTISE_REFERENCE_DOMAIN + "/securities/search"
+CONCEPT_SEARCH_URL = GANGTISE_REFERENCE_DOMAIN + "/concepts/search"
+SECTOR_SEARCH_URL = GANGTISE_REFERENCE_DOMAIN + "/sectors/search"
+SECTOR_CONSTITUENTS_URL = GANGTISE_REFERENCE_DOMAIN + "/sectors/constituents"
+QUOTE_URL = GANGTISE_QUOTE_DOMAIN + "/kline/daily"
+FUND_FLOW_DAILY_URL = GANGTISE_QUOTE_DOMAIN + "/fund-flow/daily"
+QUOTE_MINUTE_URL = GANGTISE_QUOTE_DOMAIN + "/kline/minute"
+QUOTE_REALTIME_URL = GANGTISE_QUOTE_DOMAIN + "/quote/realtime"
+QUOTE_ADJUST_FACTOR_URL = GANGTISE_QUOTE_DOMAIN + "/adjustFactor"
+EARNING_FORECAST_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/earning-forecast"
+TOP_HOLDERS_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/capital-structure/top-holders"
+FINANCIAL_REPORT_INCOME_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/financial-report/income-statement/accumulated"
+FINANCIAL_REPORT_INCOME_QUARTERLY_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/financial-report/income-statement/quarterly"
+HK_FINANCIAL_REPORT_INCOME_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/financial-report/income-statement/hk"
+US_FINANCIAL_REPORT_INCOME_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/financial-report/income-statement/us"
+FINANCIAL_REPORT_BALANCE_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/financial-report/balance-sheet/accumulated"
+HK_FINANCIAL_REPORT_BALANCE_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/financial-report/balance-sheet/hk"
+US_FINANCIAL_REPORT_BALANCE_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/financial-report/balance-sheet/us"
+FINANCIAL_REPORT_CASH_FLOW_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/financial-report/cash-flow-statement/accumulated"
+FINANCIAL_REPORT_CASH_FLOW_QUARTERLY_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/financial-report/cash-flow-statement/quarterly"
+HK_FINANCIAL_REPORT_CASH_FLOW_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/financial-report/cash-flow-statement/hk"
+US_FINANCIAL_REPORT_CASH_FLOW_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/financial-report/cash-flow-statement/us"
 FINANCIAL_REPORT_URL = FINANCIAL_REPORT_INCOME_URL
-MAIN_BUSINESS_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/main-business"
-VALUATION_URL = f"{GANGTISE_FUNDAMENTAL_DOMAIN}/valuation-analysis"
-INDICATOR_SEARCH_URL = f"{GANGTISE_INDICATOR_DOMAIN}/EDE/search"
-INDICATOR_TIME_SERIES_URL = f"{GANGTISE_INDICATOR_DOMAIN}/EDE/time-series"
-INDICATOR_CROSS_SECTION_URL = f"{GANGTISE_INDICATOR_DOMAIN}/EDE/cross-section"
-
+MAIN_BUSINESS_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/main-business"
+VALUATION_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/valuation-analysis"
+INDICATOR_SEARCH_URL = GANGTISE_INDICATOR_DOMAIN + "/EDE/search"
+INDICATOR_TIME_SERIES_URL = GANGTISE_INDICATOR_DOMAIN + "/EDE/time-series"
 WORK_PATH = os.getenv("WORK_PATH", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "workspace"))
 if not os.path.exists(WORK_PATH):
     os.makedirs(WORK_PATH, exist_ok=True)
@@ -160,19 +158,14 @@ def format_response(response: dict, method_name: str):
             process_dir = os.path.join(WORK_PATH, method_name)
             if not os.path.exists(process_dir):
                 os.makedirs(process_dir, exist_ok=True)
-            # now = datetime.datetime.now().strftime("%H%M%S")
-            now = 1
+            now = datetime.datetime.now().strftime("%H%M%S")
             process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
             max_retries = 10
-            for file in os.listdir(process_dir):
-                if file.startswith(f"{module_name}_") and file.endswith(f".{extension}"):
-                    max_retries = max(max_retries, int(file.split("_")[-1].split(".")[0])+10)
             while os.path.exists(process_path) and max_retries > 0:
-                # now = datetime.datetime.now().strftime("%H%M%S")
-                now += 1
+                time.sleep(1)
+                now = datetime.datetime.now().strftime("%H%M%S")
                 process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
                 max_retries -= 1
-                # sleep(1)
             if max_retries == 0:
                 return_message = "错误信息：文件存储系统繁忙，请稍后再试"
                 return return_message
@@ -1740,7 +1733,7 @@ FUND_FLOW_CN ={
     "mainOutflowRatio": "主力流出占总流出比例（%）",
 }
 
-OPENAPI_SKILL_VERSION = "1.6.7"
+OPENAPI_SKILL_VERSION = "1.7.0"
 SKILL_CHECK_URL = "https://open.gangtise.com/application/skills-backend/version?skill=openapi"
 
 def check_version(large_version: bool = True):

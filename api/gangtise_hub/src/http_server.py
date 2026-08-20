@@ -28,6 +28,7 @@ def _ensure_layer_paths() -> None:
             "gangtise_file",
             "gangtise_kb",
             "gangtise_private",
+            "gangtise_pdf",
         ):
             paths.append(mcps_root / "mcp" / dom / "src")
     for p in paths:
@@ -180,6 +181,39 @@ def _normalize_path(path: str, *, trailing_slash: bool = False) -> str:
     return p
 
 
+
+def _wrap_sse_endpoint_send(send: Send) -> Send:
+    """把 SSE endpoint 的绝对路径 /messages/ 改成相对路径 messages/。
+
+    网关剥离前缀后，MCP 库会下发 ``/messages/?session_id=…``；客户端用 urljoin
+    会打到站点根（404）。相对路径可保留 SSE URL 所在前缀（…/mcp/sse → …/mcp/messages/）。
+    """
+    import re as _re
+
+    done = False
+
+    async def _send(message: dict) -> None:
+        nonlocal done
+        if (
+            not done
+            and message.get("type") == "http.response.body"
+            and message.get("body")
+        ):
+            body = message["body"]
+            if b"event: endpoint" in body and b"/messages/" in body:
+                new_body, n = _re.subn(
+                    rb"(data:\s*)/(messages/\?session_id=[0-9a-fA-F]+)",
+                    rb"\1\2",
+                    body,
+                    count=1,
+                )
+                if n:
+                    message = {**message, "body": new_body}
+                    done = True
+        await send(message)
+
+    return _send
+
 def _build_network_app(
     *,
     enable_http: bool,
@@ -209,7 +243,8 @@ def _build_network_app(
         sse = SseServerTransport(message_path)
 
         async def handle_sse(request: Request) -> Response:
-            async with sse.connect_sse(request.scope, request.receive, request._send) as streams:  # type: ignore[attr-defined]
+            send = _wrap_sse_endpoint_send(request._send)  # type: ignore[attr-defined]
+            async with sse.connect_sse(request.scope, request.receive, send) as streams:
                 await server.run(
                     streams[0],
                     streams[1],
@@ -229,7 +264,12 @@ def _build_network_app(
             yield
 
     starlette_app = Starlette(routes=routes, lifespan=lifespan)
-    mcp_paths = {path, sse_path, message_path.rstrip("/")}
+    mcp_paths: set[str] = set()
+    if enable_http:
+        mcp_paths.add(path)
+    if enable_sse:
+        mcp_paths.add(sse_path)
+        mcp_paths.add(message_path.rstrip("/"))
     return _wrap_http_middleware(starlette_app, mcp_paths=mcp_paths)
 
 
@@ -246,7 +286,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--transport", choices=("http", "sse", "both"), default=os.getenv("MCP_TRANSPORT", "http"))
     parser.add_argument("--host", default=os.getenv("MCP_HOST", "0.0.0.0"))
     parser.add_argument("--port", type=int, default=int(os.getenv("MCP_PORT", "8000")))
-    parser.add_argument("--path", default=os.getenv("MCP_PATH", "/open-mcp"))
+    parser.add_argument("--path", default=(os.getenv("MCP_PATH") or "/").strip() or "/")
     parser.add_argument("--sse-path", default=os.getenv("MCP_SSE_PATH", "/sse"))
     parser.add_argument("--message-path", default=os.getenv("MCP_MESSAGE_PATH", "/messages/"))
     parser.add_argument("--stateless", action=argparse.BooleanOptionalAction,

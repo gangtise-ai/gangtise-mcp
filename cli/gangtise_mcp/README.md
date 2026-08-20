@@ -2,7 +2,7 @@
 
 [简体中文](README.cn.md) | **English**
 
-五域全部叶子工具；与推荐 MCP 包 gangtise_mcp 同源。
+各域全部叶子工具（含 PDF）；与推荐 MCP 包 gangtise_mcp 同源。
 
 Command: `gangtise` (depends on [`api/gangtise_mcp`](../../mcp/gangtise_mcp/), package `gangtise-mcp-api`).  
 MCP server: [`mcp/gangtise_mcp`](../../mcp/gangtise_mcp/) (`gangtise-mcp`). Recommended MCP: [`gangtise_mcp`](../../mcp/gangtise_mcp/).
@@ -20,8 +20,8 @@ uv run gangtise --help
 ```
 
 ```bash
-uvx --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
-  --from "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=cli/gangtise_mcp" \
+uvx --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_mcp" \
+  --from "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=cli/gangtise_mcp" \
   gangtise list
 ```
 
@@ -38,4 +38,4 @@ uvx --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mc
 
 ---
 
-Chinese: [README.md](README.cn.md) · Overview: [../../README.en.md](../../README.md)
+Chinese: [README.cn.md](README.cn.md) · Install guide: [../../docs/cli.md](../../docs/cli.md) · Overview: [../../README.md](../../README.md)

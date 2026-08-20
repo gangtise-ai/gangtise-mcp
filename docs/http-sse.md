@@ -2,7 +2,7 @@
 
 [简体中文](http-sse.cn.md) | **English**
 
-Remote MCP transport and auth (main). Clients connect to `POST /open-mcp`.
+Remote MCP transport and auth (main). Production HTTP base: `https://openapi.gangtise.com/application/mcp/` · SSE: `https://openapi.gangtise.com/application/mcp/sse`. In-process default is root `POST /`; gateways add a prefix (e.g. `/application/mcp`). Set `MCP_PATH` to change the in-process path.
 
 ---
 
@@ -10,58 +10,114 @@ Remote MCP transport and auth (main). Clients connect to `POST /open-mcp`.
 
 | Mode | Endpoint |
 |------|----------|
-| streamable-http | `POST /open-mcp` (gateway may use `/open-mcp/{slug}`) |
-| SSE | `GET /sse` + `POST /messages/` |
+| streamable-http | Production: `https://openapi.gangtise.com/application/mcp/` · In-process: `POST /` (`MCP_PATH`) |
+| SSE | Production: `https://openapi.gangtise.com/application/mcp/sse` · In-process: `GET /sse` + `POST /messages/` |
+
+Requires `MCP_TRANSPORT=sse` or `both`. Behind a path-stripping gateway the server advertises a **relative** `messages/?session_id=…` so clients resolve it under the same prefix as `/sse`.
 
 Health: `GET /health`.
 
-Responses echo `X-DashScope-Request-ID`. With `MCP_REQUIRE_AUTH=true`, `/open-mcp` without auth returns **401**. Tool schemas are flattened.
+Responses echo `X-DashScope-Request-ID`. With `MCP_REQUIRE_AUTH=true`, the MCP path without auth returns **401**. Tool schemas are flattened.
 
 ---
 
-<details>
-<summary><b>Auth (Authorization or AK/SK)</b></summary>
+<details open>
+<summary><b>Auth (prefer AK/SK; Authorization also supported)</b></summary>
 
-Two modes (**Authorization wins** if both present):
+Two modes can be enabled together. **For everyday remote use, prefer passing AK/SK** (`accessKey` / `secretKey` headers, or `X-GTS-Credentials`).
 
-### 1. Pass Authorization directly
+Server resolution order: **raw Authorization → AK/SK (incl. X-GTS-Credentials)**.
 
-HTTP:
+### 1. AK/SK → loginV2 (recommended)
+
+After obtaining Access Key / Secret Key from the open platform, set request headers in the MCP client:
 
 ```http
-Authorization: Bearer <token>
+accessKey: <ak>
+secretKey: <sk>
 ```
 
-stdio: `GTS_AUTHORIZATION` / `AUTHORIZATION`, or local file:
-
-```json
-{"authorization": "Bearer <token>"}
-```
-
-### 2. AK/SK → loginV2
-
-HTTP credentials header (JSON or Base64), e.g.:
+Or:
 
 ```http
 X-GTS-Credentials: {"accessKey":"<ak>","secretKey":"<sk>"}
 ```
 
-Or `accessKey` / `secretKey` headers.
+stdio: `GTS_ACCESS_KEY` + `GTS_SECRET_KEY` (or local `~/.config/gangtise/authorization`).
 
-stdio / env: `GTS_ACCESS_KEY` + `GTS_SECRET_KEY`, or local file with the same keys.
+### 2. Pass Authorization (business Bearer)
 
-The resulting `Authorization` is used for downstream calls and for `get_white_list()`.
+```http
+Authorization: Bearer <token>
+```
+
+Pass-through. stdio: `GTS_AUTHORIZATION` or local file.
 
 </details>
 
-<details>
-<summary><b>Client example</b></summary>
+<details open>
+<summary><b>Client example</b> (`~/.cursor/mcp.json`)</summary>
+
+Set **`type`** to match the URL: `streamableHttp` for the HTTP base, `sse` for `/sse`. Do not point `streamableHttp` at `/sse`.
+
+**Streamable HTTP (recommended) + AK/SK**
 
 ```json
 {
   "mcpServers": {
     "gangtise": {
-      "url": "https://<host>:<port>/open-mcp",
+      "type": "streamableHttp",
+      "url": "https://openapi.gangtise.com/application/mcp/",
+      "headers": {
+        "accessKey": "<ak>",
+        "secretKey": "<sk>"
+      }
+    }
+  }
+}
+```
+
+**SSE + AK/SK**
+
+```json
+{
+  "mcpServers": {
+    "gangtise-sse": {
+      "type": "sse",
+      "url": "https://openapi.gangtise.com/application/mcp/sse",
+      "headers": {
+        "accessKey": "<ak>",
+        "secretKey": "<sk>"
+      }
+    }
+  }
+}
+```
+
+Or `X-GTS-Credentials` (same `type` / `url` as above):
+
+```json
+{
+  "mcpServers": {
+    "gangtise": {
+      "type": "streamableHttp",
+      "url": "https://openapi.gangtise.com/application/mcp/",
+      "headers": {
+        "X-GTS-Credentials": "{\"accessKey\":\"<ak>\",\"secretKey\":\"<sk>\"}"
+      }
+    }
+  }
+}
+```
+
+Bearer pass-through:
+
+```json
+{
+  "mcpServers": {
+    "gangtise": {
+      "type": "streamableHttp",
+      "url": "https://openapi.gangtise.com/application/mcp/",
       "headers": {
         "Authorization": "Bearer <token>"
       }
@@ -70,8 +126,10 @@ The resulting `Authorization` is used for downstream calls and for `get_white_li
 }
 ```
 
+WorkBuddy remote endpoint: `https://openapi.gangtise.com/application/open-mcp/` (`streamableHttp` + AK/SK headers).
+
 </details>
 
 ---
 
-[Docker deploy](docker-deploy.md) · [Overview](../README.md)
+[Docker](docker-deploy.md) · [CLI](cli.md) · [Overview](../README.md)

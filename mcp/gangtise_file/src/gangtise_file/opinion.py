@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (FILE_DEFAULT_LIMIT, OPINION_URL, RESEARCH_AREA_MAP, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags)
+from .utils import (authorized_request, FILE_DEFAULT_LIMIT, OPINION_URL, RESEARCH_AREA_MAP, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags)
 from .security import batch_security_search
 from .search_chief import SEARCH_TOP_DEFAULT, resolve_chief_token
 from .search_institution import (
@@ -255,7 +255,7 @@ def _fetch_opinions(headers, payload_base, keyword, limit):
         data = {**payload_base, "from": offset, "size": page_size}
         if keyword:
             data["keyword"] = keyword
-        response = requests.post(OPINION_URL, headers=headers, json=data)
+        response = authorized_request("POST", OPINION_URL, headers=headers, json=data)
         if response.status_code != 200:
             if all_results:
                 return all_results, response.text.replace("\n", " ").replace("\r", " ").strip()

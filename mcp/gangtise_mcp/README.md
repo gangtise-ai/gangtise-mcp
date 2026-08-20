@@ -36,17 +36,17 @@ Prefer: send JSON to the Cursor **Agent** → **Accept** when prompted → **Cur
       "command": "uvx",
       "args": [
                 "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_agent",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_data",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_file",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_kb",
         "--with",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_private",
         "--from",
-        "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp",
+        "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_mcp",
         "gangtise-mcp"
       ],
       "env": {
@@ -62,6 +62,13 @@ Prefer: send JSON to the Cursor **Agent** → **Accept** when prompted → **Cur
 
 
 <details>
+<summary><b>Install in WorkBuddy</b></summary>
+
+Send the same MCP JSON as Cursor (server key may be `gangtise_mcp`) to the WorkBuddy agent, then **trust** and **enable**. Remote HTTP: `https://openapi.gangtise.com/application/open-mcp/` — [http-sse.md](../../docs/http-sse.md).
+
+</details>
+
+<details>
 <summary><b>Install in Claude Desktop / Claude Code / VS Code</b></summary>
 
 Prefer sending the MCP JSON to each platform’s agent. Same patterns as the [repo README “Install by platform”](../../README.md#install-by-platform-recommended-gangtise_mcp): command `gangtise-mcp`, subdirectories `api/gangtise_mcp` + `mcp/gangtise_mcp` (GitHub).
@@ -75,7 +82,7 @@ Prefer sending the MCP JSON to each platform’s agent. Same patterns as the [re
 https://<host>:<port>/open-mcp
 ```
 
-OAuth or `X-GTS-Credentials`: [http-sse.en.md](../../docs/http-sse.md).
+OAuth or `X-GTS-Credentials`: [http-sse.md](../../docs/http-sse.md).
 
 </details>
 
@@ -84,12 +91,12 @@ OAuth or `X-GTS-Credentials`: [http-sse.en.md](../../docs/http-sse.md).
 
 ```bash
 uvx \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_agent" \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_data" \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_file" \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_kb" \
-  --with "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_private" \
-  --from "git+https://github.com/XiaoYan3938/gangtise-data-mcp#subdirectory=mcp/gangtise_mcp" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_agent" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_data" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_file" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_kb" \
+  --with "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_private" \
+  --from "git+https://github.com/gangtise-ai/gangtise-mcp#subdirectory=mcp/gangtise_mcp" \
   gangtise-mcp
 ```
 
@@ -115,7 +122,7 @@ cd gangtise-data-mcp
 docker build -t gangtise-mcp -f Dockerfile .
 ```
 
-Set `GTS_JWT_SECRET` / `GTS_CRED_ENC_KEY` for OAuth. See [docker-deploy.en.md](../../docs/docker-deploy.md).
+Set `GTS_JWT_SECRET` / `GTS_CRED_ENC_KEY` for OAuth. See [docker-deploy.md](../../docs/docker-deploy.md).
 
 </details>
 
@@ -137,4 +144,4 @@ CLI: [`cli/gangtise_mcp`](../../cli/gangtise_mcp/). Recommended client package: 
 
 </details>
 
-Chinese: [README.md](README.cn.md) · Overview: [../../README.en.md](../../README.md)
+Chinese: [README.cn.md](README.cn.md) · Overview: [../../README.md](../../README.md)

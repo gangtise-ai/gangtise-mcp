@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 
 import requests
 
-from .utils import INSTITUTIONS_SEARCH_URL
+from .utils import authorized_request, INSTITUTIONS_SEARCH_URL
 
 MATCH_SCORE_THRESHOLD = 0.6
 SEARCH_TOP_DEFAULT = 10
@@ -113,7 +113,7 @@ def search_institutions(
     if categories:
         payload["categoryList"] = categories
     try:
-        r = requests.post(
+        r = authorized_request("POST", 
             INSTITUTIONS_SEARCH_URL, headers=headers, json=payload, timeout=120
         )
         if r.status_code != 200:

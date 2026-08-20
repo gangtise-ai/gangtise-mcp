@@ -2,7 +2,7 @@
 
 [简体中文](docker-deploy.cn.md) | **English**
 
-All-in-one image (`mcps/Dockerfile`): `api/*` + `mcp/*`, HTTP deployment defaults (`MCP_LAYOUT=unified`, `MCP_TRANSPORT=http`, Authorization passthrough, flat schemas). Clients use **`/open-mcp`**. Protocol/auth: [http-sse.en.md](http-sse.md). Entrypoint: [`mcp/gangtise_mcp/entrypoint.sh`](../mcp/gangtise_mcp/entrypoint.sh).
+All-in-one image (`mcps/Dockerfile`): `api/*` + `mcp/*`, HTTP deployment defaults (`MCP_LAYOUT=unified`, `MCP_TRANSPORT=http`, Authorization passthrough, flat schemas). Clients use **`/`** by default (`MCP_PATH`); gateways may prefix e.g. `/application/mcp`. Protocol/auth: [http-sse.md](http-sse.md). Entrypoint: [`mcp/gangtise_mcp/entrypoint.sh`](../mcp/gangtise_mcp/entrypoint.sh).
 
 ---
 
@@ -18,7 +18,7 @@ docker run -d --name gangtise-mcp -p 8000:8000 gangtise-mcp
 curl -sS http://127.0.0.1:8000/health
 ```
 
-Connect to `http://127.0.0.1:8000/open-mcp` with `Authorization: Bearer <token>` (forwarded as-is to downstream APIs).
+Connect to `http://127.0.0.1:8000/` with `Authorization: Bearer <token>` (forwarded as-is to downstream APIs).
 
 </details>
 
@@ -27,16 +27,24 @@ Connect to `http://127.0.0.1:8000/open-mcp` with `Authorization: Bearer <token>`
 
 | Variable | Default | Notes |
 |----------|---------|--------|
+| `GANGTISE_AUTH_DOMAIN` | `https://openapi.gangtise.com/application/auth` | loginV2 base; requests go to `{GANGTISE_AUTH_DOMAIN}/oauth/open/loginV2` |
 | `MCP_TRANSPORT` | `http` | `http` / `sse` / `both` |
 | `MCP_LAYOUT` | `unified` | `unified` / `gateway` |
 | `MCP_PACKAGE` | `domains` | `domains` / `all` / single-domain slug |
-| `MCP_REQUIRE_AUTH` | `true` | HTTP 401 if `/open-mcp` lacks `Authorization` |
-| `TOOL_URL_DEPS_PATH` | `/opt/mcp/tool_url_deps.json` | Build-time tool→URL dependency map |
+| `MCP_PATH` | `/` | In-process MCP mount; empty = root |
+| `MCP_REQUIRE_AUTH` | `true` | HTTP 401 if MCP path lacks `Authorization` |
+| `MCP_TOOL_BLACKLIST` | empty | Comma-separated tool names; hidden from `tools/list` and rejected on `call` |
+| `TOOL_URL_DEPS_PATH` | `/opt/mcp/tool_url_deps.json` | Build-time tool→API path dependency map |
+| `MCP_API_GETLIST_PATH` | `/api/getList` | User API whitelist path (appended to `GANGTISE_DATA_DOMAIN`) |
+| `MCP_WHITELIST_CACHE_SEC` | `300` | getList cache TTL seconds |
+| `MCP_WHITELIST_STRICT` | `false` | If `true`, getList failure yields empty whitelist; default falls back to all paths |
 | `GTS_MCP_ROOT` | `/opt/mcp` | contains `api/` and `mcp/` |
-| `MCP_ATTACH_MAX_BYTES` | `33554432` | Inline attachment limit |
-| `OBS_*` | empty | Optional large-attachment offload |
+| `MCP_ATTACH_MAX_BYTES` | `33554432` | Inline attachment limit; larger files use OBS when configured |
+| `MCP_ATTACH_OBS_ALWAYS` | `false` | When `true`, always upload to OBS and put download URLs in text (no embedded blobs; for WorkBuddy) |
+| `OBS_*` | empty | Optional OBS offload: `OBS_ACCESS_KEY` / `SECRET_KEY` / `ENDPOINT` / `BUCKET` / `PATH` |
+| `OBS_EXPIRE_DAYS` | `1` | OBS object lifetime in days (auto-delete) |
 
-Tool visibility: build scans `*_URL` deps per tool; runtime `get_white_list()` (stub = all URLs) filters `tools/list` and `call`. Tools with no URL deps always stay; empty whitelist (banned user) hides every tool that has URL deps.
+Tool visibility: `MCP_TOOL_BLACKLIST` wins first (absolute hide). Then build-time API-path deps + runtime `get_white_list()` (`GET {GANGTISE_DATA_DOMAIN}/api/getList`) filter `tools/list` and `call`. Tools with no path deps (and not blacklisted) stay; empty whitelist (banned user / strict getList failure) hides every tool that has path deps.
 
 Responses echo `X-DashScope-Request-ID`. Tool schemas are flattened. No SPI / AK·SK / OAuth in this branch.
 

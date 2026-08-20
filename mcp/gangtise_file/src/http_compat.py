@@ -91,9 +91,15 @@ def parse_credentials_from_headers(headers: Dict[str, str]) -> Optional[Tuple[st
             parsed = parse_credentials_payload(headers[name])
             if parsed:
                 return parsed
-    ak = headers.get("accesskey") or headers.get("x-access-key") or headers.get("access-key")
+    ak = (
+        headers.get("accesskey")
+        or headers.get("access_key")
+        or headers.get("x-access-key")
+        or headers.get("access-key")
+    )
     sk = (
         headers.get("secretkey")
+        or headers.get("secret_key")
         or headers.get("x-secret-key")
         or headers.get("secret-key")
         or headers.get("secretaccesskey")
@@ -181,15 +187,18 @@ class HttpMiddleware:
         self.mcp_paths = mcp_paths or set()
 
     def _is_mcp_path(self, path: str) -> bool:
+        """是否走鉴权。MCP_PATH=/ 时只匹配根路径，避免 startswith('/') 命中全部。"""
         if path_skips_auth(path):
             return False
         if not self.mcp_paths:
-            return not path_skips_auth(path)
+            return True
         for p in self.mcp_paths:
-            if path == p or path.startswith(p.rstrip("/") + "/") or path.startswith(p):
-                return True
-        for prefix in ("/open-mcp", "/sse", "/messages"):
-            if path == prefix or path.startswith(prefix + "/"):
+            base = "/" if p in ("", "/") else p.rstrip("/")
+            if base == "/":
+                if path == "/":
+                    return True
+                continue
+            if path == base or path.startswith(base + "/"):
                 return True
         return False
 

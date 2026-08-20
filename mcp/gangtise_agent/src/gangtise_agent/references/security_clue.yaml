@@ -10,10 +10,10 @@ parameters:
     description: 分页条数，默认 500，最大 500
   start_time:
     type: string
-    description: "开始时间，支持 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss"
+    description: "开始时间，支持 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss；与 end_time 均不传时默认近 7 日"
   end_time:
     type: string
-    description: "结束时间，支持 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss"
+    description: "结束时间，支持 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss；与 start_time 均不传时默认近 7 日"
   query_mode:
     type: string
     description: 查询方式：bySecurity（按证券）或 byIndustry（按行业）

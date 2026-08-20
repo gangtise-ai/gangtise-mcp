@@ -2,7 +2,9 @@ upload.sh
 local_start.sh
 .vscode
 __pycache__
-test*
+/test.sh
+/test.json
+/test_auth.py
 .DS_Store
 .venv
 mcp/*/workspace
@@ -11,3 +13,8 @@ upload_image.sh
 _Dockerfile
 gangtise-mcp.yaml
 configmap.yaml
+local_nginx*
+workspace
+connectors
+local_mcp_proxy.py
+dist/

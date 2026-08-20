@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (FILE_DEFAULT_LIMIT, QA_DATA_LIST_URL, QA_QUESTION_CATEGORY_CODE_MAP, QA_QUESTION_CATEGORY_LABEL, QA_SOURCE_CODE_MAP, QA_SOURCE_LABEL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best)
+from .utils import (authorized_request, FILE_DEFAULT_LIMIT, QA_DATA_LIST_URL, QA_QUESTION_CATEGORY_CODE_MAP, QA_QUESTION_CATEGORY_LABEL, QA_SOURCE_CODE_MAP, QA_SOURCE_LABEL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best)
 from .security import batch_security_search  # noqa: E402
 
 PAGE_SIZE_MAX = 500
@@ -145,7 +145,7 @@ def _fetch_qa_list(
         page_size = min(remaining, PAGE_SIZE_MAX)
         payload = {**payload_base, "from": offset, "size": page_size}
         try:
-            response = requests.post(QA_DATA_LIST_URL, headers=headers, json=payload, timeout=120)
+            response = authorized_request("POST", QA_DATA_LIST_URL, headers=headers, json=payload, timeout=120)
         except Exception as e:
             if all_rows:
                 return all_rows, f"分页请求异常: {e}"

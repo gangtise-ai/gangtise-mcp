@@ -14,7 +14,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (MAIN_BUSINESS_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (authorized_request, MAIN_BUSINESS_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 # open 文档：可选指标，默认全取
 _FIELD_LIST_ALL = [
@@ -126,7 +126,7 @@ def _fetch_main_business(
     if period:
         payload["period"] = period
     try:
-        r = requests.post(MAIN_BUSINESS_URL, headers=headers, json=payload, timeout=120)
+        r = authorized_request("POST", MAIN_BUSINESS_URL, headers=headers, json=payload, timeout=120)
         if r.status_code != 200:
             return pd.DataFrame()
         body = r.json()

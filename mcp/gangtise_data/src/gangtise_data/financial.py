@@ -13,7 +13,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (BALANCE_FIELD_CN, CASH_FLOW_FIELD_CN, FINANCIAL_REPORT_BALANCE_URL, FINANCIAL_REPORT_CASH_FLOW_QUARTERLY_URL, FINANCIAL_REPORT_CASH_FLOW_URL, FINANCIAL_REPORT_INCOME_QUARTERLY_URL, FINANCIAL_REPORT_INCOME_URL, HK_BALANCE_FIELD_CN, HK_CASH_FLOW_FIELD_CN, HK_FINANCIAL_REPORT_BALANCE_URL, HK_FINANCIAL_REPORT_CASH_FLOW_URL, HK_FINANCIAL_REPORT_INCOME_URL, HK_INCOME_FIELD_CN, INCOME_FIELD_CN, US_BALANCE_FIELD_CN, US_CASH_FLOW_FIELD_CN, US_FINANCIAL_REPORT_BALANCE_URL, US_FINANCIAL_REPORT_CASH_FLOW_URL, US_FINANCIAL_REPORT_INCOME_URL, US_INCOME_FIELD_CN, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (authorized_request, BALANCE_FIELD_CN, CASH_FLOW_FIELD_CN, FINANCIAL_REPORT_BALANCE_URL, FINANCIAL_REPORT_CASH_FLOW_QUARTERLY_URL, FINANCIAL_REPORT_CASH_FLOW_URL, FINANCIAL_REPORT_INCOME_QUARTERLY_URL, FINANCIAL_REPORT_INCOME_URL, HK_BALANCE_FIELD_CN, HK_CASH_FLOW_FIELD_CN, HK_FINANCIAL_REPORT_BALANCE_URL, HK_FINANCIAL_REPORT_CASH_FLOW_URL, HK_FINANCIAL_REPORT_INCOME_URL, HK_INCOME_FIELD_CN, INCOME_FIELD_CN, US_BALANCE_FIELD_CN, US_CASH_FLOW_FIELD_CN, US_FINANCIAL_REPORT_BALANCE_URL, US_FINANCIAL_REPORT_CASH_FLOW_URL, US_FINANCIAL_REPORT_INCOME_URL, US_INCOME_FIELD_CN, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 # 命令行使用 Q1~Q4、Q0；发往 open 接口时映射为官方 period 枚举
 FINANCIAL_PERIOD_CLI_TO_API_A = {
@@ -692,7 +692,7 @@ def _fetch_financial_report(
     else:
         payload["fiscalYear"] = None
     try:
-        r = requests.post(report_url, headers=headers, json=payload, timeout=120)
+        r = authorized_request("POST", report_url, headers=headers, json=payload, timeout=120)
         if r.status_code != 200:
             return pd.DataFrame()
         body = r.json()

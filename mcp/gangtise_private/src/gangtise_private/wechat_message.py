@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (FILE_DEFAULT_LIMIT, WECHAT_GROUP_CHATROOM_URL, WECHAT_GROUP_MSG_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
+from .utils import (authorized_request, FILE_DEFAULT_LIMIT, WECHAT_GROUP_CHATROOM_URL, WECHAT_GROUP_MSG_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
 
 _CATEGORY_VALID = {"text", "image", "documents", "url"}
 DEFAULT_ROOM_LIMIT = 50
@@ -116,7 +116,10 @@ def _format_msg_rows(rows: List[dict]) -> List[dict]:
         tag_str = "、".join(tag_parts)
         url = row.get("contentUrl") or row.get("url") or ""
         content = row.get("content") or ""
-        title = str(row.get("msgId") or "")
+        quote = row.get("quoteMsg") if isinstance(row.get("quoteMsg"), dict) else {}
+        quote_id = str(quote.get("quoteMsgId") or "") if quote else ""
+        quote_content = str(quote.get("quoteContent") or "") if quote else ""
+        quote_url = str(quote.get("quoteUrl") or "") if quote else ""
 
         item = {
             "消息全文": content,
@@ -127,6 +130,9 @@ def _format_msg_rows(rows: List[dict]) -> List[dict]:
             "发言人": row.get("speakerName") or "",
             "消息类型": row.get("category") or "",
             "标签": tag_str,
+            "引用消息ID": quote_id,
+            "引用消息内容": quote_content,
+            "引用消息链接": quote_url,
             "类型": "群消息",
             "类型ID": str(row.get("msgId") or ""),
         }
@@ -155,7 +161,7 @@ def _format_chatroom_rows(rows: List[dict]) -> List[dict]:
 
 def _post_json(url: str, headers: dict, payload: dict) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     try:
-        r = requests.post(url, headers=headers, json=payload, timeout=300)
+        r = authorized_request("POST", url, headers=headers, json=payload, timeout=300)
         if r.status_code != 200:
             return None, r.text
         return r.json(), None

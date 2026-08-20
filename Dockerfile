@@ -7,8 +7,10 @@
 #
 # 运行：
 #   docker run -d -p 8000:8000 gangtise-mcp
-#   Endpoint: https://<host>:8000/open-mcp
-#   鉴权：请求头 Authorization: Bearer <token>（原样透传下游）
+#   Endpoint: https://<host>:8000/  （默认挂根路径；网关可再加 /application/open-mcp 前缀）
+#   可选：-e MCP_PATH=/open-mcp 自定义服务内挂载路径
+#   鉴权：Authorization Bearer（业务 token 或 MCP OAuth JWT）/
+#         X-GTS-Credentials AK·SK / OAuth 同意页（需 GTS_JWT_SECRET）
 
 ARG BASE_IMAGE=python:3.11.9
 FROM ${BASE_IMAGE}
@@ -35,11 +37,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     MCP_PORT=8000 \
     MCP_PACKAGE=domains \
     MCP_LAYOUT=unified \
-    MCP_PATH=/open-mcp \
+    MCP_PATH=/ \
     MCP_STATELESS=true \
     MCP_JSON_RESPONSE=true \
     MCP_REQUIRE_AUTH=true \
+    MCP_TOOL_BLACKLIST= \
     GTS_SAVE_FILE=False \
+    WORK_PATH=/opt/data \
     GTS_MCP_ROOT=/opt/mcp \
     TOOL_URL_DEPS_PATH=/opt/mcp/tool_url_deps.json \
     MCP_ATTACH_MAX_BYTES=${MCP_ATTACH_MAX_BYTES} \
@@ -60,26 +64,32 @@ RUN set -eux; \
     if [ -n "${PIP_EXTRA_INDEX_URL}" ]; then PIP_OPTS="${PIP_OPTS} --extra-index-url ${PIP_EXTRA_INDEX_URL}"; fi; \
     if [ -n "${PIP_TRUSTED_HOST}" ]; then PIP_OPTS="${PIP_OPTS} --trusted-host ${PIP_TRUSTED_HOST}"; fi; \
     chmod +x /entrypoint.sh; \
-    mkdir -p /opt/mcp; \
+    mkdir -p /opt/data /opt/mcp; \
     python /app/scripts/scan_tool_url_deps.py --mcp-root /app/mcp --out /opt/mcp/tool_url_deps.json; \
     pip install --upgrade pip ${PIP_OPTS}; \
     pip install ${PIP_OPTS} \
-        "mcp>=1.0.0" \
+        "mcp>=1.0.0,<2" \
         "uvicorn>=0.30.0" \
         "httpx>=0.27.0" \
         "requests>=2.32.5" \
         "pandas>=2.2.3" \
         "pyyaml>=6.0" \
-        "starlette>=0.37.0"; \
-    for pkg in gangtise_agent gangtise_data gangtise_file gangtise_kb gangtise_private gangtise_hub gangtise_mcp; do \
+        "starlette>=0.37.0" \
+        "PyJWT>=2.8.0" \
+        "cryptography>=42.0.0"; \
+    for pkg in gangtise_agent gangtise_data gangtise_file gangtise_kb gangtise_private gangtise_pdf gangtise_hub gangtise_mcp; do \
          mkdir -p "/opt/mcp/api/${pkg}" "/opt/mcp/mcp/${pkg}"; \
          pip install --no-deps --target "/opt/mcp/api/${pkg}" ${PIP_OPTS} "/app/api/${pkg}"; \
          pip install --no-deps --target "/opt/mcp/mcp/${pkg}" ${PIP_OPTS} "/app/mcp/${pkg}"; \
        done; \
+    cp /app/api/gangtise_mcp/src/oauth_consent.html /opt/mcp/api/gangtise_mcp/oauth_consent.html; \
     if [ -n "${INSTALL_OBS}" ] || { [ -n "${OBS_ACCESS_KEY}" ] && [ -n "${OBS_SECRET_KEY}" ] && [ -n "${OBS_ENDPOINT}" ] && [ -n "${OBS_BUCKET}" ]; }; then \
          pip install ${PIP_OPTS} "esdk-obs-python>=3.24.12"; \
        fi; \
     rm -rf /root/.cache/pip
+
+# 工作区目录（与 ENV WORK_PATH 一致；独立层避免缓存漏建）
+RUN mkdir -p /opt/data
 
 EXPOSE 8000
 

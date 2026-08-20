@@ -12,7 +12,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (CONCEPT_SECURITIES_URL, CONCEPT_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (authorized_request, CONCEPT_SECURITIES_URL, CONCEPT_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
 
 from .search_concept import SEARCH_TOP_DEFAULT, resolve_concept_keyword
 
@@ -162,7 +162,7 @@ def _parse_concept_securities_body(body: dict) -> Tuple[dict, List[dict]]:
 def _fetch_concept_info(headers: dict, concept_id: str) -> Tuple[dict, List[dict], Optional[str]]:
     payload = {"conceptId": concept_id}
     try:
-        r = requests.post(CONCEPT_URL, headers=headers, json=payload, timeout=120)
+        r = authorized_request("POST", CONCEPT_URL, headers=headers, json=payload, timeout=120)
         if r.status_code != 200:
             return {}, [], f"HTTP {r.status_code}: {r.text[:500]}"
         body = r.json()
@@ -184,7 +184,7 @@ def _fetch_concept_securities(
 ) -> Tuple[dict, List[dict], Optional[str]]:
     payload = {"conceptId": concept_id}
     try:
-        r = requests.post(CONCEPT_SECURITIES_URL, headers=headers, json=payload, timeout=120)
+        r = authorized_request("POST", CONCEPT_SECURITIES_URL, headers=headers, json=payload, timeout=120)
         if r.status_code != 200:
             return {}, [], f"HTTP {r.status_code}: {r.text[:500]}"
         body = r.json()

@@ -1,49 +1,49 @@
 name: summary
 title: Summary
-description: 检索会议纪要/调研纪要，支持机构、行业、来源类型、参会角色等筛选；可选下载。
+description: 检索用户白名单权限范围内的纪要，支持机构、行业、来源类型、参会角色等筛选，可下载纪要文件
 parameters:
   keyword:
     type: string
-    description: 检索关键词；可为空
+    description: 搜索关键词
   securities:
     type: array
-    description: 证券列表，逗号分隔；可为证券名称、代码或拼音首字母
+    description: 证券名称或代码列表
     items:
       type: string
   start_date:
     type: string
-    description: 开始日期，格式 YYYY-MM-DD
+    description: 起始日期，格式 yyyy-MM-dd
   end_date:
     type: string
-    description: 结束日期，格式 YYYY-MM-DD
+    description: 结束日期，格式 yyyy-MM-dd
   institutions:
     type: array
-    description: 机构，逗号分隔；可选值见枚举脚本
+    description: institutions
     items:
       type: string
   industries:
     type: array
-    description: 行业，逗号分隔；可选值见枚举脚本
+    description: 行业或研究方向名称列表；可选值见 get_industries
     items:
       type: string
   source_types:
     type: array
-    description: 来源类型，逗号分隔；可选值：会议平台、网络资源、公司公告
+    description: source_types
     items:
       type: string
   market_list:
     type: array
-    description: 纪要所属市场类别，逗号分隔。可选值：aShares、hkStocks、usChinaConcept、usStocks（也支持中文：A股、港股、美股中概、美股）
+    description: 市场类别列表；可选 aShares/hkStocks/usChinaConcept/usStocks（或中文：A股/港股/美股中概/美股）
     items:
       type: string
   participant_role_list:
     type: array
-    description: 特殊参会人标识，逗号分隔。可选值：management、expert（也支持中文：高管、专家）
+    description: participant_role_list
     items:
       type: string
   category_list:
     type: array
-    description: 会议类别，逗号分隔。可选值：earningsCall、strategyMeeting、fundRoadshow、shareholdersMeeting、maMeeting、specialMeeting、companyAnalysis、industryAnalysis、other（也支持中文：业绩会、策略会、基金路演、股东大会、并购会议、特别会议、公司分析、行业分析、其他）
+    description: 分类/类型列表；帕米尔专家纪要可选 companyAnalysis/industryAnalysis（或中文：公司分析/行业分析）
     items:
       type: string
   columns:
@@ -53,10 +53,7 @@ parameters:
       type: string
   limit:
     type: integer
-    description: 返回数量上限
+    description: 返回条数上限
   download:
     type: boolean
-    description: 是否下载文件
-  output_dir:
-    type: string
-    description: 下载文件保存路径
+    description: 是否下载文件全文

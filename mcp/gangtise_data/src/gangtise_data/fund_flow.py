@@ -13,7 +13,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (FUND_FLOW_CN, FUND_FLOW_DAILY_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (authorized_request, FUND_FLOW_CN, FUND_FLOW_DAILY_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 # 默认返回全部净流入相关字段（securityCode、tradeDate 由接口自动前置）
 DEFAULT_NET_INFLOW_FIELDS = [
@@ -131,7 +131,7 @@ def _fetch_fund_flow(
     if end_date:
         payload["endDate"] = end_date
     try:
-        r = requests.post(FUND_FLOW_DAILY_URL, headers=headers, json=payload, timeout=300)
+        r = authorized_request("POST", FUND_FLOW_DAILY_URL, headers=headers, json=payload, timeout=300)
         if r.status_code != 200:
             return pd.DataFrame(), r.text
         body = r.json()

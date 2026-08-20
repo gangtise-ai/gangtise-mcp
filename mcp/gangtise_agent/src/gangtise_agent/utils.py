@@ -5,13 +5,16 @@ from typing import Dict, List, Any, Optional
 # from logging.handlers import TimedRotatingFileHandler
 import pandas as pd
 import datetime
+import time
 import json
 import requests
 
 from authorization import (
+    authorized_request,
     get_authorization_headers,
     get_authorization_token,
     get_headers_extra,
+    gangtise_domain,
     invalidate_authorization,
 )
 
@@ -19,14 +22,13 @@ GTS_SAVE_FILE = os.getenv("GTS_SAVE_FILE", True)
 # GTS_SAVE_EXTENSION = os.getenv("GTS_SAVE_EXTENSION", "md")
 GTS_SAVE_EXTENSION = "md"
 
-GANGTISE_OPENAI_DOMAIN = os.getenv("GANGTISE_OPENAI_DOMAIN", "https://openapi.gangtise.com/application/open-ai")
-GANGTISE_REFERENCE_DOMAIN = os.getenv("GANGTISE_REFERENCE_DOMAIN", "https://openapi.gangtise.com/application/open-reference")
-GANGTISE_AGENT_URL = f"{GANGTISE_OPENAI_DOMAIN}/agent"
-HOT_TOPIC_LIST_URL = f"{GANGTISE_OPENAI_DOMAIN}/hot-topic/getList"
-STOCK_SUMMARY_LIST_URL = f"{GANGTISE_OPENAI_DOMAIN}/stock-summary/getList"
-SECURITIES_SEARCH_URL = f"{GANGTISE_REFERENCE_DOMAIN}/securities/search"
-CONCEPT_SEARCH_URL = f"{GANGTISE_REFERENCE_DOMAIN}/concepts/search"
-
+GANGTISE_OPENAI_DOMAIN = gangtise_domain("GANGTISE_OPENAI_DOMAIN", "https://openapi.gangtise.com/application/open-ai")
+GANGTISE_REFERENCE_DOMAIN = gangtise_domain("GANGTISE_REFERENCE_DOMAIN", "https://openapi.gangtise.com/application/open-reference")
+GANGTISE_AGENT_URL = GANGTISE_OPENAI_DOMAIN + "/agent"
+HOT_TOPIC_LIST_URL = GANGTISE_OPENAI_DOMAIN + "/hot-topic/getList"
+STOCK_SUMMARY_LIST_URL = GANGTISE_OPENAI_DOMAIN + "/stock-summary/getList"
+SECURITIES_SEARCH_URL = GANGTISE_REFERENCE_DOMAIN + "/securities/search"
+CONCEPT_SEARCH_URL = GANGTISE_REFERENCE_DOMAIN + "/concepts/search"
 AGENTS_CN_MAP = {
     "stock-one-pager": "一页通",
     "investment-logic": "投资逻辑",
@@ -191,12 +193,13 @@ def format_response(response: dict, method_name: str, output: Optional[str] = No
                 process_dir = os.path.join(WORK_PATH, method_name)
                 if not os.path.exists(process_dir):
                     os.makedirs(process_dir, exist_ok=True)
-                file_index = 1
-                process_path = os.path.join(process_dir, f"{module_name}_{file_index}.{extension}")
-                max_retries = 20
+                now = datetime.datetime.now().strftime("%H%M%S")
+                process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
+                max_retries = 10
                 while os.path.exists(process_path) and max_retries > 0:
-                    file_index += 1
-                    process_path = os.path.join(process_dir, f"{module_name}_{file_index}.{extension}")
+                    time.sleep(1)
+                    now = datetime.datetime.now().strftime("%H%M%S")
+                    process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
                     max_retries -= 1
                 if max_retries == 0:
                     return "错误信息：文件存储系统繁忙，请稍后再试"
@@ -283,7 +286,7 @@ def remove_html_tags(text):
     clean = re.compile('<.*?>')
     return re.sub(clean, '', text)
 
-OPENAPI_SKILL_VERSION = "1.6.7"
+OPENAPI_SKILL_VERSION = "1.7.0"
 SKILL_CHECK_URL = "https://open.gangtise.com/application/skills-backend/version?skill=openapi"
 
 def check_version(large_version: bool = True):

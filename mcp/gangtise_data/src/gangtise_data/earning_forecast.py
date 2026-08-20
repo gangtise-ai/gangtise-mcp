@@ -12,7 +12,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (EARNING_FORECAST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (authorized_request, EARNING_FORECAST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 from .security import batch_security_search, resolved_code_abbr_map
 
 ALL_CONSENSUS_FIELDS: List[str] = [
@@ -141,7 +141,7 @@ def _fetch_one_security_forecast(
         }
         try:
             print(payload)
-            r = requests.post(EARNING_FORECAST_URL, headers=headers, json=payload, timeout=120)
+            r = authorized_request("POST", EARNING_FORECAST_URL, headers=headers, json=payload, timeout=120)
             print(r.text)
             if r.status_code != 200:
                 return pd.DataFrame(), f"接口请求失败: HTTP {r.status_code}"

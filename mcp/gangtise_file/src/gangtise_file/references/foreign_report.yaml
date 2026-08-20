@@ -4,76 +4,73 @@ description: 检索外资/海外研报索引，支持页数、评级、行业、
 parameters:
   keyword:
     type: string
-    description: 检索关键词，可为空
+    description: 搜索关键词
   securities:
     type: array
-    description: 证券列表，逗号分隔；可为证券名称、代码或拼音首字母
+    description: 证券名称或代码列表
     items:
       type: string
   start_date:
     type: string
-    description: 开始日期，如 2026-01-01
+    description: 起始日期，格式 yyyy-MM-dd
   end_date:
     type: string
-    description: 结束日期，如 2026-12-31
+    description: 结束日期，格式 yyyy-MM-dd
   institutions:
     type: array
-    description: 券商名称，逗号分隔；可选值见枚举脚本
+    description: institutions
     items:
       type: string
   industries:
     type: array
-    description: 行业名称，逗号分隔；可选值见枚举脚本
+    description: 行业或研究方向名称列表；可选值见 get_industries
     items:
       type: string
   region_list:
     type: array
-    description: 区域名称，逗号分隔；可选值见枚举脚本
+    description: region_list
     items:
       type: string
   category_list:
     type: array
-    description: 研报类别，逗号分隔。英文：macro/strategy/industry/company/bond/quant/morningNotes/fund/forex/futures/options/warrants/market/wealthManagement/other；或中文：宏观研究/策略研究/行业研究/公司研究/债券研究/金融工程/晨会研究/基金研究/外汇研究/期货研究/期权研究/权证研究/市场研究/理财研究/其他报告
+    description: 分类/类型列表；帕米尔专家纪要可选 companyAnalysis/industryAnalysis（或中文：公司分析/行业分析）
     items:
       type: string
   llm_tag_list:
     type: array
-    description: 语义标签，逗号分隔。英文：inDepth/earningsReview/industryStrategy；或中文：深度报告/业绩点评/行业策略
+    description: llm_tag_list
     items:
       type: string
   rating_list:
     type: array
-    description: 评级：buy / overweight / neutral / underweight / sell
+    description: rating_list
     items:
       type: string
   rating_change_list:
     type: array
-    description: 评级变动：upgrade / maintain / downgrade / initiate
+    description: rating_change_list
     items:
       type: string
   min_report_pages:
     type: integer
-    description: 研报最小页数
+    description: min_report_pages
   max_report_pages:
     type: integer
-    description: 研报最大页数
+    description: max_report_pages
   search_type:
     type: integer
-    description: 1 标题搜索，2 全文搜索（默认 1）
+    description: 搜索类型：1 标题搜索，2 全文搜索
   rank_type:
     type: integer
-    description: 1 综合排序，2 时间倒序（默认 1）
+    description: 排序方式：1 综合排序，2 时间倒序
   limit:
     type: integer
-    description: 返回数量上限，默认由系统配置（单页最大 50 条，脚本内分页拉取）
+    description: 返回条数上限
   download:
     type: boolean
-    description: 是否在检索后自动下载对应外资研报文件，默认不下载
+    description: 是否下载文件全文
   download_types:
     type: array
-    description: 下载类型，逗号分隔：pdf、markdown
+    description: 下载格式列表，如 pdf、markdown；帕米尔专家纪要为 original、html
     items:
       type: string
-  output_dir:
-    type: string
-    description: 下载保存目录，建议绝对路径；默认在 gangtise 工作目录下 foreign_report

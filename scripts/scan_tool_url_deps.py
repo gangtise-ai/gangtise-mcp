@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""扫描 mcp 包工具脚本，生成 tool → 依赖 _URL 常量映射。
+"""扫描 mcp 包工具脚本，生成 tool → 依赖 API path 映射。
 
 用法：
   python3 scripts/scan_tool_url_deps.py --mcp-root mcp --out tool_url_deps.json
 
 扫描规则：
   - 路径：{mcp_root}/{pkg}/src/{pkg}/*.py
-  - 收集 from .utils import 中的 *_URL
-  - 对 from .{sibling} 做同级闭包，合并 sibling 的 utils URL
+  - **仅**统计工具自身脚本中出现的 ``*_URL``（from .utils import / 文件内引用）
+  - **不做** sibling 闭包：引用 search_institution 等不会把对方的 _URL 算进来
   - 仅输出 tools_registry.TOOL_HANDLERS 中的工具名
   - 忽略 SKILL_CHECK_URL 等基础设施常量
+
+输出 version=2：tools / all_urls 存 API path（与 open-data /api/getList 对齐）。
 """
 from __future__ import annotations
 
@@ -17,7 +19,6 @@ import argparse
 import ast
 import json
 import sys
-from collections import deque
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
@@ -27,6 +28,7 @@ DOMAIN_PKGS = (
     "gangtise_file",
     "gangtise_kb",
     "gangtise_private",
+    "gangtise_pdf",
 )
 
 SKIP_MODULES = frozenset(
@@ -70,31 +72,96 @@ def _import_names_from_utils(node: ast.ImportFrom) -> Set[str]:
 
 
 def _sibling_modules(node: ast.ImportFrom) -> Set[str]:
-    """from .foo / from .foo.bar（仅取第一段）同级模块名。"""
-    if node.level != 1:
-        return set()
-    if not node.module:
-        # from . import foo
-        return {a.name.split(".", 1)[0] for a in node.names if a.name != "*"}
-    if node.module == "utils":
-        return set()
-    return {node.module.split(".", 1)[0]}
+    """已废弃：扫描不再做 sibling 闭包，保留以免外部误用报错。"""
+    return set()
 
 
-def analyze_module(path: Path) -> Tuple[Set[str], Set[str]]:
-    """返回 (直接 utils URL 常量, 同级 sibling 模块名)。"""
+def extract_url_const_paths(utils_py: Path) -> Dict[str, str]:
+    """从 utils.py 解析 *_URL 常量名 → API path（以 / 开头的后缀）。"""
+    tree = _parse_file(utils_py)
+    if tree is None:
+        return {}
+    const_path: Dict[str, str] = {}
+    alias: Dict[str, str] = {}
+    for node in tree.body:
+        if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+            continue
+        target = node.targets[0]
+        if not isinstance(target, ast.Name):
+            continue
+        name = target.id
+        if not _is_url_const(name):
+            continue
+        val = node.value
+        if isinstance(val, ast.BinOp) and isinstance(val.op, ast.Add):
+            right = val.right
+            if (
+                isinstance(right, ast.Constant)
+                and isinstance(right.value, str)
+                and right.value.startswith("/")
+            ):
+                const_path[name] = right.value
+                continue
+        if isinstance(val, ast.Name) and _is_url_const(val.id):
+            alias[name] = val.id
+            continue
+        if isinstance(val, ast.Constant) and isinstance(val.value, str):
+            s = val.value.strip()
+            if s.startswith("/"):
+                const_path[name] = s
+            elif "://" in s:
+                # 完整 URL：取 path（去掉 query）
+                try:
+                    from urllib.parse import urlparse
+
+                    path = urlparse(s).path or ""
+                    # 去掉 /application/open-xxx 前缀若存在
+                    for marker in (
+                        "/application/open-data",
+                        "/application/open-insight",
+                        "/application/open-quote",
+                        "/application/open-reference",
+                        "/application/open-fundamental",
+                        "/application/open-alternative",
+                        "/application/open-indicator",
+                        "/application/open-vault",
+                        "/application/open-openai",
+                        "/application/open-ai",
+                    ):
+                        if marker in path:
+                            path = path.split(marker, 1)[1] or path
+                            break
+                    if path.startswith("/"):
+                        const_path[name] = path
+                except Exception:
+                    pass
+
+    changed = True
+    while changed:
+        changed = False
+        for a, b in list(alias.items()):
+            if a in const_path:
+                continue
+            if b in const_path:
+                const_path[a] = const_path[b]
+                changed = True
+    return const_path
+
+
+def analyze_module(path: Path) -> Set[str]:
+    """仅返回本文件中出现的 ``*_URL`` 常量名（不含 sibling 依赖）。"""
     tree = _parse_file(path)
     if tree is None:
-        return set(), set()
+        return set()
     urls: Set[str] = set()
-    siblings: Set[str] = set()
     for node in ast.walk(tree):
-        if not isinstance(node, ast.ImportFrom):
-            continue
-        urls |= _import_names_from_utils(node)
-        siblings |= _sibling_modules(node)
-    siblings -= SKIP_MODULES
-    return urls, siblings
+        if isinstance(node, ast.ImportFrom):
+            urls |= _import_names_from_utils(node)
+        elif isinstance(node, ast.Name) and _is_url_const(node.id):
+            urls.add(node.id)
+        elif isinstance(node, ast.Attribute) and _is_url_const(node.attr):
+            urls.add(node.attr)
+    return urls
 
 
 def parse_tool_names(registry_path: Path) -> Dict[str, str]:
@@ -102,7 +169,6 @@ def parse_tool_names(registry_path: Path) -> Dict[str, str]:
     tree = _parse_file(registry_path)
     if tree is None:
         return {}
-    # from .quote import quote_data as quote  → 绑定名 quote 的模块为 quote
     binding_to_mod: Dict[str, str] = {}
     for node in tree.body:
         if not isinstance(node, ast.ImportFrom) or node.level != 1 or not node.module:
@@ -136,85 +202,70 @@ def parse_tool_names(registry_path: Path) -> Dict[str, str]:
     return tools
 
 
-def resolve_urls(
-    start_mod: str,
-    mod_urls: Dict[str, Set[str]],
-    mod_siblings: Dict[str, Set[str]],
-) -> List[str]:
-    seen: Set[str] = set()
-    urls: Set[str] = set()
-    q: deque[str] = deque([start_mod])
-    while q:
-        cur = q.popleft()
-        if cur in seen or cur in SKIP_MODULES:
-            continue
-        seen.add(cur)
-        urls |= mod_urls.get(cur, set())
-        for sib in mod_siblings.get(cur, set()):
-            if sib not in seen:
-                q.append(sib)
-    return sorted(urls)
-
-
-def scan_package(pkg_dir: Path, pkg_name: str) -> Dict[str, List[str]]:
+def scan_package(pkg_dir: Path, pkg_name: str) -> Tuple[Dict[str, List[str]], Dict[str, str]]:
+    """返回 (tool → path 列表, 本包 const→path)。"""
     src = pkg_dir / "src" / pkg_name
     if not src.is_dir():
-        return {}
+        return {}, {}
     registry = src / "tools_registry.py"
     tool_to_mod = parse_tool_names(registry) if registry.is_file() else {}
     if not tool_to_mod:
-        # 回退：同名 py 文件（排除 skip）
         for py in src.glob("*.py"):
             stem = py.stem
             if stem not in SKIP_MODULES:
                 tool_to_mod[stem] = stem
 
+    const_to_path = extract_url_const_paths(src / "utils.py") if (src / "utils.py").is_file() else {}
+
     mod_urls: Dict[str, Set[str]] = {}
-    mod_siblings: Dict[str, Set[str]] = {}
     for py in src.glob("*.py"):
         stem = py.stem
         if stem == "utils":
             continue
-        urls, siblings = analyze_module(py)
-        # sibling 必须真实存在
-        siblings = {s for s in siblings if (src / f"{s}.py").is_file()}
-        mod_urls[stem] = urls
-        mod_siblings[stem] = siblings
+        mod_urls[stem] = analyze_module(py)
 
     out: Dict[str, List[str]] = {}
     for tool, mod in sorted(tool_to_mod.items()):
-        out[tool] = resolve_urls(mod, mod_urls, mod_siblings)
-    return out
+        consts = sorted(mod_urls.get(mod, set()))
+        paths: Set[str] = set()
+        for c in consts:
+            p = const_to_path.get(c)
+            if p:
+                paths.add(p)
+        out[tool] = sorted(paths)
+    return out, const_to_path
 
 
 def scan_mcp_root(mcp_root: Path, packages: Iterable[str] = DOMAIN_PKGS) -> dict:
     tools: Dict[str, List[str]] = {}
     by_package: Dict[str, Dict[str, List[str]]] = {}
+    url_constants: Dict[str, str] = {}
     for pkg in packages:
         pkg_dir = mcp_root / pkg
         if not pkg_dir.is_dir():
             continue
-        pkg_tools = scan_package(pkg_dir, pkg)
+        pkg_tools, const_map = scan_package(pkg_dir, pkg)
         by_package[pkg] = pkg_tools
-        for name, urls in pkg_tools.items():
-            if name in tools and tools[name] != urls:
-                # 冲突时合并
-                tools[name] = sorted(set(tools[name]) | set(urls))
+        url_constants.update(const_map)
+        for name, paths in pkg_tools.items():
+            if name in tools and tools[name] != paths:
+                tools[name] = sorted(set(tools[name]) | set(paths))
             else:
-                tools[name] = urls
+                tools[name] = paths
     all_urls = sorted({u for urls in tools.values() for u in urls})
     return {
-        "version": 1,
+        "version": 2,
         "mcp_root": str(mcp_root),
         "tools": tools,
         "by_package": by_package,
         "all_urls": all_urls,
+        "url_constants": dict(sorted(url_constants.items())),
         "ignore_urls": sorted(IGNORE_URLS),
     }
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="扫描 tool → _URL 依赖并写出 JSON")
+    parser = argparse.ArgumentParser(description="扫描 tool → API path 依赖并写出 JSON")
     parser.add_argument(
         "--mcp-root",
         type=Path,
@@ -240,7 +291,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     print(
         f"已写入 {args.out}：{len(data['tools'])} 个工具，"
-        f"{len(data['all_urls'])} 个 URL 常量",
+        f"{len(data['all_urls'])} 个 API path",
         file=sys.stderr,
     )
     return 0

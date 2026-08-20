@@ -4,5 +4,5 @@
 
 Canonical docs:
 
-- [../../docs/http-sse.en.md](../../docs/http-sse.md)
-- Install / overview: [../../README.en.md](../../README.md) · [`gangtise_mcp`](../gangtise_mcp/README.md)
+- [../../docs/http-sse.md](../../docs/http-sse.md)
+- Install / overview: [../../README.md](../../README.md) · [`gangtise_mcp`](../gangtise_mcp/README.md)

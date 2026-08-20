@@ -10,7 +10,7 @@ if script_dir not in sys.path:
     sys.path.append(script_dir)
 
 from .search_account import SEARCH_TOP_DEFAULT, resolve_account_token  # noqa: E402
-from .utils import (DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, INDUSTRIES_MAP, OFFICIAL_ACCOUNT_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags)
+from .utils import (authorized_request, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, INDUSTRIES_MAP, OFFICIAL_ACCOUNT_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
 from .get_file import download_files
 from .security import batch_security_search
 
@@ -160,7 +160,7 @@ def _fetch_official_accounts(
             data["keyword"] = keyword
             data["searchType"] = search_type
 
-        response = requests.post(OFFICIAL_ACCOUNT_LIST_URL, headers=headers, json=data, timeout=120)
+        response = authorized_request("POST", OFFICIAL_ACCOUNT_LIST_URL, headers=headers, json=data, timeout=120)
         if response.status_code != 200:
             text = response.text.replace("\n", " ").replace("\r", " ").strip()
             if not all_results:
@@ -239,12 +239,13 @@ def official_account_finder(
     industry_list: Optional[List[str]] = None,
     search_type: int = 1,
     rank_type: int = 1,
-    limit: int = FILE_DEFAULT_LIMIT["official_account"],
+    limit: Optional[int] = None,
     download: bool = False,
     download_types: Optional[List[str]] = None,
     output_dir: Optional[str] = None,
 ):
     try:
+        limit = resolve_result_limit(limit, download, "official_account")
         headers = get_authorization_headers()
 
         resolved_account_ids: Optional[List[str]] = None
@@ -380,8 +381,8 @@ def main():
         "-l",
         "--limit",
         type=int,
-        default=FILE_DEFAULT_LIMIT["official_account"],
-        help="返回条数上限",
+        default=None,
+        help="返回条数上限；不传时检索默认见 FILE_DEFAULT_LIMIT，开启 -d 下载时默认 5",
     )
     parser.add_argument(
         "--securities",
@@ -468,7 +469,7 @@ def main():
         industry_list=_parse_str_list(args.industries),
         search_type=int(args.search_type or 1),
         rank_type=int(args.rank_type or 1),
-        limit=int(args.limit),
+        limit=resolve_result_limit(args.limit, bool(args.download), "official_account"),
         download=args.download,
         download_types=_parse_download_types(args.download_types),
         output_dir=output_dir,

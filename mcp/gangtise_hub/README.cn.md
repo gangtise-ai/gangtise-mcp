@@ -36,9 +36,9 @@
         "--default-index",
         "https://pypi.tuna.tsinghua.edu.cn/simple",
         "--with",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_hub",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_hub",
         "--from",
-        "git+https://gitee.com/yanxi3938/gangtise-data-mcp#subdirectory=mcp/gangtise_hub",
+        "git+https://gitee.com/gangtise/gangtise-mcp#subdirectory=mcp/gangtise_hub",
         "gangtise-hub-mcp"
       ],
       "env": {
@@ -60,8 +60,8 @@
 <details>
 <summary><b>远程 HTTP / Docker</b></summary>
 
-- HTTP / SSE / OAuth：[docs/http-sse.md](../../docs/http-sse.cn.md)
-- Docker：仅整合镜像，见 [docker-deploy.md](../../docs/docker-deploy.cn.md)
+- HTTP / SSE / OAuth：[docs/http-sse.cn.md](../../docs/http-sse.cn.md)
+- Docker：仅整合镜像，见 [docker-deploy.cn.md](../../docs/docker-deploy.cn.md)
 
 </details>
 
@@ -83,4 +83,4 @@ CLI 调试见 [`cli/gangtise_hub`](../../cli/gangtise_hub/)。日常客户端接
 
 </details>
 
-English: [README.en.md](README.md)
+English: [README.md](README.md)

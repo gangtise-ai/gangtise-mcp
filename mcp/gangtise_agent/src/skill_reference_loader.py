@@ -545,7 +545,7 @@ def _simplify_agent_param_desc(tool_name: str, param_map: Dict[str, str]) -> Dic
         elif pname == "securities":
             base = "多个证券名称或代码，逗号分隔；与 security 可同时使用并去重合并。"
             if tool_name == "stock_one_line_summary":
-                base += "另支持 aShares（全部 A 股）或 hkStocks（全部港股），不可与具体证券混传。"
+                base += "仅支持 A 股/港股个股，不支持 aShares/hkStocks 等市场标识。"
             out[pname] = base
         elif pname == "period":
             out[pname] = "报告期，如 2025q3。"

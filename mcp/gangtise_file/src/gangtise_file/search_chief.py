@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 
 import requests
 
-from .utils import CHIEFS_SEARCH_URL
+from .utils import authorized_request, CHIEFS_SEARCH_URL
 
 MATCH_SCORE_THRESHOLD = 0.6
 SEARCH_TOP_DEFAULT = 10
@@ -43,7 +43,7 @@ def search_chiefs(
     req_top = max(1, min(int(top), SEARCH_TOP_MAX))
     payload = {"keyword": keyword.strip(), "top": req_top}
     try:
-        r = requests.post(CHIEFS_SEARCH_URL, headers=headers, json=payload, timeout=120)
+        r = authorized_request("POST", CHIEFS_SEARCH_URL, headers=headers, json=payload, timeout=120)
         if r.status_code != 200:
             return [], f"首席检索 HTTP {r.status_code}: {r.text[:500]}"
         body = r.json()

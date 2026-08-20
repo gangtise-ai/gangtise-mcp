@@ -12,7 +12,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (VALUATION_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (authorized_request, VALUATION_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 from .security import batch_security_search, resolved_code_abbr_map
 
@@ -31,6 +31,9 @@ INDICATOR_CN: Dict[str, str] = {
 # 与 backend 中 abs(range_year)=3 时「在N年中所处分位」一致
 QUANTILE_YEAR_LABEL = 1
 
+# 未传起止日期时：先查当天；无有效数据则向前回退至多 LOOKBACK_DAYS 天（含当天）
+LOOKBACK_DAYS = 7
+
 _FIELD_LIST = ["value", "percentileRank"]
 
 
@@ -43,6 +46,34 @@ def _load_security_codes_from_file(path: str) -> List[str]:
     if "security_code" not in df.columns:
         raise ValueError("证券文件须包含 security_code 列（完整代码或证券名称）")
     return [str(x) for x in df["security_code"].dropna().tolist()]
+
+
+def _is_valid_metric_value(value: object) -> bool:
+    if value is None:
+        return False
+    try:
+        if pd.isna(value):
+            return False
+    except (TypeError, ValueError):
+        pass
+    return True
+
+
+def _day_has_valid_metrics(cols: Dict[str, object]) -> bool:
+    return any(_is_valid_metric_value(v) for v in cols.values())
+
+
+def _date_map_has_valid(merged_by_date: Dict[str, Dict[str, object]]) -> bool:
+    return any(_day_has_valid_metrics(cols) for cols in merged_by_date.values())
+
+
+def _keep_latest_valid_day(
+    merged_by_date: Dict[str, Dict[str, object]],
+) -> Dict[str, Dict[str, object]]:
+    for d in sorted(merged_by_date.keys(), reverse=True):
+        if _day_has_valid_metrics(merged_by_date[d]):
+            return {d: merged_by_date[d]}
+    return {}
 
 
 def _parse_valuation_analysis_body(
@@ -104,7 +135,7 @@ def _fetch_one_indicator(
         "fieldList": list(_FIELD_LIST),
     }
     try:
-        r = requests.post(
+        r = authorized_request("POST", 
             VALUATION_URL,
             headers=headers,
             json=payload,
@@ -119,14 +150,13 @@ def _fetch_one_indicator(
         return indicator, {}
 
 
-def _valuation_df_for_security(
+def _fetch_indicators_merged(
     headers: dict,
-    security_abbr: str,
     security_code: str,
     start_date: str,
     end_date: str,
     limit: int,
-) -> pd.DataFrame:
+) -> Dict[str, Dict[str, object]]:
     date_maps: List[Dict[str, Dict[str, object]]] = []
     with ThreadPoolExecutor(max_workers=len(VALUATION_INDICATORS)) as ex:
         futs = [
@@ -152,7 +182,46 @@ def _valuation_df_for_security(
             if d not in merged_by_date:
                 merged_by_date[d] = {}
             merged_by_date[d].update(cols)
+    return merged_by_date
 
+
+def _resolve_explicit_dates(
+    start_date: Optional[str],
+    end_date: Optional[str],
+) -> Tuple[str, str]:
+    """显式日期：缺省一侧补齐为另一侧或今天；不触发「当天回退 7 日」逻辑。"""
+    today_s = date.today().strftime("%Y-%m-%d")
+    end_s = (end_date or "").strip() or today_s
+    start_s = (start_date or "").strip() or end_s
+    return start_s, end_s
+
+
+def _resolve_auto_latest_merged(
+    headers: dict,
+    security_code: str,
+    limit: int,
+) -> Dict[str, Dict[str, object]]:
+    """未传日期：先查当天；无有效值则查 [今天-6, 今天]，并保留最近一个有效交易日。"""
+    today = date.today()
+    today_s = today.strftime("%Y-%m-%d")
+    merged = _fetch_indicators_merged(headers, security_code, today_s, today_s, limit)
+    if _date_map_has_valid(merged):
+        return _keep_latest_valid_day(merged)
+
+    start_s = (today - timedelta(days=LOOKBACK_DAYS - 1)).strftime("%Y-%m-%d")
+    merged = _fetch_indicators_merged(headers, security_code, start_s, today_s, limit)
+    if not _date_map_has_valid(merged):
+        return {}
+    return _keep_latest_valid_day(merged)
+
+
+def _build_valuation_df(
+    security_abbr: str,
+    security_code: str,
+    merged_by_date: Dict[str, Dict[str, object]],
+    start_date: Optional[str],
+    end_date: Optional[str],
+) -> pd.DataFrame:
     if not merged_by_date:
         return pd.DataFrame()
 
@@ -196,6 +265,24 @@ def _valuation_df_for_security(
     return df
 
 
+def _valuation_df_for_security(
+    headers: dict,
+    security_abbr: str,
+    security_code: str,
+    start_date: Optional[str],
+    end_date: Optional[str],
+    limit: int,
+) -> pd.DataFrame:
+    auto_latest = not (start_date or "").strip() and not (end_date or "").strip()
+    if auto_latest:
+        merged_by_date = _resolve_auto_latest_merged(headers, security_code, limit)
+        return _build_valuation_df(security_abbr, security_code, merged_by_date, None, None)
+
+    start_s, end_s = _resolve_explicit_dates(start_date, end_date)
+    merged_by_date = _fetch_indicators_merged(headers, security_code, start_s, end_s, limit)
+    return _build_valuation_df(security_abbr, security_code, merged_by_date, start_s, end_s)
+
+
 def valuation_data(
     securities: List[str],
     start_date: Optional[str] = None,
@@ -211,10 +298,9 @@ def valuation_data(
 
     headers = get_authorization_headers()
 
-    if not end_date:
-        end_date = date.today().strftime("%Y-%m-%d")
-    if not start_date:
-        start_date = date.today().strftime("%Y-%m-%d")
+    # 未传日期保持 None：由 _valuation_df_for_security 按「当天 → 7 日内回退」解析
+    start_date = (start_date or "").strip() or None
+    end_date = (end_date or "").strip() or None
 
     resolved = batch_security_search(
         parse_str_list(securities),
@@ -315,9 +401,18 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     today_str = date.today().strftime("%Y-%m-%d")
-    last_week_str = (date.today() - timedelta(days=5)).strftime("%Y-%m-%d")
-    parser.add_argument("-sd", "--start-date", default=last_week_str, help="开始日期，如 2023-01-01")
-    parser.add_argument("-ed", "--end-date", default=today_str, help="结束日期，如 2026-12-31")
+    parser.add_argument(
+        "-sd",
+        "--start-date",
+        default=None,
+        help="开始日期，如 2023-01-01；与 -ed 均不传时先查当天，无数据则向前回退至多 7 日",
+    )
+    parser.add_argument(
+        "-ed",
+        "--end-date",
+        default=None,
+        help=f"结束日期，如 2026-12-31；仅传一侧时另一侧按显式区间补齐（今天={today_str}）",
+    )
     parser.add_argument("--securities", default=None, help="证券名称或完整代码，逗号分隔")
     parser.add_argument(
         "--securities-file",

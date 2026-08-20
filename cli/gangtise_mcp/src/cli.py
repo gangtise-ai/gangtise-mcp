@@ -24,6 +24,7 @@ def _ensure_layer_paths() -> None:
             "gangtise_file",
             "gangtise_kb",
             "gangtise_private",
+            "gangtise_pdf",
         ):
             ds = mcp_root / dom / "src"
             ss = str(ds)
@@ -94,10 +95,11 @@ _LONG_ALIASES: Dict[str, str] = {
 
 _TOOL_GROUPS: List[Tuple[str, List[str]]] = [
     ("Data 数据", ['block_constituents', 'company_indicator', 'concept', 'earning_forecast', 'financial', 'fund_flow', 'industry_indicator', 'main_business', 'quote', 'security', 'shareholder', 'valuation']),
-    ("File 文件", ['report', 'summary', 'opinion', 'announcement', 'foreign_report', 'foreign_opinion', 'official_account', 'management_discuss', 'qa', 'report_image', 'investment_calendar', 'get_file', 'get_chiefs', 'get_institutions', 'get_industries', 'get_regions', 'get_announcement_types']),
+    ("File 文件", ['report', 'summary', 'pamirs_summary', 'opinion', 'announcement', 'foreign_report', 'foreign_opinion', 'official_account', 'management_discuss', 'qa', 'report_image', 'investment_calendar', 'get_file', 'get_chiefs', 'get_institutions', 'get_industries', 'get_regions', 'get_announcement_types']),
     ("Agent 研报", ['stock_one_pager', 'investment_logic', 'peer_comparison', 'earnings_review', 'viewpoint_debate', 'theme_tracking', 'research_outline', 'stock_one_line_summary', 'hot_topic', 'security_clue']),
     ("KB 知识库", ['kb']),
     ("Private 私有", ['private_record', 'private_meeting', 'private_cloud', 'stockpool', 'wechat_message']),
+    ("PDF 解析", ['pdf_parse']),
 ]
 
 
@@ -442,7 +444,7 @@ def _build_parser(spec_map: Dict[str, ToolSpec]) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="gangtise",
         description=(
-            "Gangtise 全量命令行工具（与 gangtise_mcp / 五域叶子工具同源）。\n"
+            "Gangtise 全量命令行工具（与 gangtise_mcp / 各域叶子工具同源）。\n"
             "与 MCP 服务使用同一套工具实现；参数名使用 kebab-case（如 --start-date），"
             "亦支持常用短选项（如 -k、-sd、-ed）。"
         ),

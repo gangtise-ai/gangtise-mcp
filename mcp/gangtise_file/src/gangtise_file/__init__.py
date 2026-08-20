@@ -9,6 +9,7 @@ from .qa import qa_finder as qa
 from .report import report_finder as report
 from .report_image import report_image_finder as report_image
 from .summary import summary_finder as summary
+from .pamirs_summary import pamirs_summary_finder as pamirs_summary
 
 from .get_announcement_types import main as get_announcement_types
 from .get_chiefs import get_chiefs as _get_chiefs
@@ -40,6 +41,7 @@ __all__ = [
     "report",
     "report_image",
     "summary",
+    "pamirs_summary",
     "get_announcement_types",
     "get_chiefs",
     "get_industries",

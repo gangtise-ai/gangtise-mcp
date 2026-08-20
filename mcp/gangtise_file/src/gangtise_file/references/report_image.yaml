@@ -4,23 +4,20 @@ description: 按关键词搜索研报中的图片，返回图注、页码、页�
 parameters:
   keyword:
     type: string
-    description: 搜索关键词，如 AI、新能源汽车
+    description: 搜索关键词
     required: true
   start_date:
     type: string
-    description: "开始时间，如 2024-01-01 或 2024-01-01 00:00:00"
+    description: 起始日期，格式 yyyy-MM-dd
   end_date:
     type: string
-    description: "结束时间，如 2024-12-31 或 2024-12-31 23:59:59"
+    description: 结束日期，格式 yyyy-MM-dd
   source_id:
     type: string
-    description: 研报 ID，限定特定研报来源（可从研报列表或知识库获取）
+    description: source_id
   limit:
     type: integer
-    description: 返回数量上限，默认 10，最大 20
+    description: 返回条数上限
   download:
     type: boolean
-    description: 是否在检索后自动下载图片原文件，默认不下载
-  output_dir:
-    type: string
-    description: 下载图片保存目录，建议使用绝对路径。默认保存在 gangtise 工作目录下的 report_image 目录
+    description: 是否下载文件全文

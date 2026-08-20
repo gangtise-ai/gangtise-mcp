@@ -4,40 +4,37 @@ description: 检索 A 股/港股公告索引，可按证券、日期、公告类
 parameters:
   keyword:
     type: string
-    description: 检索关键词，可为空
+    description: 搜索关键词
   securities:
     type: array
-    description: 证券列表，逗号分隔；可为证券名称、代码或拼音首字母
+    description: 证券名称或代码列表
     items:
       type: string
   start_date:
     type: string
-    description: 开始日期，如 2026-01-01
+    description: 起始日期，格式 yyyy-MM-dd
   end_date:
     type: string
-    description: 结束日期，如 2026-12-31
+    description: 结束日期，格式 yyyy-MM-dd
   category_list:
     type: array
-    description: 公告分类列表，逗号分隔（请先调用 get_announcement_types 获取可选值）
+    description: 分类/类型列表；帕米尔专家纪要可选 companyAnalysis/industryAnalysis（或中文：公司分析/行业分析）
     items:
       type: string
   search_type:
     type: integer
-    description: 搜索类型：1-标题搜索 2-全文搜索
+    description: 搜索类型：1 标题搜索，2 全文搜索
   rank_type:
     type: integer
-    description: 排序方式：1-综合排序 2-时间倒序
+    description: 排序方式：1 综合排序，2 时间倒序
   limit:
     type: integer
-    description: 返回数量上限
+    description: 返回条数上限
   download:
     type: boolean
-    description: 是否在检索后自动下载所有对应公司公告文件，默认不下载
-  output_dir:
-    type: string
-    description: 所有下载文件保存的目录，建议使用绝对路径。默认保存在 gangtise 工作目录下的 announcements 目录
+    description: 是否下载文件全文
   download_types:
     type: array
-    description: 下载文件类型，逗号分隔。可选：pdf, markdown
+    description: 下载格式列表，如 pdf、markdown；帕米尔专家纪要为 original、html
     items:
       type: string
