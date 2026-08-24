@@ -687,7 +687,7 @@ def main():
         print("[WARNING] 检查 Gangtise data 版本失败\n")
 
     parser = argparse.ArgumentParser(
-        description="证券代码搜索（open-reference / securities/search，0 积分）",
+        description="证券代码搜索（open-reference / securities/search）",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--keyword", "-k", required=True, help="搜索关键词（名称、代码、拼音等）")

@@ -1,6 +1,6 @@
 name: private_cloud
 title: Private Cloud
-description: 检索个人云盘文件列表，或按 file_ids 获取文件正文。不含对话、AI 速记、AI 翻译文件夹；不消耗积分。
+description: 检索个人云盘文件列表，或按 file_ids 获取文件正文。不含对话、AI 速记、AI 翻译文件夹。
 parameters:
   keyword:
     type: string

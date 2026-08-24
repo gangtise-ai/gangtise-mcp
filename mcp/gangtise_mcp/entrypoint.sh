@@ -47,7 +47,7 @@ _add_pkg() {
 }
 
 # 先加整合包，再加其它（_add_path 往前插，故后加的更靠前 → 先调用 mcp）
-for pkg in gangtise_private gangtise_kb gangtise_file gangtise_data gangtise_agent gangtise_pdf gangtise_hub; do
+for pkg in gangtise_private gangtise_screener gangtise_kb gangtise_file gangtise_data gangtise_agent gangtise_pdf gangtise_hub; do
   _add_pkg mcp "${pkg}"
   _add_pkg api "${pkg}"
 done

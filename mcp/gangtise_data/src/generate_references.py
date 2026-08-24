@@ -128,7 +128,7 @@ TOOL_DESCRIPTIONS: Dict[str, str] = {
     ),
     "qa": (
         "按证券拉取投资者问答（互动平台、电话会议、调研纪要），返回提问、回答、"
-        "来源、问题类型及是否涉及重要信息；支持多维筛选。按 0.1 积分/条计费。"
+        "来源、问题类型及是否涉及重要信息；支持多维筛选。"
     ),
     "official_account": (
         "检索金融公众号文章，可按账号、证券、行业、日期筛选；可选下载正文。"
@@ -141,7 +141,7 @@ TOOL_DESCRIPTIONS: Dict[str, str] = {
     ),
     "report_image": (
         "按关键词搜索研报中的图片，返回图注、页码、页面内容描述及 chunkId；"
-        "支持时间范围、研报 ID 过滤。检索无积分消耗，下载原图按 0.1 积分/张计费。"
+        "支持时间范围、研报 ID 过滤。"
     ),
     "summary": (
         "检索会议纪要/调研纪要，支持机构、行业、来源类型、参会角色等筛选；可选下载。"
@@ -176,7 +176,7 @@ TOOL_DESCRIPTIONS: Dict[str, str] = {
     ),
     "private_cloud": (
         "检索个人云盘文件列表，或按 file_ids 获取文件正文。"
-        "不含对话、AI 速记、AI 翻译文件夹；不消耗积分。"
+        "不含对话、AI 速记、AI 翻译文件夹。"
     ),
     "stockpool": (
         "检索自选股池列表，或按 pool_ids / all_pools 获取池内成分股。"
@@ -189,7 +189,7 @@ TOOL_DESCRIPTIONS: Dict[str, str] = {
 PARAM_DESCRIPTIONS: Dict[str, str] = {
     "security": "单个证券名称或代码（推荐名称，如 贵州茅台）",
     "securities": "证券名称或代码列表",
-    "output": "结果保存路径（可选；默认由服务端工作区管理）",
+    "output_dir": "结果与下载文件保存目录（可选；默认由服务端工作区管理）",
     "keyword": "搜索关键词",
     "start_date": "起始日期，格式 yyyy-MM-dd",
     "end_date": "结束日期，格式 yyyy-MM-dd",
@@ -226,7 +226,6 @@ PARAM_DESCRIPTIONS: Dict[str, str] = {
     "consensus_list": "一致预期指标列表",
     "download": "是否下载文件全文",
     "download_types": "下载格式列表，如 pdf、markdown",
-    "output_dir": "批量下载输出目录",
     "file_id": "文件 ID（来自检索类接口返回）",
     "file_type": "文件类型，如 report、announcement、summary",
     "download_type": "单文件下载格式：pdf 或 markdown",
@@ -259,7 +258,7 @@ PARAM_DESCRIPTIONS: Dict[str, str] = {
     "with_close_reading": "热点报告是否包含话题精读",
 }
 
-SKIP_PARAMS = INTERNAL_PARAMS | frozenset({"output", "output_dir"})
+SKIP_PARAMS = INTERNAL_PARAMS | frozenset({"output_dir"})
 
 
 def _sanitize_param_description(desc: str) -> str:

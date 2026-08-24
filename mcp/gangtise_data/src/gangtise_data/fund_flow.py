@@ -13,7 +13,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (authorized_request, FUND_FLOW_CN, FUND_FLOW_DAILY_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (FUND_FLOW_CN, FUND_FLOW_DAILY_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 # 默认返回全部净流入相关字段（securityCode、tradeDate 由接口自动前置）
 DEFAULT_NET_INFLOW_FIELDS = [
@@ -249,13 +249,13 @@ def fund_flow_data(
     limit: int = 5000,
     all_market: bool = False,
     field_list: Optional[List[str]] = None,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
-            "fund_flow",
-        )
+            "fund_flow", output_dir=output_dir)
 
     headers = get_authorization_headers()
     capped_limit = max(1, min(int(limit), 10000))
@@ -276,8 +276,7 @@ def fund_flow_data(
                     "data": [],
                     "usage": usage,
                 },
-                "fund_flow",
-            )
+                "fund_flow", output_dir=output_dir)
         resolved = batch_security_search(
             tokens,
             category=["stock", "dr"],
@@ -292,8 +291,7 @@ def fund_flow_data(
                     "data": [],
                     "usage": usage,
                 },
-                "fund_flow",
-            )
+                "fund_flow", output_dir=output_dir)
         codes = resolved.get("codes") or []
         types = list(resolved.get("types") or [])
         abbr_map = resolved_code_abbr_map(resolved)
@@ -307,8 +305,7 @@ def fund_flow_data(
                     "data": [],
                     "usage": usage,
                 },
-                "fund_flow",
-            )
+                "fund_flow", output_dir=output_dir)
 
         a_codes: List[str] = []
         skipped: List[str] = []
@@ -327,8 +324,7 @@ def fund_flow_data(
             msg = skip_note or "未找到支持的A股证券代码（资金流向仅支持上交所/深交所/北交所）"
             return format_response(
                 {"state": "error", "message": msg, "data": [], "usage": usage},
-                "fund_flow",
-            )
+                "fund_flow", output_dir=output_dir)
         security_list = list(dict.fromkeys(a_codes))
 
     if all_market and not start_date and not end_date:
@@ -355,8 +351,7 @@ def fund_flow_data(
             msg = f"{skip_note}；{msg}"
         return format_response(
             {"state": "error", "message": msg, "data": [], "usage": usage},
-            "fund_flow",
-        )
+            "fund_flow", output_dir=output_dir)
 
     data = _format_fund_flow_df(data, abbr_map)
     title = _title_for_df(data, all_market)
@@ -374,8 +369,7 @@ def fund_flow_data(
             "data": parts,
             "usage": usage,
         },
-        "fund_flow",
-    )
+        "fund_flow", output_dir=output_dir)
 
 
 def main():
@@ -415,6 +409,13 @@ def main():
         default=None,
         help="指定字段英文名或中文名，逗号分隔；不传则默认返回全部净流入字段",
     )
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
 
     if args.all_market and (args.securities or args.securities_file):
@@ -447,6 +448,7 @@ def main():
         limit=args.limit,
         all_market=args.all_market,
         field_list=fl,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

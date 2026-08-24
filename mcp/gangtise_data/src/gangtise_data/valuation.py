@@ -12,7 +12,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, VALUATION_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (VALUATION_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 from .security import batch_security_search, resolved_code_abbr_map
 
@@ -288,13 +288,13 @@ def valuation_data(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     limit: int = 2000,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
-            "valuation",
-        )
+            "valuation", output_dir=output_dir)
 
     headers = get_authorization_headers()
 
@@ -316,8 +316,7 @@ def valuation_data(
                 "data": [],
                 "usage": usage,
             },
-            "valuation",
-        )
+            "valuation", output_dir=output_dir)
     securities_codes = resolved.get("codes") or []
     securities_abbrs = resolved.get("abbrs") or []
     abbr_map = resolved_code_abbr_map(resolved)
@@ -340,8 +339,7 @@ def valuation_data(
     if not frames:
         return format_response(
             {"state": "error", "message": "未找到估值数据", "data": [], "usage": usage},
-            "valuation",
-        )
+            "valuation", output_dir=output_dir)
 
     valuation_data_df = pd.concat(frames, ignore_index=True)
     valuation_data_df = valuation_data_df.sort_values(
@@ -382,8 +380,7 @@ def valuation_data(
             "data": parts,
             "usage": usage,
         },
-        "valuation",
-    )
+        "valuation", output_dir=output_dir)
 
 
 def main():
@@ -420,6 +417,13 @@ def main():
         help="从 csv 读取列 security_code（完整代码或名称等关键词）",
     )
     parser.add_argument("-l", "--limit", type=int, default=2000, help="单次指标请求最大行数")
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
 
     securities: Optional[List[str]] = None
@@ -440,6 +444,7 @@ def main():
         start_date=args.start_date,
         end_date=args.end_date,
         limit=args.limit,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

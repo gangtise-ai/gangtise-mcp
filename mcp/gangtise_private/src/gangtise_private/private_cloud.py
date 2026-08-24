@@ -11,7 +11,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, DRIVE_DOWNLOAD_URL, DRIVE_LIST_URL, FILE_DEFAULT_LIMIT, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
+from .utils import (DRIVE_DOWNLOAD_URL, DRIVE_LIST_URL, FILE_DEFAULT_LIMIT, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
 
 DEFAULT_LIST_LIMIT = FILE_DEFAULT_LIMIT.get("private_cloud", 100)
 IDS_FILE_HINT = "可以删除行或保留需要的文件，再通过 --files-file 参数下载"
@@ -349,13 +349,13 @@ def private_cloud_search(
     limit: int = DEFAULT_LIST_LIMIT,
     page_from: int = 0,
     page_size: int = 20,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
     append_file_hint: bool = False,
 ):
     usage: dict = {}
     headers, err = _auth_headers()
     if err:
-        return format_response({"state": "error", "message": err, "data": [], "usage": usage}, "private_cloud", output=output)
+        return format_response({"state": "error", "message": err, "data": [], "usage": usage}, "private_cloud", output_dir=output_dir)
 
     records, total, part_err = _fetch_drive_list(
         headers,
@@ -372,7 +372,7 @@ def private_cloud_search(
         return format_response(
             {"state": "error", "message": part_err or "未找到云盘文件", "data": [], "usage": usage},
             "private_cloud",
-            output=output,
+            output_dir=output_dir,
         )
 
     msg = f"已找到 {len(records)} 个云盘文件"
@@ -384,7 +384,7 @@ def private_cloud_search(
     return format_response(
         {"state": "success", "message": msg, "data": _list_response_parts(records), "usage": usage},
         "private_cloud",
-        output=output,
+        output_dir=output_dir,
         additional_message=extra.strip(),
     )
 
@@ -392,12 +392,12 @@ def private_cloud_search(
 def private_cloud_get(
     file_ids: List[str],
     meta_by_id: Optional[Dict[str, dict]] = None,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     headers, err = _auth_headers()
     if err:
-        return format_response({"state": "error", "message": err, "data": [], "usage": usage}, "private_cloud", output=output)
+        return format_response({"state": "error", "message": err, "data": [], "usage": usage}, "private_cloud", output_dir=output_dir)
 
     ids = [str(x).strip() for x in file_ids if str(x).strip()]
     if not ids:
@@ -409,7 +409,7 @@ def private_cloud_get(
                 "usage": usage,
             },
             "private_cloud",
-            output=output,
+            output_dir=output_dir,
         )
 
     files: List[dict] = []
@@ -440,7 +440,7 @@ def private_cloud_get(
                 "usage": usage,
             },
             "private_cloud",
-            output=output,
+            output_dir=output_dir,
         )
 
     parts = [{"data": files, "module": "private_cloud_content", "type": "files"}]
@@ -450,7 +450,7 @@ def private_cloud_get(
     return format_response(
         {"state": "success", "message": msg, "data": parts, "usage": usage},
         "private_cloud",
-        output=output,
+        output_dir=output_dir,
     )
 
 
@@ -464,7 +464,7 @@ def private_cloud_finder(
     limit: int = DEFAULT_LIST_LIMIT,
     page_from: int = 0,
     page_size: int = 20,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
 ):
     """检索云盘文件列表，或在提供 file_ids 时下载文件内容。"""
     common = dict(
@@ -476,7 +476,7 @@ def private_cloud_finder(
         limit=int(limit),
         page_from=page_from,
         page_size=page_size,
-        output=output,
+        output_dir=output_dir,
     )
     ids: List[str] = []
     if file_ids and str(file_ids).strip():
@@ -485,7 +485,7 @@ def private_cloud_finder(
             return err
         ids = resolved or []
     if ids:
-        return private_cloud_get(file_ids=ids, output=output)
+        return private_cloud_get(file_ids=ids, output_dir=output_dir)
     return private_cloud_search(**common, append_file_hint=True)
 
 
@@ -535,7 +535,7 @@ def main():
     parser.add_argument("-l", "--limit", type=int, default=DEFAULT_LIST_LIMIT, help="search 模式列表条数上限")
     parser.add_argument("--page-from", type=int, default=0)
     parser.add_argument("--page-size", type=int, default=20, help="单页最大 50")
-    parser.add_argument("-o", "--output", default=None, help="保存路径（GTS_SAVE_FILE=True）")
+    parser.add_argument("-od", "--output-dir", default=None, help="结果保存目录路径（GTS_SAVE_FILE=True）")
 
     args = parser.parse_args()
     file_types = _normalize_file_type_list(_parse_str_list(args.file_type_list))
@@ -560,7 +560,7 @@ def main():
             limit=int(args.limit),
             page_from=args.page_from,
             page_size=args.page_size,
-            output=args.output,
+            output_dir=args.output_dir,
         )
     )
 

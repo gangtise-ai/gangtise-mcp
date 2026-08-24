@@ -19,6 +19,7 @@ _LABEL_TO_PKG = {
     "gangtise-file": "gangtise_file",
     "gangtise-kb": "gangtise_kb",
     "gangtise-private": "gangtise_private",
+    "gangtise-screener": "gangtise_screener",
     "gangtise-pdf": "gangtise_pdf",
 }
 

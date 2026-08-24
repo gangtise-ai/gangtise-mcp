@@ -102,7 +102,7 @@ def _save_file_enabled() -> bool:
         return v.strip().lower() in ("true", "1", "yes")
     return bool(v)
 
-def _format_file_record_text(file: dict, method_name: str, module_name: str, output: Optional[str] = None) -> str:
+def _format_file_record_text(file: dict, method_name: str, module_name: str, output_dir: Optional[str] = None) -> str:
     lines: List[str] = []
     if file.get("标题"):
         lines.append(f"标题：{file['标题']}")
@@ -112,7 +112,10 @@ def _format_file_record_text(file: dict, method_name: str, module_name: str, out
         lines.append(f"消息时间：{file['消息时间']}")
     if file.get("文件内容"):
         if file.get("文件内容", {}).get("status", "failed") == "success":
-            file_path = _alloc_workspace_path(method_name, module_name, GTS_SAVE_EXTENSION, output, filename=file.get("文件内容", {}).get("filename", None))
+            file_path = _alloc_workspace_path(
+                method_name, module_name, GTS_SAVE_EXTENSION, output_dir,
+                filename=file.get("文件内容", {}).get("filename", None),
+            )
             if file_path[0] and file_path[1] == "exist":
                 existed_file_sha = hashlib.sha256(open(file_path[0], "rb").read()).hexdigest()
                 response_content_sha = hashlib.sha256(file.get("文件内容").get("file_bytes")).hexdigest()
@@ -120,14 +123,16 @@ def _format_file_record_text(file: dict, method_name: str, module_name: str, out
                     lines.append(f"文件已存在：`{os.path.abspath(file_path[0])}`")
                 else:
                     iteration = 1
-                    output_extension = output.split(".")[-1]
-                    output_name = output.split(".")[0]
-                    while os.path.exists(output):
-                        output = os.path.join(os.path.dirname(output), f"{output_name}({iteration}).{output_extension}")
+                    base_path = file_path[0]
+                    name, ext = os.path.splitext(os.path.basename(base_path))
+                    dirname = os.path.dirname(base_path)
+                    new_path = base_path
+                    while os.path.exists(new_path):
+                        new_path = os.path.join(dirname, f"{name}({iteration}){ext}")
                         iteration += 1
-                    with open(output, "wb") as f:
+                    with open(new_path, "wb") as f:
                         f.write(file.get("文件内容").get("file_bytes"))
-                    lines.append(f"文件名重复，已自动重命名并下载到 `{os.path.abspath(output)}`")
+                    lines.append(f"文件名重复，已自动重命名并下载到 `{os.path.abspath(new_path)}`")
             elif file_path[0]:
                 with open(file_path[0], "wb") as f:
                     f.write(file.get("文件内容").get("file_bytes"))
@@ -153,14 +158,13 @@ def _alloc_workspace_path(
     method_name: str,
     module_name: str,
     extension: str,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
     filename: Optional[str] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
-    if output:
-        if os.path.exists(output):
-            return output, "exist"
-        return output, None
-    process_dir = os.path.join(WORK_PATH, method_name)
+    if output_dir:
+        process_dir = output_dir
+    else:
+        process_dir = os.path.join(WORK_PATH, method_name)
     os.makedirs(process_dir, exist_ok=True)
     if filename:
         process_path = os.path.join(process_dir, filename)
@@ -182,7 +186,7 @@ def _alloc_workspace_path(
 def format_response(
     response: dict,
     method_name: str,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
     additional_message: str = "",
 ):
     # 保存 usage
@@ -233,7 +237,7 @@ def format_response(
             sub = module_name_map.get(module_name, module_name)
 
             if item_type == "data":
-                process_path, err = _alloc_workspace_path(method_name, module_name, "csv", output)
+                process_path, err = _alloc_workspace_path(method_name, module_name, "csv", output_dir)
                 if err:
                     return err
                 df = pd.DataFrame(data)
@@ -254,14 +258,14 @@ def format_response(
             # type == "files"：群消息等，对齐 gangtise-file 的落盘与内联展示
             if _save_file_enabled():
                 process_path, err = _alloc_workspace_path(
-                    method_name, module_name, GTS_SAVE_EXTENSION, output
+                    method_name, module_name, GTS_SAVE_EXTENSION, output_dir
                 )
                 if err:
                     return err
                 if GTS_SAVE_EXTENSION == "md":
                     with open(process_path, "w", encoding="utf-8") as f:
                         for i, file in enumerate(data):
-                            f.write(_format_file_record_text(file, method_name, module_name, output))
+                            f.write(_format_file_record_text(file, method_name, module_name, output_dir))
                             if i < len(data) - 1:
                                 f.write("\n\n---\n\n")
                 elif GTS_SAVE_EXTENSION == "json":
@@ -270,14 +274,14 @@ def format_response(
                 else:
                     with open(process_path, "w", encoding="utf-8") as f:
                         for i, file in enumerate(data):
-                            f.write(_format_file_record_text(file, method_name, module_name, output))
+                            f.write(_format_file_record_text(file, method_name, module_name, output_dir))
                             if i < len(data) - 1:
                                 f.write("\n\n---\n\n")
                 # 落盘时正文最多展示 5 个 file 作为示例，完整结果见文件
                 preview_n = 5
                 preview = data[:preview_n]
                 sample_blocks = [
-                    _format_file_record_text(file, method_name, module_name, output)
+                    _format_file_record_text(file, method_name, module_name, output_dir)
                     for file in preview
                 ]
                 sample_data = "\n\n---\n\n".join(sample_blocks)
@@ -296,7 +300,7 @@ def format_response(
                 )
             else:
                 sample_blocks = [
-                    _format_file_record_text(file, method_name, module_name, output)
+                    _format_file_record_text(file, method_name, module_name, output_dir)
                     for file in data
                 ]
                 sample_data = "\n\n---\n\n".join(sample_blocks)

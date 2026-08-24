@@ -13,7 +13,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (authorized_request, BALANCE_FIELD_CN, CASH_FLOW_FIELD_CN, FINANCIAL_REPORT_BALANCE_URL, FINANCIAL_REPORT_CASH_FLOW_QUARTERLY_URL, FINANCIAL_REPORT_CASH_FLOW_URL, FINANCIAL_REPORT_INCOME_QUARTERLY_URL, FINANCIAL_REPORT_INCOME_URL, HK_BALANCE_FIELD_CN, HK_CASH_FLOW_FIELD_CN, HK_FINANCIAL_REPORT_BALANCE_URL, HK_FINANCIAL_REPORT_CASH_FLOW_URL, HK_FINANCIAL_REPORT_INCOME_URL, HK_INCOME_FIELD_CN, INCOME_FIELD_CN, US_BALANCE_FIELD_CN, US_CASH_FLOW_FIELD_CN, US_FINANCIAL_REPORT_BALANCE_URL, US_FINANCIAL_REPORT_CASH_FLOW_URL, US_FINANCIAL_REPORT_INCOME_URL, US_INCOME_FIELD_CN, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (BALANCE_FIELD_CN, CASH_FLOW_FIELD_CN, FINANCIAL_REPORT_BALANCE_URL, FINANCIAL_REPORT_CASH_FLOW_QUARTERLY_URL, FINANCIAL_REPORT_CASH_FLOW_URL, FINANCIAL_REPORT_INCOME_QUARTERLY_URL, FINANCIAL_REPORT_INCOME_URL, HK_BALANCE_FIELD_CN, HK_CASH_FLOW_FIELD_CN, HK_FINANCIAL_REPORT_BALANCE_URL, HK_FINANCIAL_REPORT_CASH_FLOW_URL, HK_FINANCIAL_REPORT_INCOME_URL, HK_INCOME_FIELD_CN, INCOME_FIELD_CN, US_BALANCE_FIELD_CN, US_CASH_FLOW_FIELD_CN, US_FINANCIAL_REPORT_BALANCE_URL, US_FINANCIAL_REPORT_CASH_FLOW_URL, US_FINANCIAL_REPORT_INCOME_URL, US_INCOME_FIELD_CN, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 # 命令行使用 Q1~Q4、Q0；发往 open 接口时映射为官方 period 枚举
 FINANCIAL_PERIOD_CLI_TO_API_A = {
@@ -711,26 +711,24 @@ def financial_data(
     field_list: Optional[List[str]] = None,
     table_type: str = "income",
     granularity: str = "accumulated",
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     table_norm, table_err = _normalize_table_type(table_type)
     if table_err:
         return format_response(
             {"state": "error", "message": table_err, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
     granularity_norm, granularity_err = _normalize_financial_granularity(granularity)
     if granularity_err:
         return format_response(
             {"state": "error", "message": granularity_err, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     table_label = TABLE_TYPE_LABEL_CN[table_norm]
 
@@ -755,8 +753,7 @@ def financial_data(
                 "data": [],
                 "usage": usage,
             },
-            "financial",
-        )
+            "financial", output_dir=output_dir)
     codes = resolved.get("codes") or []
     abbr_map = resolved_code_abbr_map(resolved)
     resolved_types = list(resolved.get("types") or [])
@@ -770,8 +767,7 @@ def financial_data(
                 "data": [],
                 "usage": usage,
             },
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     while len(resolved_types) < len(codes):
         resolved_types.append("")
@@ -783,27 +779,23 @@ def financial_data(
         msg = skip_note if skip_note else "未解析到支持财务报表查询的证券（仅支持 A 股、存托凭证、港股与美股）"
         return format_response(
             {"state": "error", "message": msg, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     period_a, period_err = _map_financial_periods_cli_to_api(period, "a_share")
     if period_err:
         return format_response(
             {"state": "error", "message": period_err, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
     period_hk, period_hk_err = _map_financial_periods_cli_to_api(period, "hk")
     if period_hk_err:
         return format_response(
             {"state": "error", "message": period_hk_err, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
     period_us, period_us_err = _map_financial_periods_cli_to_api(period, "us")
     if period_us_err:
         return format_response(
             {"state": "error", "message": period_us_err, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     a_frames: List[pd.DataFrame] = []
     hk_frames: List[pd.DataFrame] = []
@@ -834,8 +826,7 @@ def financial_data(
         if a_url_err:
             return format_response(
                 {"state": "error", "message": a_url_err, "data": [], "usage": usage},
-                "financial",
-            )
+                "financial", output_dir=output_dir)
         a_frames = _fetch_financial_reports_batch(
             a_url,
             headers,
@@ -853,8 +844,7 @@ def financial_data(
         if hk_url_err:
             return format_response(
                 {"state": "error", "message": hk_url_err, "data": [], "usage": usage},
-                "financial",
-            )
+                "financial", output_dir=output_dir)
         hk_frames = _fetch_financial_reports_batch(
             hk_url,
             headers,
@@ -872,8 +862,7 @@ def financial_data(
         if us_url_err:
             return format_response(
                 {"state": "error", "message": us_url_err, "data": [], "usage": usage},
-                "financial",
-            )
+                "financial", output_dir=output_dir)
         us_frames = _fetch_financial_reports_batch(
             us_url,
             headers,
@@ -892,8 +881,7 @@ def financial_data(
             err_msg = f"{skip_note}；{err_msg}"
         return format_response(
             {"state": "error", "message": err_msg, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     # A 股与港股科目列结构不同，不合并宽表；按市场分块，对应多份 CSV（同 quote.py）
     output_blocks: List[Tuple[pd.DataFrame, str]] = []
@@ -934,8 +922,7 @@ def financial_data(
             err_msg = f"{skip_note}；{err_msg}"
         return format_response(
             {"state": "error", "message": err_msg, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     extra_notes: List[str] = []
     if len(output_blocks) > 1:
@@ -964,8 +951,7 @@ def financial_data(
             "data": parts,
             "usage": usage,
         },
-        "financial",
-    )
+        "financial", output_dir=output_dir)
 
 
 def main():
@@ -1018,6 +1004,13 @@ def main():
     )
     parser.add_argument("--securities", default=None, help="证券逗号分隔：完整代码或名称/拼音等")
     parser.add_argument("--securities-file", default=None, help="csv 含 security_code 列（代码或名称）")
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
 
     fy: Optional[List[str]] = None
@@ -1063,6 +1056,7 @@ def main():
         field_list=fl,
         table_type=args.table_type,
         granularity=args.granularity,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

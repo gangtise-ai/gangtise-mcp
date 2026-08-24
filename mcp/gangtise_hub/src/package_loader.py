@@ -19,6 +19,7 @@ _DOMAIN_MOD = {
     "gangtise_file": "gangtise_file",
     "gangtise_kb": "gangtise_kb",
     "gangtise_private": "gangtise_private",
+    "gangtise_screener": "gangtise_screener",
     "gangtise_pdf": "gangtise_pdf",
 }
 

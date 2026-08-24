@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, REPORT_IMAGE_DOWNLOAD_URL, REPORT_IMAGE_URL, WORK_PATH, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, resolve_result_limit)
+from .utils import (DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, REPORT_IMAGE_DOWNLOAD_URL, REPORT_IMAGE_URL, WORK_PATH, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, resolve_result_limit)
 from .get_file import (  # noqa: E402
     UnsupportedClientPathError,
     _download_success_info,
@@ -260,8 +260,7 @@ def report_image_finder(
         if not keyword_str:
             return format_response(
                 {"state": "error", "message": "关键词 keyword 不能为空"},
-                "report_image",
-            )
+                "report_image", output_dir=output_dir)
 
         headers = get_authorization_headers()
 
@@ -285,8 +284,7 @@ def report_image_finder(
                     "state": "error",
                     "message": response.text.replace("\n", " ").replace("\r", " ").strip(),
                 },
-                "report_image",
-            )
+                "report_image", output_dir=output_dir)
 
         result = response.json()
         if result.get("code") not in [200, "000000"] and result.get("status") is not True:
@@ -295,15 +293,13 @@ def report_image_finder(
                     "state": "error",
                     "message": str(result.get("msg") or result.get("message") or "请求失败"),
                 },
-                "report_image",
-            )
+                "report_image", output_dir=output_dir)
 
         images = result.get("data") or []
         if not isinstance(images, list):
             return format_response(
                 {"state": "error", "message": "接口返回 data 格式异常"},
-                "report_image",
-            )
+                "report_image", output_dir=output_dir)
         if not images:
             return format_response(
                 {
@@ -311,8 +307,7 @@ def report_image_finder(
                     "message": "未找到相关研报图片，建议修改查询条件",
                     "data": [],
                 },
-                "report_image",
-            )
+                "report_image", output_dir=output_dir)
 
         formatted = _format_report_image_item(images)
 
@@ -328,13 +323,11 @@ def report_image_finder(
         return format_response(
             response_data,
             "report_image",
-            additional_message=additional_message,
-        )
+            additional_message=additional_message, output_dir=output_dir)
     except Exception as e:
         return format_response(
             {"state": "error", "message": str(e), "data": [], "usage": {}},
-            "report_image",
-        )
+            "report_image", output_dir=output_dir)
 
 
 def main():
@@ -379,21 +372,18 @@ def main():
         "--download",
         default=DOWNLOAD_DEFAULT,
         type=bool,
-        help="是否在检索后自动下载图片原文件（0.1 积分/张）",
+        help="是否在检索后自动下载图片原文件",
     )
     parser.add_argument(
         "-od",
         "--output-dir",
         default=None,
-        help="下载图片保存路径，建议使用绝对路径",
+        help="结果与下载文件保存目录路径，建议使用绝对路径",
     )
 
     args = parser.parse_args()
 
     output_dir = args.output_dir or None
-    if not args.download and output_dir:
-        print("[WARNING] 参数 -od/--output-dir 仅在下载文件时有效，已忽略\n")
-        output_dir = None
 
     try:
         if not check_version():

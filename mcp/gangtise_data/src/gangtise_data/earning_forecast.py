@@ -12,7 +12,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, EARNING_FORECAST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (EARNING_FORECAST_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 from .security import batch_security_search, resolved_code_abbr_map
 
 ALL_CONSENSUS_FIELDS: List[str] = [
@@ -178,13 +178,13 @@ def earning_forecast_data(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     consensus_list: Optional[List[str]] = None,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
-            "earning_forecast",
-        )
+            "earning_forecast", output_dir=output_dir)
 
     headers = get_authorization_headers()
     tokens = parse_str_list(securities)
@@ -202,8 +202,7 @@ def earning_forecast_data(
                 "data": [],
                 "usage": usage,
             },
-            "earning_forecast",
-        )
+            "earning_forecast", output_dir=output_dir)
     codes = resolved.get("codes") or []
     securities_abbrs = resolved.get("abbrs") or []
     abbr_map = resolved_code_abbr_map(resolved)
@@ -219,8 +218,7 @@ def earning_forecast_data(
     if consensus_err:
         return format_response(
             {"state": "error", "message": consensus_err, "data": [], "usage": usage},
-            "earning_forecast",
-        )
+            "earning_forecast", output_dir=output_dir)
 
     frames: List[pd.DataFrame] = []
     fallback_codes: List[str] = []
@@ -254,8 +252,7 @@ def earning_forecast_data(
             err_msg = "；".join(request_errors)
         return format_response(
             {"state": "error", "message": err_msg, "data": [], "usage": usage},
-            "earning_forecast",
-        )
+            "earning_forecast", output_dir=output_dir)
 
     df = pd.concat(frames, ignore_index=True)
     df = df.sort_values(by=["security_code", "date", "预测年份"], ascending=[True, False, True]).reset_index(drop=True)
@@ -290,8 +287,7 @@ def earning_forecast_data(
             "data": parts,
             "usage": usage,
         },
-        "earning_forecast",
-    )
+        "earning_forecast", output_dir=output_dir)
 
 
 def main():
@@ -318,6 +314,13 @@ def main():
         default=None,
         help=f"一致预期指标，逗号分隔；可选 {','.join(ALL_CONSENSUS_FIELDS)}；不传默认全部",
     )
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
 
     consensus: Optional[List[str]] = None
@@ -342,6 +345,7 @@ def main():
         start_date=args.start_date,
         end_date=args.end_date,
         consensus_list=consensus,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

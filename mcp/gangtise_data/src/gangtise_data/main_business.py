@@ -14,7 +14,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (authorized_request, MAIN_BUSINESS_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (MAIN_BUSINESS_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 # open 文档：可选指标，默认全取
 _FIELD_LIST_ALL = [
@@ -199,19 +199,18 @@ def main_business_data(
     end_date: Optional[str] = None,
     period: Optional[str] = None,
     breakdown: Optional[str] = None,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
-            "main_business",
-        )
+            "main_business", output_dir=output_dir)
 
     if period is not None and period not in ("interim", "annual"):
         return format_response(
             {"state": "error", "message": "period 仅支持 interim（中报）或 annual（年报）", "data": [], "usage": usage},
-            "main_business",
-        )
+            "main_business", output_dir=output_dir)
 
     if breakdown is not None and breakdown not in BREAKDOWN_LABEL:
         return format_response(
@@ -221,8 +220,7 @@ def main_business_data(
                 "data": [],
                 "usage": usage,
             },
-            "main_business",
-        )
+            "main_business", output_dir=output_dir)
 
     headers = get_authorization_headers()
     if not end_date:
@@ -245,8 +243,7 @@ def main_business_data(
                 "data": [],
                 "usage": usage,
             },
-            "main_business",
-        )
+            "main_business", output_dir=output_dir)
     securities_codes = resolved.get("codes") or []
     securities_abbrs = resolved.get("abbrs") or []
     abbr_map = resolved_code_abbr_map(resolved)
@@ -261,8 +258,7 @@ def main_business_data(
                 "data": [],
                 "usage": usage,
             },
-            "main_business",
-        )
+            "main_business", output_dir=output_dir)
 
     frames: List[pd.DataFrame] = []
     for abbr, code in zip(securities_abbrs, securities_codes):
@@ -282,8 +278,7 @@ def main_business_data(
     if not frames:
         return format_response(
             {"state": "error", "message": "未找到主营业务数据", "data": [], "usage": usage},
-            "main_business",
-        )
+            "main_business", output_dir=output_dir)
 
     data = pd.concat(frames, ignore_index=True)
     data = data.sort_values(
@@ -330,8 +325,7 @@ def main_business_data(
             "data": parts,
             "usage": usage,
         },
-        "main_business",
-    )
+        "main_business", output_dir=output_dir)
 
 
 def main():
@@ -363,6 +357,13 @@ def main():
         choices=["product", "industry", "region"],
         help="拆分维度；不传则并发拉取 product / industry / region 三种",
     )
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
 
     securities: Optional[List[str]] = None
@@ -393,6 +394,7 @@ def main():
         end_date=args.end_date,
         period=api_period,
         breakdown=args.breakdown,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

@@ -36,6 +36,9 @@ SECTOR_SEARCH_URL = GANGTISE_REFERENCE_DOMAIN + "/sectors/search"
 SECTOR_CONSTITUENTS_URL = GANGTISE_REFERENCE_DOMAIN + "/sectors/constituents"
 QUOTE_URL = GANGTISE_QUOTE_DOMAIN + "/kline/daily"
 FUND_FLOW_DAILY_URL = GANGTISE_QUOTE_DOMAIN + "/fund-flow/daily"
+QUOTE_INDEX_DAILY_URL = GANGTISE_QUOTE_DOMAIN + "/index/kline/daily"
+QUOTE_HK_URL = GANGTISE_QUOTE_DOMAIN + "/kline-hk/daily"
+QUOTE_US_DAILY_URL = GANGTISE_QUOTE_DOMAIN + "/kline-us/daily"
 QUOTE_MINUTE_URL = GANGTISE_QUOTE_DOMAIN + "/kline/minute"
 QUOTE_REALTIME_URL = GANGTISE_QUOTE_DOMAIN + "/quote/realtime"
 QUOTE_ADJUST_FACTOR_URL = GANGTISE_QUOTE_DOMAIN + "/adjustFactor"
@@ -57,6 +60,7 @@ MAIN_BUSINESS_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/main-business"
 VALUATION_URL = GANGTISE_FUNDAMENTAL_DOMAIN + "/valuation-analysis"
 INDICATOR_SEARCH_URL = GANGTISE_INDICATOR_DOMAIN + "/EDE/search"
 INDICATOR_TIME_SERIES_URL = GANGTISE_INDICATOR_DOMAIN + "/EDE/time-series"
+INDICATOR_CROSS_SECTION_URL = GANGTISE_INDICATOR_DOMAIN + "/EDE/cross-section"
 WORK_PATH = os.getenv("WORK_PATH", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "workspace"))
 if not os.path.exists(WORK_PATH):
     os.makedirs(WORK_PATH, exist_ok=True)
@@ -110,7 +114,7 @@ def add_usages(usages_list: List[Dict[str, Any]]):
                 usages[k] = usages[k] + v
     return usages
 
-def format_response(response: dict, method_name: str):
+def format_response(response: dict, method_name: str, output_dir: Optional[str] = None):
     
     # 保存usage
     today = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -155,9 +159,11 @@ def format_response(response: dict, method_name: str):
             module_name = item["module"]
             data = item["data"]
             extension = "csv" if item["type"] == "data" else "md"
-            process_dir = os.path.join(WORK_PATH, method_name)
-            if not os.path.exists(process_dir):
-                os.makedirs(process_dir, exist_ok=True)
+            if output_dir:
+                process_dir = output_dir
+            else:
+                process_dir = os.path.join(WORK_PATH, method_name)
+            os.makedirs(process_dir, exist_ok=True)
             now = datetime.datetime.now().strftime("%H%M%S")
             process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
             max_retries = 10
@@ -172,17 +178,20 @@ def format_response(response: dict, method_name: str):
             if item["type"] == "data":
                 data = pd.DataFrame(data)
                 data.to_csv(process_path, index=False)
-                # 正文最多 2 行示例，完整数据在 csv
+                # 正文展示前 3 + 后 3 行示例，完整数据在 csv
                 n = len(data)
-                sample_range = list(range(min(2, n)))
+                if n <= 6:
+                    sample_range = list(range(n))
+                else:
+                    sample_range = [0, 1, 2, n - 3, n - 2, n - 1]
                 sample_data = data_to_md(data, range=sample_range)
                 item_footer = item.get("footer") or response.get("footer")
                 footer_block = ""
                 if item_footer and str(item_footer).strip():
                     footer_block = str(item_footer).strip() + "\n\n"
                 sample_note = (
-                    f"\n\n（仅展示前 2 行示例，共 {n} 行；完整数据见文件）"
-                    if n > 2
+                    f"\n\n（展示前 3 行与后 3 行，共 {n} 行；完整数据见文件）"
+                    if n > 6
                     else f"\n\n共 {n} 行"
                 )
                 return_message += (

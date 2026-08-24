@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, MANAGEMENT_DISCUSS_DIMENSION_LABEL, MANAGEMENT_DISCUSS_DIMENSION_MAP, MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL, MANAGEMENT_DISCUSS_FROM_EARNINGS_CALL_URL, MANAGEMENT_DISCUSS_TYPE_MAP, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best)
+from .utils import (MANAGEMENT_DISCUSS_DIMENSION_LABEL, MANAGEMENT_DISCUSS_DIMENSION_MAP, MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL, MANAGEMENT_DISCUSS_FROM_EARNINGS_CALL_URL, MANAGEMENT_DISCUSS_TYPE_MAP, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best)
 from .security import batch_security_search
 
 EARNINGS_CALL_ALL_DIMENSIONS = [
@@ -206,6 +206,7 @@ def management_discuss_finder(
     report_date: str,
     securities: List[str],
     discussion_dimension: str,
+    output_dir: Optional[str] = None,
 ):
     try:
         headers = get_authorization_headers()
@@ -214,22 +215,19 @@ def management_discuss_finder(
         if not normalized_type:
             return format_response(
                 {"state": "error", "message": f"无法识别 --type：{discuss_type}", "data": []},
-                "management_discuss",
-            )
+                "management_discuss", output_dir=output_dir)
 
         date_err = _validate_report_date(report_date, normalized_type)
         if date_err:
             return format_response(
                 {"state": "error", "message": date_err, "data": []},
-                "management_discuss",
-            )
+                "management_discuss", output_dir=output_dir)
 
         dim, dim_err = _normalize_discussion_dimension(discussion_dimension)
         if dim_err:
             return format_response(
                 {"state": "error", "message": dim_err, "data": []},
-                "management_discuss",
-            )
+                "management_discuss", output_dir=output_dir)
 
         url = (
             MANAGEMENT_DISCUSS_FROM_ANNOUNCEMENT_URL
@@ -251,16 +249,14 @@ def management_discuss_finder(
                     "message": resolved.get("message") or "证券解析失败",
                     "data": [],
                 },
-                "management_discuss",
-            )
+                "management_discuss", output_dir=output_dir)
 
         codes = resolved.get("codes") or []
         abbrs = resolved.get("abbrs") or []
         if not codes:
             return format_response(
                 {"state": "error", "message": "未解析到有效证券代码", "data": []},
-                "management_discuss",
-            )
+                "management_discuss", output_dir=output_dir)
 
         all_results = []
         errors = []
@@ -318,8 +314,7 @@ def management_discuss_finder(
             msg = "；".join(errors) if errors else "未找到相关管理层讨论内容，建议修改查询条件"
             return format_response(
                 {"state": "error", "message": msg, "data": []},
-                "management_discuss",
-            )
+                "management_discuss", output_dir=output_dir)
 
         type_label = MANAGEMENT_DISCUSS_TYPE_MAP.get(normalized_type, normalized_type)
         msg = f"已获取{type_label}管理层讨论与分析内容"
@@ -331,14 +326,13 @@ def management_discuss_finder(
         }
         if errors:
             response_data["message"] = f"{msg}（部分证券未取全：{'；'.join(errors)}）"
-        return format_response(response_data, "management_discuss")
+        return format_response(response_data, "management_discuss", output_dir=output_dir)
     except Exception as e:
         import traceback
         traceback.print_exc()
         return format_response(
             {"state": "error", "message": str(e), "data": [], "usage": {}},
-            "management_discuss",
-        )
+            "management_discuss", output_dir=output_dir)
 
 
 def main():
@@ -377,13 +371,19 @@ def main():
     except Exception:
         print("[WARNING] 检查 Gangtise skills 版本失败\n")
 
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
     securities = _parse_str_list(args.securities)
     if not securities:
         print(format_response(
             {"state": "error", "message": "securities 不能为空", "data": []},
-            "management_discuss",
-        ))
+            "management_discuss", output_dir=args.output_dir or None))
         return
 
     out = management_discuss_finder(
@@ -391,6 +391,7 @@ def main():
         report_date=args.report_date,
         securities=securities,
         discussion_dimension=args.discussion_dimension,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

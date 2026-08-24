@@ -155,6 +155,7 @@ def _pythonpath_for_api(package_dir: str) -> str:
         "gangtise_file",
         "gangtise_kb",
         "gangtise_private",
+        "gangtise_screener",
         "gangtise_pdf",
     ):
         parts.append(str(package_mcp_src(dom)))
@@ -180,6 +181,7 @@ def _pythonpath_for_mcp(package_dir: str) -> str:
         "gangtise_file",
         "gangtise_kb",
         "gangtise_private",
+        "gangtise_screener",
         "gangtise_pdf",
     ):
         parts.append(str(package_mcp_src(dom)))

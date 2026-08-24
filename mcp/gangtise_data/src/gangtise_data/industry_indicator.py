@@ -12,7 +12,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, EDB_GET_DATA_URL, EDB_SEARCH_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (EDB_GET_DATA_URL, EDB_SEARCH_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
 
 SEARCH_DEFAULT_LIMIT = 10
 SEARCH_MAX_LIMIT = 200
@@ -357,6 +357,7 @@ def industry_indicator_search(
     keyword: str,
     limit: int = SEARCH_DEFAULT_LIMIT,
     append_file_hint: bool = False,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
@@ -367,23 +368,20 @@ def industry_indicator_search(
                 "data": [],
                 "usage": usage,
             },
-            "industry_indicator",
-        )
+            "industry_indicator", output_dir=output_dir)
 
     kw = (keyword or "").strip()
     if not kw:
         return format_response(
             {"state": "error", "message": "keyword 不能为空", "data": [], "usage": usage},
-            "industry_indicator",
-        )
+            "industry_indicator", output_dir=output_dir)
 
     headers = get_authorization_headers()
     items, err = _search_indicators(headers, kw, limit)
     if err:
         return format_response(
             {"state": "error", "message": err, "data": [], "usage": usage},
-            "industry_indicator",
-        )
+            "industry_indicator", output_dir=output_dir)
     if not items:
         return format_response(
             {
@@ -392,8 +390,7 @@ def industry_indicator_search(
                 "data": [],
                 "usage": usage,
             },
-            "industry_indicator",
-        )
+            "industry_indicator", output_dir=output_dir)
 
     meta_df = _meta_list_to_df(items)
     parts = [
@@ -412,8 +409,7 @@ def industry_indicator_search(
             "data": parts,
             "usage": usage,
         },
-        "industry_indicator",
-    )
+        "industry_indicator", output_dir=output_dir)
 
 
 def industry_indicator_get(
@@ -422,6 +418,7 @@ def industry_indicator_get(
     end_date: Optional[str] = None,
     meta: Optional[List[dict]] = None,
     limit: Optional[int] = None,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
@@ -432,15 +429,13 @@ def industry_indicator_get(
                 "data": [],
                 "usage": usage,
             },
-            "industry_indicator",
-        )
+            "industry_indicator", output_dir=output_dir)
 
     ids = [str(x).strip() for x in indicator_ids if str(x).strip()]
     if not ids:
         return format_response(
             {"state": "error", "message": "指标 ID 列表不能为空", "data": [], "usage": usage},
-            "industry_indicator",
-        )
+            "industry_indicator", output_dir=output_dir)
     if limit is not None and limit > 0:
         ids = ids[: int(limit)]
 
@@ -458,8 +453,7 @@ def industry_indicator_get(
                 "data": [],
                 "usage": usage,
             },
-            "industry_indicator",
-        )
+            "industry_indicator", output_dir=output_dir)
 
     if meta:
         df = _apply_id_name_columns(df, meta)
@@ -473,16 +467,14 @@ def industry_indicator_get(
     if not parts:
         return format_response(
             {"state": "error", "message": "时序数据组装失败", "data": [], "usage": usage},
-            "industry_indicator",
-        )
+            "industry_indicator", output_dir=output_dir)
 
     msg = f"已获取{title}时序数据（{start_date} 至 {end_date}）"
     if warn:
         msg += f"；部分批次异常：{warn}"
     return format_response(
         {"state": "success", "message": msg, "data": parts, "usage": usage},
-        "industry_indicator",
-    )
+        "industry_indicator", output_dir=output_dir)
 
 
 def industry_indicator_data(
@@ -491,6 +483,7 @@ def industry_indicator_data(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     limit: int = SEARCH_DEFAULT_LIMIT,
+    output_dir: Optional[str] = None,
 ):
     """检索行业指标元信息，或在提供 indicator_ids 时拉取时序数据。"""
     ids_raw = (indicator_ids or "").strip()
@@ -503,15 +496,13 @@ def industry_indicator_data(
                     "data": [],
                     "usage": {},
                 },
-                "industry_indicator",
-            )
+                "industry_indicator", output_dir=output_dir)
         headers = get_authorization_headers()
         resolved, search_md, err = _resolve_indicators_from_arg(headers, ids_raw, limit)
         if err:
             return format_response(
                 {"state": "error", "message": err, "data": [], "usage": {}},
-                "industry_indicator",
-            )
+                "industry_indicator", output_dir=output_dir)
         if search_md:
             return search_md
         return industry_indicator_get(
@@ -519,11 +510,12 @@ def industry_indicator_data(
             start_date=start_date,
             end_date=end_date,
             limit=limit,
+            output_dir=output_dir,
         )
 
     kw = (keyword or "").strip()
     if kw:
-        return industry_indicator_search(keyword=kw, limit=limit, append_file_hint=True)
+        return industry_indicator_search(keyword=kw, limit=limit, append_file_hint=True, output_dir=output_dir)
 
     return format_response(
         {
@@ -532,8 +524,7 @@ def industry_indicator_data(
             "data": [],
             "usage": {},
         },
-        "industry_indicator",
-    )
+        "industry_indicator", output_dir=output_dir)
 
 
 def main():
@@ -593,6 +584,13 @@ def main():
         help=f"search：检索条数上限（最大 {SEARCH_MAX_LIMIT}）；get：指标数量上限（可超 {GET_BATCH_SIZE}，自动分批）",
     )
 
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
     limit = int(args.limit)
 
@@ -612,13 +610,20 @@ def main():
                 start_date=args.start_date,
                 end_date=args.end_date,
                 limit=limit,
+                output_dir=args.output_dir or None,
             )
         )
         return
 
     kw = (args.keyword or "").strip()
     if kw:
-        print(industry_indicator_data(keyword=kw, limit=limit))
+        print(
+            industry_indicator_data(
+                keyword=kw,
+                limit=limit,
+                output_dir=args.output_dir or None,
+            )
+        )
         return
 
     parser.error("请提供 -k/--keyword 检索，或 --indicators/--indicators-file 拉取数据")

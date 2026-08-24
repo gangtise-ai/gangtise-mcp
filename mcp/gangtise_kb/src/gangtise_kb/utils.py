@@ -127,7 +127,7 @@ def _normalize_kb_file_records(data: List[Dict[str, Any]]) -> None:
         if "文件时间" in file:
             file["文件时间"] = format_file_time(file.get("文件时间"))
 
-def format_response(response: dict, method_name: str, output: Optional[str] = None, additional_message: str = ""):
+def format_response(response: dict, method_name: str, output_dir: Optional[str] = None, additional_message: str = ""):
     
     # 保存usage
     today = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -166,27 +166,23 @@ def format_response(response: dict, method_name: str, output: Optional[str] = No
             data = item["data"]
             _normalize_kb_file_records(data)
             if GTS_SAVE_FILE:
-                if output:
-                    process_path = output
-                    if os.path.exists(process_path):
-                        return_message = "错误信息：文件已存在"
-                        return return_message
+                extension = GTS_SAVE_EXTENSION
+                if output_dir:
+                    process_dir = output_dir
                 else:
-                    extension = GTS_SAVE_EXTENSION
                     process_dir = os.path.join(WORK_PATH, method_name)
-                    if not os.path.exists(process_dir):
-                        os.makedirs(process_dir, exist_ok=True)
+                os.makedirs(process_dir, exist_ok=True)
+                now = datetime.datetime.now().strftime("%H%M%S")
+                process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
+                max_retries = 10
+                while os.path.exists(process_path) and max_retries > 0:
+                    time.sleep(1)
                     now = datetime.datetime.now().strftime("%H%M%S")
                     process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
-                    max_retries = 10
-                    while os.path.exists(process_path) and max_retries > 0:
-                        time.sleep(1)
-                        now = datetime.datetime.now().strftime("%H%M%S")
-                        process_path = os.path.join(process_dir, f"{module_name}_{now}.{extension}")
-                        max_retries -= 1
-                    if max_retries == 0:
-                        return_message = "错误信息：文件存储系统繁忙，请稍后再试"
-                        return return_message
+                    max_retries -= 1
+                if max_retries == 0:
+                    return_message = "错误信息：文件存储系统繁忙，请稍后再试"
+                    return return_message
                 if GTS_SAVE_EXTENSION == "md":
                     with open(process_path, "w", encoding="utf-8") as f:
                         for i, file in enumerate(data):

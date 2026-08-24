@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import authorized_request, HOT_TOPIC_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra
+from .utils import HOT_TOPIC_LIST_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra
 
 
 HOT_TOPIC_CATEGORY_LABEL = {
@@ -244,7 +244,7 @@ def run_hot_topic_list(
     category_list: Optional[List[str]] = None,
     with_related_securities: bool = False,
     with_close_reading: bool = False,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
 ) -> str:
 
     payload = format_hot_topic_payload(
@@ -261,16 +261,16 @@ def run_hot_topic_list(
         return format_response(
             {"state": "error", "message": err, "data": [], "usage": {}},
             "hot_topic_list",
-            output=output,
+            output_dir=output_dir,
         )
     if body is None:
         return format_response(
             {"state": "error", "message": "空响应", "data": [], "usage": {}},
             "hot_topic_list",
-            output=output,
+            output_dir=output_dir,
         )
     normalized = normalize_hot_topic_response(body)
-    return format_response(normalized, "hot_topic_list", output=output)
+    return format_response(normalized, "hot_topic_list", output_dir=output_dir)
 
 
 def _normalize_list(raw: Optional[str]) -> Optional[List[str]]:
@@ -308,7 +308,7 @@ def main():
     )
     parser.add_argument("--with-securities", action="store_true", help="返回是否包含核心标的")
     parser.add_argument("--with-close-reading", action="store_true", help="返回是否包含话题精读")
-    parser.add_argument("-o", "--output", default=None, help="结果保存路径")
+    parser.add_argument("-od", "--output-dir", default=None, help="结果保存目录路径")
     args = parser.parse_args()
 
     out = run_hot_topic_list(
@@ -319,7 +319,7 @@ def main():
         category_list=_normalize_list(args.hot_category),
         with_related_securities=args.with_securities,
         with_close_reading=args.with_close_reading,
-        output=args.output,
+        output_dir=args.output_dir,
     )
     print(out)
 

@@ -15,7 +15,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, COMPANY_ANNOUNCEMENT_DOWNLOAD_URL, FILE_TYPE_MAP, FILE_URL, FOREIGN_REPORT_DOWNLOAD_URL, HK_ANNOUNCEMENT_DOWNLOAD_URL, INDEPENDENT_OPINION_DOWNLOAD_URL, OFFICIAL_ACCOUNT_DOWNLOAD_URL, PAMIRS_SUMMARY_DOWNLOAD_URL, PERFORMANCE_CALENDAR_DOWNLOAD_URL, REPORT_DOWNLOAD_URL, SUMMARY_DOWNLOAD_URL, TRY_MORE_DOWNLOAD, US_ANNOUNCEMENT_DOWNLOAD_URL, WORK_PATH, check_version, file_dir, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (COMPANY_ANNOUNCEMENT_DOWNLOAD_URL, FILE_TYPE_MAP, FILE_URL, FOREIGN_REPORT_DOWNLOAD_URL, HK_ANNOUNCEMENT_DOWNLOAD_URL, INDEPENDENT_OPINION_DOWNLOAD_URL, OFFICIAL_ACCOUNT_DOWNLOAD_URL, PAMIRS_SUMMARY_DOWNLOAD_URL, PERFORMANCE_CALENDAR_DOWNLOAD_URL, REPORT_DOWNLOAD_URL, SUMMARY_DOWNLOAD_URL, TRY_MORE_DOWNLOAD, US_ANNOUNCEMENT_DOWNLOAD_URL, WORK_PATH, authorized_request, check_version, file_dir, get_authorization_headers, get_authorization_token, get_headers_extra)
 
 def _has_cjk(text: str) -> bool:
     return any("\u4e00" <= ch <= "\u9fff" for ch in text)
@@ -804,7 +804,7 @@ def main():
     )
     parser.add_argument("-id", "--file-id", default="", help="文件ID")
     parser.add_argument("-type", "--file-type", default="", help="文件类型")
-    parser.add_argument("-o", "--output", default="", help="输出文件路径")
+    parser.add_argument("-od", "--output-dir", default="", help="输出目录路径")
     parser.add_argument(
         "-dt",
         "--download-type",
@@ -828,7 +828,7 @@ def main():
     out = get_file(
         file_id=file_id,
         file_type=file_type,
-        output=args.output,
+        output_dir=args.output_dir,
         download_type=args.download_type,
     )
     print(out)

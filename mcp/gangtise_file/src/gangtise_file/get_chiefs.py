@@ -12,7 +12,7 @@ if script_dir not in sys.path:
     sys.path.append(script_dir)
 
 from .search_chief import SEARCH_TOP_DEFAULT, chief_item_to_row, search_chiefs  # noqa: E402
-from .utils import check_version, get_authorization_headers, get_authorization_token, get_headers_extra
+from .utils import authorized_request, check_version, get_authorization_headers, get_authorization_token, get_headers_extra
 
 
 def _strip_securities_suffix(text: str) -> str:

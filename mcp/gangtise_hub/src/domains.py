@@ -63,6 +63,16 @@ DOMAINS: Tuple[DomainDef, ...] = (
         when_to_use="需要读取终端个人侧数据并与公开 data/file 能力衔接时。",
     ),
     DomainDef(
+        tool_name="gangtise-screener",
+        package_dir="gangtise_screener",
+        title="条件选股",
+        summary=(
+            "把口语化的选股范围与指标条件翻译成指标选股请求；"
+            "自动解析板块/证券与指标说法，返回命中名单或可落盘 CSV。"
+        ),
+        when_to_use="需要按指标条件在全市场或指定板块内筛选股票时。",
+    ),
+    DomainDef(
         tool_name="gangtise-pdf",
         package_dir="gangtise_pdf",
         title="PDF 高精度解析",

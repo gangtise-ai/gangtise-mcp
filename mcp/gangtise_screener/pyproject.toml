@@ -1,0 +1,30 @@
+[project]
+name = "gangtise-screener-mcp"
+version = "0.1.0"
+description = "Gangtise MCP Server (gangtise_screener): stock screener + stdio MCP."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Gangtise" }]
+dependencies = [
+    "mcp>=1.0.0,<2",
+    "requests>=2.32.5",
+    "pandas>=2.2.3",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+gangtise-screener-mcp = "screener_server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["src"]
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
+
+[tool.hatch.build.targets.sdist]
+only-include = ["src", "pyproject.toml", "README.md", "LICENSE"]

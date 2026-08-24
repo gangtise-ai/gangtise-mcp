@@ -12,7 +12,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, CONCEPT_SECURITIES_URL, CONCEPT_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (CONCEPT_SECURITIES_URL, CONCEPT_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
 
 from .search_concept import SEARCH_TOP_DEFAULT, resolve_concept_keyword
 
@@ -280,7 +280,9 @@ def _build_concept_markdown(
     return "".join(parts).strip()
 
 
-def concept_data(concepts: List[str], query_type: str = "all", top: int = SEARCH_TOP_DEFAULT):
+def concept_data(concepts: List[str], query_type: str = "all", top: int = SEARCH_TOP_DEFAULT,
+    output_dir: Optional[str] = None,
+):
     usage: dict = {}
     qtype = _normalize_query_type(query_type)
     if qtype is None:
@@ -291,8 +293,7 @@ def concept_data(concepts: List[str], query_type: str = "all", top: int = SEARCH
                 "data": [],
                 "usage": usage,
             },
-            "concept",
-        )
+            "concept", output_dir=output_dir)
 
     if not get_authorization_token():
         return format_response(
@@ -302,15 +303,13 @@ def concept_data(concepts: List[str], query_type: str = "all", top: int = SEARCH
                 "data": [],
                 "usage": usage,
             },
-            "concept",
-        )
+            "concept", output_dir=output_dir)
 
     tokens = [str(x).strip() for x in concepts if str(x).strip()]
     if not tokens:
         return format_response(
             {"state": "error", "message": "请提供至少一个题材 ID 或名称", "data": [], "usage": usage},
-            "concept",
-        )
+            "concept", output_dir=output_dir)
 
     headers = get_authorization_headers()
 
@@ -325,8 +324,7 @@ def concept_data(concepts: List[str], query_type: str = "all", top: int = SEARCH
                 "data": [],
                 "usage": usage,
             },
-            "concept",
-        )
+            "concept", output_dir=output_dir)
 
     concept_blocks: List[dict] = []
     fetch_errors: List[str] = []
@@ -398,8 +396,7 @@ def concept_data(concepts: List[str], query_type: str = "all", top: int = SEARCH
             msg = "；".join(resolve_errors + [msg])
         return format_response(
             {"state": "error", "message": msg, "data": [], "usage": usage},
-            "concept",
-        )
+            "concept", output_dir=output_dir)
 
     if info_count > 0:
         usage["concept_info"] = usage.get("concept_info", 0) + info_count * POINTS_PER_CALL
@@ -444,8 +441,7 @@ def concept_data(concepts: List[str], query_type: str = "all", top: int = SEARCH
 
     return format_response(
         {"state": "success", "message": msg, "data": parts, "usage": usage},
-        "concept",
-    )
+        "concept", output_dir=output_dir)
 
 
 def concept_info(concepts: List[str]):
@@ -497,6 +493,13 @@ def main():
         help="名称搜索返回条数上限（最大 10，非纯 ID 时生效）",
     )
 
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
     concepts = _parse_str_list(args.concepts)
     if not concepts and args.concepts_file:
@@ -508,7 +511,9 @@ def main():
     if not concepts:
         parser.error("请提供 -c/--concepts 或 --concepts-file")
 
-    print(concept_data(concepts, query_type=args.type, top=args.top))
+    print(concept_data(concepts, query_type=args.type, top=args.top,
+        output_dir=args.output_dir or None,
+    ))
 
 
 if __name__ == "__main__":

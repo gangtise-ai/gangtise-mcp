@@ -12,7 +12,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, COMPANY_ANNOUNCEMENT_DOWNLOAD_URL, FILE_TYPE_MAP, FILE_URL, FOREIGN_REPORT_DOWNLOAD_URL, REPORT_DOWNLOAD_URL, SUMMARY_DOWNLOAD_URL, WORK_PATH, check_version, file_dir, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (COMPANY_ANNOUNCEMENT_DOWNLOAD_URL, FILE_TYPE_MAP, FILE_URL, FOREIGN_REPORT_DOWNLOAD_URL, REPORT_DOWNLOAD_URL, SUMMARY_DOWNLOAD_URL, WORK_PATH, authorized_request, check_version, file_dir, get_authorization_headers, get_authorization_token, get_headers_extra)
 
 def _normalize_download_type(download_type: Optional[str]) -> str:
     return (download_type or "markdown").strip().lower()
@@ -371,7 +371,7 @@ def main():
     )
     parser.add_argument("-id", "--file-id", default="", help="文件ID")
     parser.add_argument("-type", "--file-type", default="", help="文件类型")
-    parser.add_argument("-o", "--output", default="", help="输出文件路径")
+    parser.add_argument("-od", "--output-dir", default="", help="输出目录路径")
     parser.add_argument("-dt", "--download-type", default="markdown", help="下载类型")
 
     args = parser.parse_args()
@@ -387,7 +387,7 @@ def main():
     out = get_file(
         file_id=file_id,
         file_type=file_type,
-        output=args.output,
+        output_dir=args.output_dir,
         download_type=args.download_type,
     )
     print(out)

@@ -12,7 +12,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search
 
-from .utils import (authorized_request, DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, FORUM_LIST_URL, PERFORMANCE_CALENDAR_LIST_URL, RESEARCH_AREA_MAP, ROADSHOW_LIST_URL, SITE_VISIT_LIST_URL, STRATEGY_MEETING_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
+from .utils import (DOWNLOAD_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, FORUM_LIST_URL, PERFORMANCE_CALENDAR_LIST_URL, RESEARCH_AREA_MAP, ROADSHOW_LIST_URL, SITE_VISIT_LIST_URL, STRATEGY_MEETING_LIST_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
 from .search_institution import (
     CATEGORY_LEAD_INSTITUTION,
     USAGE_PARAM_INSTITUTION_LIST,
@@ -429,8 +429,7 @@ def calendar_finder(
                     ),
                     "data": [],
                 },
-                "calendar",
-            )
+                "calendar", output_dir=output_dir)
 
         url = KIND_URL[kind]
         headers = get_authorization_headers()
@@ -447,16 +446,14 @@ def calendar_finder(
             if inst_candidates:
                 return format_response(
                     {"state": "error", "message": inst_candidates, "data": []},
-                    "calendar",
-                )
+                    "calendar", output_dir=output_dir)
             if not institution_ids:
                 msg = "机构解析失败"
                 if inst_notes:
                     msg += "：" + "；".join(inst_notes)
                 return format_response(
                     {"state": "error", "message": msg, "data": []},
-                    "calendar",
-                )
+                    "calendar", output_dir=output_dir)
 
         securities_resolved = securities
         if securities:
@@ -467,8 +464,7 @@ def calendar_finder(
             if resolved.get("state") != "success":
                 return format_response(
                     {"state": "error", "message": resolved.get("message") or "证券解析失败", "data": []},
-                    "calendar",
-                )
+                    "calendar", output_dir=output_dir)
             securities_resolved = resolved["codes"]
 
         start_timestamp, end_timestamp = (None, None)
@@ -500,21 +496,19 @@ def calendar_finder(
                     "message": "财报日历不支持关键词搜索，请使用日期、证券、市场或财报类型筛选",
                     "data": [],
                 },
-                "calendar",
-            )
+                "calendar", output_dir=output_dir)
 
         all_results, err = _fetch_list(url, headers, payload_base, keyword_str, limit, kind)
         part_error_message = ""
         if err and not all_results:
-            return format_response({"state": "error", "message": err}, "calendar")
+            return format_response({"state": "error", "message": err}, "calendar", output_dir=output_dir)
         if err and all_results:
             part_error_message = f"未完整获取全部结果，错误信息：{err}"
 
         if not all_results:
             return format_response(
                 {"state": "error", "message": "未找到相关日程，建议修改查询条件", "data": []},
-                "calendar",
-            )
+                "calendar", output_dir=output_dir)
 
         all_results = all_results[:limit]
 
@@ -546,12 +540,11 @@ def calendar_finder(
             "message": "已找到相关日程",
             "data": [{"data": all_results, "module": "calendar", "type": "files"}],
         }
-        return format_response(response_data, "calendar", additional_message=additional_message)
+        return format_response(response_data, "calendar", additional_message=additional_message, output_dir=output_dir)
     except Exception as e:
         return format_response(
             {"state": "error", "message": str(e), "data": [], "usage": {}},
-            "calendar",
-        )
+            "calendar", output_dir=output_dir)
 
 
 def _parse_str_list(raw: str) -> Optional[List[str]]:
@@ -677,7 +670,7 @@ def main():
         "-od",
         "--output-dir",
         default=None,
-        help="下载文件保存目录（建议绝对路径）；仅在 -d 且 type=performance 时有效",
+        help="结果与下载文件保存目录路径，建议使用绝对路径",
     )
 
     args = parser.parse_args()
@@ -693,9 +686,6 @@ def main():
     permission_list = _parse_int_list(args.permission)
     download = args.download or False
     output_dir = args.output_dir or None
-    if not download and output_dir:
-        print("[WARNING] 参数 -od/--output-dir 仅在下载文件时有效，已忽略\n")
-        output_dir = None
 
     try:
         if not check_version():

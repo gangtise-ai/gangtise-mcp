@@ -1078,21 +1078,20 @@ def quote_data(
     all_market_markets: Optional[Tuple[str, ...]] = None,
     data_type: str = "daily",
     adjust_mode: Optional[str] = None,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
-            "quote",
-        )
+            "quote", output_dir=output_dir)
 
     headers = get_authorization_headers()
     data_type = (data_type or "daily").strip().lower()
     if data_type not in {"daily", "minute", "snap"}:
         return format_response(
             {"state": "error", "message": "type 仅支持 daily、minute 或 snap", "data": [], "usage": usage},
-            "quote",
-        )
+            "quote", output_dir=output_dir)
     if data_type == "snap":
         if adjust_mode is not None and normalize_adjust_mode(adjust_mode) != "none":
             return format_response(
@@ -1102,8 +1101,7 @@ def quote_data(
                     "data": [],
                     "usage": usage,
                 },
-                "quote",
-            )
+                "quote", output_dir=output_dir)
         adj_mode = "none"
     elif data_type == "minute":
         if adjust_mode is not None and normalize_adjust_mode(adjust_mode) != "none":
@@ -1114,8 +1112,7 @@ def quote_data(
                     "data": [],
                     "usage": usage,
                 },
-                "quote",
-            )
+                "quote", output_dir=output_dir)
         adj_mode = "none"
     else:
         adj_mode = normalize_adjust_mode(adjust_mode)
@@ -1153,8 +1150,7 @@ def quote_data(
                         "data": [],
                         "usage": usage,
                     },
-                    "quote",
-                )
+                    "quote", output_dir=output_dir)
             codes = resolved.get("codes") or []
             abbr_map = resolved_code_abbr_map(resolved)
             resolved_types = list(resolved.get("types") or [])
@@ -1168,8 +1164,7 @@ def quote_data(
                     "data": [],
                     "usage": usage,
                 },
-                "quote",
-            )
+                "quote", output_dir=output_dir)
         while len(resolved_types) < len(codes):
             resolved_types.append("")
         if data_type == "daily":
@@ -1308,8 +1303,7 @@ def quote_data(
                     "data": [],
                     "usage": usage,
                 },
-                "quote",
-            )
+                "quote", output_dir=output_dir)
         # 分钟接口仅支持 A 股 securityCode 单值；港股/指数等在 skipped_quote 中说明，不报错中断。
         minute_codes = list(dict.fromkeys(daily_a_codes))
         if not minute_codes:
@@ -1319,8 +1313,7 @@ def quote_data(
                 msg = f"{msg}；未拉取到分钟行情数据"
             return format_response(
                 {"state": "error", "message": msg, "data": [], "usage": usage},
-                "quote",
-            )
+                "quote", output_dir=output_dir)
 
         def _fetch_one_minute(code: str) -> Tuple[str, pd.DataFrame, Optional[str]]:
             payload_one = {
@@ -1350,8 +1343,7 @@ def quote_data(
         error_message = "；".join(pieces) if pieces else "未找到行情数据"
         return format_response(
             {"state": "error", "message": error_message, "data": [], "usage": usage},
-            "quote",
-        )
+            "quote", output_dir=output_dir)
 
     if data_parts:
         data = pd.concat(data_parts, ignore_index=True)
@@ -1408,8 +1400,7 @@ def quote_data(
         empty_msg = "未找到截面行情数据" if data_type == "snap" else "日期范围内未找到行情数据"
         return format_response(
             {"state": "error", "message": empty_msg, "data": [], "usage": usage},
-            "quote",
-        )
+            "quote", output_dir=output_dir)
 
     # 日 K 复权：优先使用日 K 内嵌 adjustFactor（A/港/美）；缺失时再走独立复权因子接口
     # 指数通常无复权因子，保持原价量列；多市场混查时分块输出
@@ -1499,8 +1490,7 @@ def quote_data(
         except ValueError as adj_err:
             return format_response(
                 {"state": "error", "message": str(adj_err), "data": [], "usage": usage},
-                "quote",
-            )
+                "quote", output_dir=output_dir)
     else:
         output_blocks.append((data, False, "single"))
 
@@ -1515,8 +1505,7 @@ def quote_data(
     if not formatted_tables:
         return format_response(
             {"state": "error", "message": "日期范围内未找到行情数据", "data": [], "usage": usage},
-            "quote",
-        )
+            "quote", output_dir=output_dir)
 
     hk_code_set = frozenset(c.upper() for c in daily_hk_codes)
     idx_code_set = frozenset(c.upper() for c in daily_idx_codes)
@@ -1567,8 +1556,7 @@ def quote_data(
             "data": parts,
             "usage": usage,
         },
-        "quote",
-    )
+        "quote", output_dir=output_dir)
 
 
 def main():
@@ -1618,6 +1606,13 @@ def main():
         default=None,
         help="复权方式（仅日 K）：forward/qfq/前复权（默认）、backward/hfq/后复权、none/raw/不复权",
     )
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
 
     try:
@@ -1655,6 +1650,7 @@ def main():
         all_market_markets=all_market_markets,
         data_type=args.data_type,
         adjust_mode=args.adjust,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

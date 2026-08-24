@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, GET_POOL_LIST_URL, GET_STOCK_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg, load_pool_ids_from_file)
+from .utils import (GET_POOL_LIST_URL, GET_STOCK_LIST_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg, load_pool_ids_from_file)
 
 DEFAULT_POOL_LIMIT = 100
 IDS_FILE_HINT = "可以删除行或保留需要的池，再通过 --pool-file 参数读取文件获取证券"
@@ -162,6 +162,7 @@ def stockpool_search(
     keyword: str = "",
     limit: int = DEFAULT_POOL_LIMIT,
     append_file_hint: bool = False,
+    output_dir: Optional[str] = None,
     **kwargs,
 ):
     usage: dict = {}
@@ -173,16 +174,14 @@ def stockpool_search(
                 "data": [],
                 "usage": usage,
             },
-            "stockpool",
-        )
+            "stockpool", output_dir=output_dir)
 
     headers = get_authorization_headers()
     pools, err = _fetch_pool_list(headers)
     if err:
         return format_response(
             {"state": "error", "message": err, "data": [], "usage": usage},
-            "stockpool",
-        )
+            "stockpool", output_dir=output_dir)
     if not pools:
         return format_response(
             {
@@ -191,8 +190,7 @@ def stockpool_search(
                 "data": [],
                 "usage": usage,
             },
-            "stockpool",
-        )
+            "stockpool", output_dir=output_dir)
 
     pools = _filter_pools_by_keyword(pools, keyword)
     pools = _apply_pool_limit(pools, limit)
@@ -205,8 +203,7 @@ def stockpool_search(
                 "data": [],
                 "usage": usage,
             },
-            "stockpool",
-        )
+            "stockpool", output_dir=output_dir)
 
     df = _pools_to_df(pools)
     parts = [
@@ -223,13 +220,13 @@ def stockpool_search(
         msg += f"；{IDS_FILE_HINT}"
     return format_response(
         {"state": "success", "message": msg, "data": parts, "usage": usage},
-        "stockpool",
-    )
+        "stockpool", output_dir=output_dir)
 
 
 def stockpool_get(
     pool_ids: List[str],
     all_pools: bool = False,
+    output_dir: Optional[str] = None,
     **kwargs,
 ):
     usage: dict = {}
@@ -241,8 +238,7 @@ def stockpool_get(
                 "data": [],
                 "usage": usage,
             },
-            "stockpool",
-        )
+            "stockpool", output_dir=output_dir)
 
     if all_pools:
         pool_id_list = ["all"]
@@ -256,16 +252,14 @@ def stockpool_get(
                     "data": [],
                     "usage": usage,
                 },
-                "stockpool",
-            )
+                "stockpool", output_dir=output_dir)
 
     headers = get_authorization_headers()
     stocks, err = _fetch_stock_list(headers, pool_id_list)
     if err:
         return format_response(
             {"state": "error", "message": err, "data": [], "usage": usage},
-            "stockpool",
-        )
+            "stockpool", output_dir=output_dir)
     if not stocks:
         return format_response(
             {
@@ -274,8 +268,7 @@ def stockpool_get(
                 "data": [],
                 "usage": usage,
             },
-            "stockpool",
-        )
+            "stockpool", output_dir=output_dir)
 
     df = _stocks_to_df(stocks)
     parts = [
@@ -291,8 +284,7 @@ def stockpool_get(
         msg = f"已获取 {len(pool_id_list)} 个股票池共 {len(df)} 只证券（已按代码去重）"
     return format_response(
         {"state": "success", "message": msg, "data": parts, "usage": usage},
-        "stockpool",
-    )
+        "stockpool", output_dir=output_dir)
 
 
 def stockpool_finder(
@@ -300,18 +292,19 @@ def stockpool_finder(
     pool_ids: Optional[str] = None,
     all_pools: bool = False,
     limit: int = DEFAULT_POOL_LIMIT,
+    output_dir: Optional[str] = None,
 ):
     """检索自选股池列表，或在提供 pool_ids / all_pools 时获取池内成分股。"""
     if all_pools:
-        return stockpool_get(pool_ids=[], all_pools=True)
+        return stockpool_get(pool_ids=[], all_pools=True, output_dir=output_dir)
     if pool_ids and str(pool_ids).strip():
         resolved, err = _resolve_pools_from_arg(str(pool_ids).strip(), limit)
         if err:
             return err
         ids = resolved or []
         if ids:
-            return stockpool_get(pool_ids=ids, all_pools=False)
-    return stockpool_search(keyword=keyword, limit=limit, append_file_hint=True)
+            return stockpool_get(pool_ids=ids, all_pools=False, output_dir=output_dir)
+    return stockpool_search(keyword=keyword, limit=limit, append_file_hint=True, output_dir=output_dir)
 
 
 def main():
@@ -365,6 +358,12 @@ def main():
         action="store_true",
         help='get 模式传 poolIdList=["all"]，返回全部池去重证券',
     )
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
 
     args = parser.parse_args()
     pool_arg = args.pool
@@ -381,6 +380,7 @@ def main():
             pool_ids=pool_arg,
             all_pools=bool(args.all),
             limit=int(args.limit),
+            output_dir=args.output_dir or None,
         )
     )
 

@@ -1,0 +1,29 @@
+name: screener
+title: Stock Screener
+description: 条件选股。把口语化的选股范围与指标条件翻译成 Gangtise 指标选股请求并返回命中名单。支持自动解析板块/证券范围与指标说法；歧义时 blocked 并返回候选。
+parameters:
+  expression:
+    type: string
+    description: 条件表达式，如 "ROE > 15 && 总市值 > 500亿"；文本 contains 须给字符串加引号
+    required: true
+  universe:
+    type: string
+    description: 选股范围说法或 sectorId/证券代码，逗号分隔；省略时默认全A
+  indicators:
+    type: string
+    description: 指标名或编码，逗号分隔；可省略，从 expression 自动抽取
+  params:
+    type: string
+    description: 参数覆盖 JSON 字符串，如 {"总市值":{"scale":"8"}}
+  trade_date:
+    type: string
+    description: 覆盖行情类 tradeDate（默认最近交易日）
+  report_date:
+    type: string
+    description: 覆盖财报类 reportDate（默认最近已披露年报）
+  dry_run:
+    type: boolean
+    description: 只构造 payload 预览，不发起实际选股请求
+  output_dir:
+    type: string
+    description: 结果 CSV 保存目录（建议使用绝对路径）

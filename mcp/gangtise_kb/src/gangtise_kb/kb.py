@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, FILE_TYPE_MAP, FILE_TYPE_MAP_REVERSE, RAG_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (FILE_TYPE_MAP, FILE_TYPE_MAP_REVERSE, RAG_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
 
 from .get_file import download_files
 
@@ -93,7 +93,6 @@ def rag_files_finder(
     end_date: Optional[str] = None,
     file_types: Optional[List[str]] = None,
     limit: Optional[int] = None,
-    output: Optional[str] = None,
     download: bool = False,
     output_dir: Optional[str] = None,
     download_types: Optional[List[str]] = None,
@@ -121,6 +120,7 @@ def rag_files_finder(
                     "usage": {},
                 },
                 "rag",
+                output_dir=output_dir,
             )
 
         headers = get_authorization_headers()
@@ -134,7 +134,7 @@ def rag_files_finder(
         }
         response = authorized_request("POST", RAG_URL, headers=headers, json=payload, timeout=300)
         if response.status_code != 200:
-            return format_response({"state": "error", "message": response.text}, "rag")
+            return format_response({"state": "error", "message": response.text}, "rag", output_dir=output_dir)
         response = response.json()
         response = _format_rag_result(response)
         additional_message = None
@@ -145,13 +145,14 @@ def rag_files_finder(
                 output_dir=output_dir,
                 download_types=download_types or ["pdf"],
             )
-        return format_response(response, "rag", output=output, additional_message=additional_message or "")
+        return format_response(response, "rag", output_dir=output_dir, additional_message=additional_message or "")
     except Exception as e:
         import traceback
         traceback.print_exc()
         return format_response(
             {"state": "error", "message": str(e), "data": [], "usage": {}},
             "rag",
+            output_dir=output_dir,
         )
 
 
@@ -178,12 +179,6 @@ def main():
         help="结果数量限制",
     )
     parser.add_argument(
-        "-o",
-        "--output",
-        default=None,
-        help="结果保存路径（当前版本由后端统一管理，本参数暂不生效）",
-    )
-    parser.add_argument(
         "-d",
         "--download",
         default=False,
@@ -194,7 +189,7 @@ def main():
         "-od",
         "--output-dir",
         default=None,
-        help="下载文件保存路径，建议使用绝对路径",
+        help="结果与下载文件保存目录路径，建议使用绝对路径",
     )
     parser.add_argument(
         "-dt",
@@ -216,9 +211,6 @@ def main():
 
     download = args.download or False
     output_dir = args.output_dir or None
-    if not download and output_dir:
-        print(f"[WARNING] 参数 -od/--output-dir 仅在下载文件时有效，已忽略\n")
-        output_dir = None
     download_types = _normalize_file_types(args.download_types) or ["pdf"]
 
     out = rag_files_finder(
@@ -227,7 +219,6 @@ def main():
         end_date=end_date,
         file_types=file_types,
         limit=limit,
-        output=args.output,
         download=download,
         output_dir=output_dir,
         download_types=download_types,

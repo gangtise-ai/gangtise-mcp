@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, ANNOUNCEMENT_CATEGORY_MAP, COMPANY_ANNOUNCEMENT_URL, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, HK_ANNOUNCEMENT_CATEGORY_MAP, HK_ANNOUNCEMENT_LIST_URL, US_ANNOUNCEMENT_CATEGORY_MAP, US_ANNOUNCEMENT_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
+from .utils import (ANNOUNCEMENT_CATEGORY_MAP, COMPANY_ANNOUNCEMENT_URL, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, HK_ANNOUNCEMENT_CATEGORY_MAP, HK_ANNOUNCEMENT_LIST_URL, US_ANNOUNCEMENT_CATEGORY_MAP, US_ANNOUNCEMENT_LIST_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
 from .get_file import download_files
 from .security import batch_security_search
 
@@ -458,8 +458,7 @@ def announcement_finder(
                         "message": resolved.get("message") or "证券解析失败",
                         "data": [],
                     },
-                    "announcement",
-                )
+                    "announcement", output_dir=output_dir)
             hk_codes, cn_codes, us_codes = _partition_announcement_by_security_type(
                 resolved.get("codes") or [],
                 resolved.get("types") or [],
@@ -471,8 +470,7 @@ def announcement_finder(
                         "message": "所选证券类型不支持公告检索（如指数、基金等），请改用股票或存托凭证代码",
                         "data": [],
                     },
-                    "announcement",
-                )
+                    "announcement", output_dir=output_dir)
 
         # (market, security_list or None)；无证券时仅走 A 股公司公告 keyword 检索
         groups: List[Tuple[str, Optional[List[str]]]] = []
@@ -529,12 +527,10 @@ def announcement_finder(
             if branch_errors:
                 return format_response(
                     {"state": "error", "message": "；".join(branch_errors), "data": []},
-                    "announcement",
-                )
+                    "announcement", output_dir=output_dir)
             return format_response(
                 {"state": "error", "message": "未找到相关公告，建议修改查询条件", "data": []},
-                "announcement",
-            )
+                "announcement", output_dir=output_dir)
 
         all_results = all_results[:limit]
 
@@ -560,14 +556,13 @@ def announcement_finder(
         if branch_errors:
             warn = "；".join(branch_errors)
             response_data["message"] = f"{msg}（部分市场未取全：{warn}）"
-        return format_response(response_data, "announcement", additional_message=additional_message)
+        return format_response(response_data, "announcement", additional_message=additional_message, output_dir=output_dir)
     except Exception as e:
         import traceback
         traceback.print_exc()
         return format_response(
             {"state": "error", "message": str(e), "data": [], "usage": {}},
-            "announcement",
-        )
+            "announcement", output_dir=output_dir)
 
 
 def _parse_str_list(raw: str) -> Optional[List[str]]:
@@ -631,7 +626,7 @@ def main():
         "-od",
         "--output-dir",
         default=None,
-        help="下载文件保存路径，建议使用绝对路径",
+        help="结果与下载文件保存目录路径，建议使用绝对路径",
     )
     parser.add_argument(
         "-dt",
@@ -656,9 +651,6 @@ def main():
     rank_type = int(args.rank_type or 1)
     download = args.download or False
     output_dir = args.output_dir or None
-    if not download and output_dir:
-        print(f"[WARNING] 参数 -od/--output-dir 仅在下载文件时有效，已忽略\n")
-        output_dir = None
     download_types = _parse_str_list(args.download_types)
     out = announcement_finder(
         keyword=keyword,

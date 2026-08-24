@@ -10,7 +10,7 @@ if script_dir not in sys.path:
     sys.path.append(script_dir)
 
 from .search_account import SEARCH_TOP_DEFAULT, resolve_account_token  # noqa: E402
-from .utils import (authorized_request, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, INDUSTRIES_MAP, OFFICIAL_ACCOUNT_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
+from .utils import (DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, INDUSTRIES_MAP, OFFICIAL_ACCOUNT_LIST_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
 from .get_file import download_files
 from .security import batch_security_search
 
@@ -254,7 +254,7 @@ def official_account_finder(
                 accounts, headers, account_category_list=account_category_list
             )
             if account_err:
-                return format_response({"state": "error", "message": account_err}, "official_account")
+                return format_response({"state": "error", "message": account_err}, "official_account", output_dir=output_dir)
 
         securities_input = list(securities) if securities else []
         if securities_input:
@@ -265,8 +265,7 @@ def official_account_finder(
             if resolved.get("state") != "success":
                 return format_response(
                     {"state": "error", "message": resolved.get("message") or "证券解析失败"},
-                    "official_account",
-                )
+                    "official_account", output_dir=output_dir)
             securities = resolved["codes"]
         else:
             securities = None
@@ -297,7 +296,7 @@ def official_account_finder(
             headers, payload_base, keyword_str, search_type, rank_type, limit
         )
         if err and not all_results:
-            return format_response({"state": "error", "message": err}, "official_account")
+            return format_response({"state": "error", "message": err}, "official_account", output_dir=output_dir)
         if err and all_results:
             part_error_message = f"未完整获取全部结果，错误信息：{err}"
 
@@ -306,7 +305,7 @@ def official_account_finder(
                 headers, payload_base, keyword_str, 2, rank_type, limit
             )
             if err and not all_results:
-                return format_response({"state": "error", "message": err}, "official_account")
+                return format_response({"state": "error", "message": err}, "official_account", output_dir=output_dir)
             if err and all_results:
                 part_error_message = f"未完整获取全部结果，错误信息：{err}"
 
@@ -317,8 +316,7 @@ def official_account_finder(
                     "message": "未找到相关公众号资讯，建议修改查询条件",
                     "data": [],
                 },
-                "official_account",
-            )
+                "official_account", output_dir=output_dir)
 
         all_results = all_results[:limit]
 
@@ -336,12 +334,11 @@ def official_account_finder(
             "message": "已找到相关公众号资讯",
             "data": [{"data": all_results, "module": "official_account", "type": "files"}],
         }
-        return format_response(response_data, "official_account", additional_message=additional_message)
+        return format_response(response_data, "official_account", additional_message=additional_message, output_dir=output_dir)
     except Exception as e:
         return format_response(
             {"state": "error", "message": str(e), "data": [], "usage": {}},
-            "official_account",
-        )
+            "official_account", output_dir=output_dir)
 
 
 def _parse_str_list(raw: str) -> Optional[List[str]]:
@@ -436,7 +433,7 @@ def main():
         "-od",
         "--output-dir",
         default=None,
-        help="下载保存目录，建议绝对路径",
+        help="结果与下载文件保存目录路径，建议使用绝对路径",
     )
     parser.add_argument(
         "-dt",
@@ -448,9 +445,6 @@ def main():
     args = parser.parse_args()
 
     output_dir = args.output_dir or None
-    if not args.download and output_dir:
-        print("[WARNING] -od/--output-dir 仅在 -d 下载时有效，已忽略\n")
-        output_dir = None
 
     try:
         if not check_version():

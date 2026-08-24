@@ -16,6 +16,7 @@ dependencies = [
     "gangtise-file-mcp",
     "gangtise-kb-mcp",
     "gangtise-private-mcp",
+    "gangtise-screener-mcp",
     "gangtise-pdf-mcp",
 ]
 
@@ -41,4 +42,5 @@ gangtise-data-mcp = { path = "../gangtise_data", editable = true }
 gangtise-file-mcp = { path = "../gangtise_file", editable = true }
 gangtise-kb-mcp = { path = "../gangtise_kb", editable = true }
 gangtise-private-mcp = { path = "../gangtise_private", editable = true }
+gangtise-screener-mcp = { path = "../gangtise_screener", editable = true }
 gangtise-pdf-mcp = { path = "../gangtise_pdf", editable = true }

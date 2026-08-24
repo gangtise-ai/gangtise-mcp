@@ -13,7 +13,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (authorized_request, TOP_HOLDERS_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (TOP_HOLDERS_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 HOLDER_TYPE_MAP = {
     "top10": "top10",
@@ -141,13 +141,13 @@ def shareholder_data(
     end_date: Optional[str] = None,
     fiscal_year: Optional[List[str]] = None,
     period: Optional[List[str]] = None,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
-            "shareholder",
-        )
+            "shareholder", output_dir=output_dir)
 
     normalized_holder_type = _normalize_holder_type(holder_type)
     if not normalized_holder_type:
@@ -158,8 +158,7 @@ def shareholder_data(
                 "data": [],
                 "usage": usage,
             },
-            "shareholder",
-        )
+            "shareholder", output_dir=output_dir)
 
     fy = _normalize_fiscal_year(fiscal_year)
     periods = _normalize_periods(period)
@@ -185,8 +184,7 @@ def shareholder_data(
                 "data": [],
                 "usage": usage,
             },
-            "shareholder",
-        )
+            "shareholder", output_dir=output_dir)
     securities_codes = resolved.get("codes") or []
     securities_abbrs = resolved.get("abbrs") or []
     abbr_map = resolved_code_abbr_map(resolved)
@@ -200,8 +198,7 @@ def shareholder_data(
                 "data": [],
                 "usage": usage,
             },
-            "shareholder",
-        )
+            "shareholder", output_dir=output_dir)
 
     frames: List[pd.DataFrame] = []
     for abbr, code in zip(securities_abbrs, securities_codes):
@@ -221,8 +218,7 @@ def shareholder_data(
     if not frames:
         return format_response(
             {"state": "error", "message": "未找到股东数据", "data": [], "usage": usage},
-            "shareholder",
-        )
+            "shareholder", output_dir=output_dir)
 
     data = pd.concat(frames, ignore_index=True)
     if "date" in data.columns:
@@ -247,8 +243,7 @@ def shareholder_data(
             "data": parts,
             "usage": usage,
         },
-        "shareholder",
-    )
+        "shareholder", output_dir=output_dir)
 
 
 def main():
@@ -276,6 +271,13 @@ def main():
     )
     parser.add_argument("--securities", default=None, help="证券逗号分隔：完整代码或名称/拼音等")
     parser.add_argument("--securities-file", default=None, help="csv 含 security_code 列（代码或名称）")
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
 
     securities: Optional[List[str]] = None
@@ -302,6 +304,7 @@ def main():
         end_date=args.end_date,
         fiscal_year=fy,
         period=period_list if period_list else None,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

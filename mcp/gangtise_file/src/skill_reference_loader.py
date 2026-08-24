@@ -1,4 +1,4 @@
-"""从 skills/openapi/frontend 参考文档解析工具说明与参数描述。"""
+"""从 skills/openapi 参考文档解析工具说明与参数描述。"""
 from __future__ import annotations
 
 import re
@@ -6,10 +6,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
-# mcps/gangtise_file/src -> skills-backend/skills/openapi/frontend
+# mcps/gangtise_file/src -> skills-backend/skills/openapi
 _SKILLS_CANDIDATES = [
-    Path(__file__).resolve().parents[2] / "skills" / "openapi" / "frontend",
-    Path(__file__).resolve().parents[3] / "skills" / "openapi" / "frontend",
+    Path(__file__).resolve().parents[2] / "skills" / "openapi",
+    Path(__file__).resolve().parents[3] / "skills" / "openapi",
 ]
 
 
