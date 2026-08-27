@@ -67,6 +67,34 @@ def _keep_latest_valid_day(
     return {}
 
 
+def _is_valid_metric_value(value: object) -> bool:
+    if value is None:
+        return False
+    try:
+        if pd.isna(value):
+            return False
+    except (TypeError, ValueError):
+        pass
+    return True
+
+
+def _day_has_valid_metrics(cols: Dict[str, object]) -> bool:
+    return any(_is_valid_metric_value(v) for v in cols.values())
+
+
+def _date_map_has_valid(merged_by_date: Dict[str, Dict[str, object]]) -> bool:
+    return any(_day_has_valid_metrics(cols) for cols in merged_by_date.values())
+
+
+def _keep_latest_valid_day(
+    merged_by_date: Dict[str, Dict[str, object]],
+) -> Dict[str, Dict[str, object]]:
+    for d in sorted(merged_by_date.keys(), reverse=True):
+        if _day_has_valid_metrics(merged_by_date[d]):
+            return {d: merged_by_date[d]}
+    return {}
+
+
 def _parse_valuation_analysis_body(
     body: dict,
     indicator: str,
