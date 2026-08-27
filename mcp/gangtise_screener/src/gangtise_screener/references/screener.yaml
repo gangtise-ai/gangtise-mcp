@@ -1,0 +1,44 @@
+name: screener
+title: Stock Screener
+description: >
+  条件选股。一个工具三种 action：
+  run（默认）— 把口语化范围与指标条件翻译成选股请求并返回命中名单，歧义时 blocked 并返回候选；
+  resolve_indicator — 解析指标说法，返回候选编码与参数元数据；
+  resolve_universe — 解析范围说法，返回 sectorId / 证券代码候选。
+parameters:
+  action:
+    type: string
+    description: >
+      必填。run — 执行条件选股（默认）；resolve_indicator — 解析指标说法；
+      resolve_universe — 解析板块/证券范围说法。消歧调试时用后两者，确认后再 run。
+    required: true
+  expression:
+    type: string
+    description: action=run 必填。条件表达式，如 "ROE > 15 && 总市值 > 500亿"；文本 contains 须给字符串加引号
+  phrase:
+    type: string
+    description: action=resolve_indicator 或 resolve_universe 必填。说法文本，逗号分隔可传多个
+  universe:
+    type: string
+    description: action=run 时可选。选股范围说法或 sectorId/证券代码，逗号分隔；省略时默认全A
+  indicators:
+    type: string
+    description: action=run 时可选。指标名或编码，逗号分隔；可省略，从 expression 自动抽取
+  params:
+    type: string
+    description: action=run 时可选。参数覆盖 JSON 字符串，如 {"总市值":{"scale":"8"}}
+  trade_date:
+    type: string
+    description: action=run 时可选。覆盖行情类 tradeDate（默认最近交易日）
+  report_date:
+    type: string
+    description: action=run 时可选。覆盖财报类 reportDate（默认最近已披露年报）
+  top:
+    type: integer
+    description: action=resolve_indicator 时可选。每个说法返回的候选数量，默认 5
+  dry_run:
+    type: boolean
+    description: action=run 时可选。只构造 payload 预览，不发起实际选股请求
+  output_dir:
+    type: string
+    description: action=run 时可选。结果 CSV 保存目录（建议使用绝对路径）

@@ -11,7 +11,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, FOREIGN_OPINION_URL, INDEPENDENT_OPINION_LIST_URL, INDUSTRIES_MAP, REGIONS_MAP, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
+from .utils import (DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, FOREIGN_OPINION_URL, INDEPENDENT_OPINION_LIST_URL, INDUSTRIES_MAP, REGIONS_MAP, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
 from .get_file import download_files
 from .security import batch_security_search
 from .search_institution import (
@@ -274,14 +274,12 @@ def opinion_finder(
     if source not in ("institution", "independent"):
         return format_response(
             {"state": "error", "message": "source 仅支持 institution（外资机构观点）或 independent（外资独立观点）", "data": []},
-            "foreign_opinion",
-        )
+            "foreign_opinion", output_dir=output_dir)
 
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": []},
-            "foreign_opinion",
-        )
+            "foreign_opinion", output_dir=output_dir)
 
     try:
         limit = resolve_result_limit(limit, download, "foreign_opinion")
@@ -300,16 +298,14 @@ def opinion_finder(
             if inst_candidates:
                 return format_response(
                     {"state": "error", "message": inst_candidates, "data": []},
-                    "foreign_opinion",
-                )
+                    "foreign_opinion", output_dir=output_dir)
             if not org_ids:
                 msg = "机构解析失败"
                 if inst_notes:
                     msg += "：" + "；".join(inst_notes)
                 return format_response(
                     {"state": "error", "message": msg, "data": []},
-                    "foreign_opinion",
-                )
+                    "foreign_opinion", output_dir=output_dir)
         region_ids = _resolve_regions(region_list) if region_list and source == "institution" else []
 
         securities_input = list(securities) if securities else []
@@ -321,8 +317,7 @@ def opinion_finder(
             if resolved.get("state") != "success":
                 return format_response(
                     {"state": "error", "message": resolved.get("message") or "证券解析失败"},
-                    "foreign_opinion",
-                )
+                    "foreign_opinion", output_dir=output_dir)
             securities_resolved = resolved["codes"]
         else:
             securities_resolved = None
@@ -370,15 +365,14 @@ def opinion_finder(
         all_results, err = _fetch_opinion_pages(url, headers, payload_base, keyword_str, rank_type, limit, formatter)
         part_error_message = ""
         if err and not all_results:
-            return format_response({"state": "error", "message": err}, "foreign_opinion")
+            return format_response({"state": "error", "message": err}, "foreign_opinion", output_dir=output_dir)
         if err and all_results:
             part_error_message = f"未完整获取全部结果，错误信息：{err}"
 
         if not all_results:
             return format_response(
                 {"state": "error", "message": f"未找到相关{label}，建议修改查询条件", "data": []},
-                "foreign_opinion",
-            )
+                "foreign_opinion", output_dir=output_dir)
 
         all_results = all_results[:limit]
 
@@ -400,12 +394,11 @@ def opinion_finder(
             "message": f"已找到相关{label}",
             "data": [{"data": all_results, "module": "foreign_opinion", "type": "files"}],
         }
-        return format_response(response_data, "foreign_opinion", additional_message=additional_message)
+        return format_response(response_data, "foreign_opinion", additional_message=additional_message, output_dir=output_dir)
     except Exception as e:
         return format_response(
             {"state": "error", "message": str(e), "data": [], "usage": {}},
-            "foreign_opinion",
-        )
+            "foreign_opinion", output_dir=output_dir)
 
 
 def _parse_str_list(raw: str) -> Optional[List[str]]:
@@ -474,7 +467,7 @@ def main():
         default=DOWNLOAD_DEFAULT,
         help="检索后下载文件（仅 independent 有效，外资独立观点 HTML）",
     )
-    parser.add_argument("-od", "--output-dir", default=None, help="下载保存目录，建议绝对路径")
+    parser.add_argument("-od", "--output-dir", default=None, help="结果与下载文件保存目录路径，建议使用绝对路径")
     parser.add_argument(
         "-dt",
         "--download-types",
@@ -497,10 +490,6 @@ def main():
     rank_type = int(args.rank_type or 1)
     output_dir = args.output_dir or None
     download_types = _parse_download_types(args.download_types)
-
-    if not args.download and output_dir:
-        print("[WARNING] -od/--output-dir 仅在 -d 下载时有效，已忽略\n")
-        output_dir = None
 
     try:
         if not check_version():

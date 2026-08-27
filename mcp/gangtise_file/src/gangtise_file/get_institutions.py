@@ -17,7 +17,7 @@ from .search_institution import (  # noqa: E402
     institution_item_to_row,
     search_institutions,
 )
-from .utils import check_version, get_authorization_headers, get_authorization_token, get_headers_extra
+from .utils import authorized_request, check_version, get_authorization_headers, get_authorization_token, get_headers_extra
 
 
 def format_institutions(rows: List[dict]) -> str:

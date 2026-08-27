@@ -14,7 +14,8 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (QUOTE_ADJUST_FACTOR_URL, QUOTE_MINUTE_URL, QUOTE_REALTIME_URL, QUOTE_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (
+    normalize_securities_arg, QUOTE_ADJUST_FACTOR_URL, QUOTE_MINUTE_URL, QUOTE_REALTIME_URL, QUOTE_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 # 与 open 日 K 文档一致
 _FIELD_LIST = [
@@ -942,15 +943,6 @@ def _apply_daily_adjust_with_factors_optional_today(
     return adj_out, raw_out, warn_out
 
 
-def _load_security_codes_from_file(path: str) -> List[str]:
-    full_path = path
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(f"证券文件不存在: {path}")
-    df = pd.read_csv(full_path)
-    if "security_code" not in df.columns:
-        raise ValueError("证券文件须包含 security_code 列（完整代码或证券名称等关键词）")
-    return [str(x) for x in df["security_code"].dropna().tolist()]
-
 
 def _parse_kline_body(body: dict) -> pd.DataFrame:
     if not body or str(body.get("code", "")) != "000000" or body.get("status") is False:
@@ -1078,21 +1070,20 @@ def quote_data(
     all_market_markets: Optional[Tuple[str, ...]] = None,
     data_type: str = "daily",
     adjust_mode: Optional[str] = None,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
-            "quote",
-        )
+            "quote", output_dir=output_dir)
 
     headers = get_authorization_headers()
     data_type = (data_type or "daily").strip().lower()
     if data_type not in {"daily", "minute", "snap"}:
         return format_response(
             {"state": "error", "message": "type 仅支持 daily、minute 或 snap", "data": [], "usage": usage},
-            "quote",
-        )
+            "quote", output_dir=output_dir)
     if data_type == "snap":
         if adjust_mode is not None and normalize_adjust_mode(adjust_mode) != "none":
             return format_response(
@@ -1102,8 +1093,7 @@ def quote_data(
                     "data": [],
                     "usage": usage,
                 },
-                "quote",
-            )
+                "quote", output_dir=output_dir)
         adj_mode = "none"
     elif data_type == "minute":
         if adjust_mode is not None and normalize_adjust_mode(adjust_mode) != "none":
@@ -1114,8 +1104,7 @@ def quote_data(
                     "data": [],
                     "usage": usage,
                 },
-                "quote",
-            )
+                "quote", output_dir=output_dir)
         adj_mode = "none"
     else:
         adj_mode = normalize_adjust_mode(adjust_mode)
@@ -1153,8 +1142,7 @@ def quote_data(
                         "data": [],
                         "usage": usage,
                     },
-                    "quote",
-                )
+                    "quote", output_dir=output_dir)
             codes = resolved.get("codes") or []
             abbr_map = resolved_code_abbr_map(resolved)
             resolved_types = list(resolved.get("types") or [])
@@ -1168,8 +1156,7 @@ def quote_data(
                     "data": [],
                     "usage": usage,
                 },
-                "quote",
-            )
+                "quote", output_dir=output_dir)
         while len(resolved_types) < len(codes):
             resolved_types.append("")
         if data_type == "daily":
@@ -1304,12 +1291,11 @@ def quote_data(
             return format_response(
                 {
                     "state": "error",
-                    "message": "minute 类型不支持 --all-market，请指定 --securities / --securities-file",
+                    "message": "minute 类型不支持 --all-market，请指定 --securities",
                     "data": [],
                     "usage": usage,
                 },
-                "quote",
-            )
+                "quote", output_dir=output_dir)
         # 分钟接口仅支持 A 股 securityCode 单值；港股/指数等在 skipped_quote 中说明，不报错中断。
         minute_codes = list(dict.fromkeys(daily_a_codes))
         if not minute_codes:
@@ -1319,8 +1305,7 @@ def quote_data(
                 msg = f"{msg}；未拉取到分钟行情数据"
             return format_response(
                 {"state": "error", "message": msg, "data": [], "usage": usage},
-                "quote",
-            )
+                "quote", output_dir=output_dir)
 
         def _fetch_one_minute(code: str) -> Tuple[str, pd.DataFrame, Optional[str]]:
             payload_one = {
@@ -1350,8 +1335,7 @@ def quote_data(
         error_message = "；".join(pieces) if pieces else "未找到行情数据"
         return format_response(
             {"state": "error", "message": error_message, "data": [], "usage": usage},
-            "quote",
-        )
+            "quote", output_dir=output_dir)
 
     if data_parts:
         data = pd.concat(data_parts, ignore_index=True)
@@ -1408,8 +1392,7 @@ def quote_data(
         empty_msg = "未找到截面行情数据" if data_type == "snap" else "日期范围内未找到行情数据"
         return format_response(
             {"state": "error", "message": empty_msg, "data": [], "usage": usage},
-            "quote",
-        )
+            "quote", output_dir=output_dir)
 
     # 日 K 复权：优先使用日 K 内嵌 adjustFactor（A/港/美）；缺失时再走独立复权因子接口
     # 指数通常无复权因子，保持原价量列；多市场混查时分块输出
@@ -1499,8 +1482,7 @@ def quote_data(
         except ValueError as adj_err:
             return format_response(
                 {"state": "error", "message": str(adj_err), "data": [], "usage": usage},
-                "quote",
-            )
+                "quote", output_dir=output_dir)
     else:
         output_blocks.append((data, False, "single"))
 
@@ -1515,8 +1497,7 @@ def quote_data(
     if not formatted_tables:
         return format_response(
             {"state": "error", "message": "日期范围内未找到行情数据", "data": [], "usage": usage},
-            "quote",
-        )
+            "quote", output_dir=output_dir)
 
     hk_code_set = frozenset(c.upper() for c in daily_hk_codes)
     idx_code_set = frozenset(c.upper() for c in daily_idx_codes)
@@ -1567,8 +1548,7 @@ def quote_data(
             "data": parts,
             "usage": usage,
         },
-        "quote",
-    )
+        "quote", output_dir=output_dir)
 
 
 def main():
@@ -1590,12 +1570,7 @@ def main():
     parser.add_argument(
         "--securities",
         default=None,
-        help="证券逗号分隔（完整代码或名称/拼音等）；与 --all-market 二选一",
-    )
-    parser.add_argument(
-        "--securities-file",
-        default=None,
-        help="csv 须含 security_code 列（代码或名称）",
+        help="证券：完整代码/名称/拼音等，逗号分隔",
     )
     parser.add_argument(
         "--all-market",
@@ -1618,6 +1593,13 @@ def main():
         default=None,
         help="复权方式（仅日 K）：forward/qfq/前复权（默认）、backward/hfq/后复权、none/raw/不复权",
     )
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
 
     try:
@@ -1625,27 +1607,23 @@ def main():
     except ValueError as e:
         parser.error(str(e))
 
-    if all_market_markets and (args.securities or args.securities_file):
-        parser.error("--all-market 时不要使用 --securities / --securities-file")
+    if all_market_markets and args.securities:
+        parser.error("--all-market 时不要使用 --securities")
     if args.data_type == "minute" and all_market_markets:
-        parser.error("minute 类型不支持 --all-market，请指定 --securities / --securities-file")
+        parser.error("minute 类型不支持 --all-market，请指定 --securities")
     if args.data_type == "snap" and args.adjust:
         adj = normalize_adjust_mode(args.adjust)
         if adj != "none":
             parser.error("snap 类型不支持 --adjust")
 
-    securities: Optional[List[str]] = None
-    if args.securities:
-        securities = [x.strip() for x in args.securities.replace("，", ",").split(",") if x.strip()]
-    if not securities and args.securities_file:
-        try:
-            securities = _load_security_codes_from_file(args.securities_file)
-        except Exception as e:
-            print(f"根据证券文件解析证券失败: {e}")
-            sys.exit(1)
+    try:
+        securities = normalize_securities_arg(args.securities)
+    except Exception as e:
+        print(f"解析 --securities 失败: {e}")
+        sys.exit(1)
 
     if not all_market_markets and not securities:
-        parser.error("请指定 --securities / --securities-file，或使用 --all-market")
+        parser.error("请指定 --securities，或使用 --all-market")
 
     out = quote_data(
         securities=securities,
@@ -1655,6 +1633,7 @@ def main():
         all_market_markets=all_market_markets,
         data_type=args.data_type,
         adjust_mode=args.adjust,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, FILE_DEFAULT_LIMIT, WECHAT_GROUP_CHATROOM_URL, WECHAT_GROUP_MSG_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
+from .utils import (FILE_DEFAULT_LIMIT, WECHAT_GROUP_CHATROOM_URL, WECHAT_GROUP_MSG_LIST_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
 
 _CATEGORY_VALID = {"text", "image", "documents", "url"}
 DEFAULT_ROOM_LIMIT = 50
@@ -362,19 +362,19 @@ def wechat_message_search(
     limit: int = DEFAULT_ROOM_LIMIT,
     page_from: int = 0,
     page_size: int = 20,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
     authorization: Optional[str] = None,
     append_file_hint: bool = False,
     **kwargs,
 ):
     headers, err = _auth_headers(authorization)
     if err:
-        return format_response({"state": "error", "message": err, "data": []}, "wechat_message", output=output)
+        return format_response({"state": "error", "message": err, "data": []}, "wechat_message", output_dir=output_dir)
 
     api_room = (room_name or "").strip()
     rows, err = _fetch_chatrooms(headers, api_room or None, page_from, page_size)
     if err:
-        return format_response({"state": "error", "message": err, "data": []}, "wechat_message", output=output)
+        return format_response({"state": "error", "message": err, "data": []}, "wechat_message", output_dir=output_dir)
 
     rows = _filter_chatrooms_by_keyword(rows, room_filter or api_room)
     if limit > 0:
@@ -389,7 +389,7 @@ def wechat_message_search(
                 "data": [],
             },
             "wechat_message",
-            output=output,
+            output_dir=output_dir,
         )
 
     parts = [
@@ -409,7 +409,7 @@ def wechat_message_search(
     return format_response(
         {"state": "success", "message": msg, "data": parts},
         "wechat_message",
-        output=output,
+        output_dir=output_dir,
     )
 
 
@@ -424,13 +424,13 @@ def wechat_message_get(
     category_list: Optional[List[str]] = None,
     tag_list: Optional[List[str]] = None,
     max_total: Optional[int] = None,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
     authorization: Optional[str] = None,
     **kwargs,
 ):
     headers, err = _auth_headers(authorization)
     if err:
-        return format_response({"state": "error", "message": err, "data": []}, "wechat_message", output=output)
+        return format_response({"state": "error", "message": err, "data": []}, "wechat_message", output_dir=output_dir)
 
     cap = int(max_total) if max_total is not None else DEFAULT_MSG_LIMIT
     aggregated, part_err = _fetch_messages(
@@ -456,7 +456,7 @@ def wechat_message_get(
                 "data": [],
             },
             "wechat_message",
-            output=output,
+            output_dir=output_dir,
         )
 
     parts = [
@@ -473,7 +473,7 @@ def wechat_message_get(
     return format_response(
         {"state": "success", "message": msg, "data": parts},
         "wechat_message",
-        output=output,
+        output_dir=output_dir,
         additional_message=extra.strip(),
     )
 
@@ -490,7 +490,7 @@ def wechat_message_finder(
     category_list: Optional[List[str]] = None,
     tag_list: Optional[List[str]] = None,
     limit: Optional[int] = None,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
     authorization: Optional[str] = None,
 ):
     """检索微信群列表，或在提供 wechat_group_id_list 时拉取群消息。"""
@@ -504,7 +504,7 @@ def wechat_message_finder(
         industry_id_list=industry_id_list,
         category_list=category_list,
         tag_list=tag_list,
-        output=output,
+        output_dir=output_dir,
         authorization=authorization,
     )
 
@@ -609,7 +609,7 @@ def main():
         help="消息类型：text,image,documents,url（get 模式）",
     )
     parser.add_argument("--tags", default=None, help="标签，逗号分隔或中文别名（get 模式）")
-    parser.add_argument("-o", "--output", default=None, help="保存路径（需 GTS_SAVE_FILE=True）")
+    parser.add_argument("-od", "--output-dir", default=None, help="结果保存目录路径（需 GTS_SAVE_FILE=True）")
 
     args = parser.parse_args()
     room_name = (args.room_name or "").strip()
@@ -632,7 +632,7 @@ def main():
             category_list=_parse_str_list(args.categories),
             tag_list=_parse_str_list(args.tags),
             limit=args.limit,
-            output=args.output,
+            output_dir=args.output_dir,
         )
     )
 

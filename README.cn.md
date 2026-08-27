@@ -356,6 +356,10 @@ docker run -d -p 8000:8000 gangtise-mcp
 
 问题与支持：通过开放平台账号体系获取凭证；文档问题可提 Issue。English：[README.md](README.md)。
 
+## 仓库结构说明
+
+本仓库 **`mcp/` + `api/` + `cli/`** 的分层，以及各业务包下的并行目录，是因为源码 **同步自 Gangtise [skills](https://github.com/gangtise-ai/skills-backend)**（`skills/openapi/*` → `mcps/mcp/*`，脚本 `sync_skills_to_mcp.py`）。这样在能力更新时，**技能、MCP stdio、HTTP/SSE 与 CLI** 可一并同步，避免多套实现各自漂移。
+
 ## 许可证
 
 [MIT](LICENSE) © 2026 Gangtise

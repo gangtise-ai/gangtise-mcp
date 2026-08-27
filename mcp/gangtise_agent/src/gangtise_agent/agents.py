@@ -12,7 +12,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (GANGTISE_AGENT_URL, STOCK_SUMMARY_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (GANGTISE_AGENT_URL, STOCK_SUMMARY_LIST_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
 from .security import batch_security_search
 from .search_concept import resolve_concept_keyword
 
@@ -270,10 +270,11 @@ def _openapi_stock_one_line_summary(
     if not security_list:
         return {"state": "error", "message": "securityList 不能为空", "data": [], "usage": {}}
 
+    headers = get_authorization_headers()
     try:
-        resp = authorized_request(
-            "POST",
+        resp = authorized_request("POST", 
             STOCK_SUMMARY_LIST_URL,
+            headers=headers,
             json={"securityList": security_list},
             timeout=300,
         )
@@ -354,7 +355,7 @@ def _normalize_agent_response(
     rows = _tag_rows_with_security(rows, security_code, security_abbr)
     message = body.get("msg", "请求成功")
     if agent_type == "stock-one-line-summary" and not rows:
-        message = "请求成功，但未找到有个股一句话总结的证券（无总结的不返回、不扣积分）"
+        message = "请求成功，但未找到有个股一句话总结的证券（无总结的不返回）"
     return {
         "state": "success",
         "message": message,
@@ -365,7 +366,8 @@ def _normalize_agent_response(
 
 def _raw_post_agent(agent_type: str, payload: Dict) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     url = f"{GANGTISE_AGENT_URL}{AGENT_ENDPOINTS[agent_type]}"
-    resp = authorized_request("POST", url, json=payload, timeout=300)
+    headers = get_authorization_headers()
+    resp = authorized_request("POST", url, headers=headers, json=payload, timeout=300)
     if resp.status_code != 200:
         return None, resp.text
     try:
@@ -540,7 +542,7 @@ def openapi_agent(
     theme_id: Optional[str] = None,
     date: Optional[str] = None,
     types: Optional[List[str]] = None,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
 ):
     method = AGENT_METHOD_NAME_MAP.get(agent_type, "agent")
 
@@ -548,7 +550,7 @@ def openapi_agent(
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": {}},
             "agent",
-            output=output,
+            output_dir=output_dir,
         )
 
     if agent_type in STEP_AGENT_TYPES:
@@ -560,25 +562,25 @@ def openapi_agent(
                 "usage": {},
             },
             "agent",
-            output=output,
+            output_dir=output_dir,
         )
 
     if agent_type not in AGENT_ENDPOINTS and agent_type not in CHAINED_AGENT_PAIRS and agent_type not in SPECIAL_AGENT_TYPES:
         return format_response(
             {"state": "error", "message": f"不支持的 agent-type: {agent_type}", "data": [], "usage": {}},
             "agent",
-            output=output,
+            output_dir=output_dir,
         )
 
     if agent_type == "stock-one-line-summary":
         try:
             result = _openapi_stock_one_line_summary(security=security, securities=securities)
-            return format_response(result, "stock_one_line_summary", output=output)
+            return format_response(result, "stock_one_line_summary", output_dir=output_dir)
         except Exception as e:
             return format_response(
                 {"state": "error", "message": str(e), "data": [], "usage": {}},
                 "stock_one_line_summary",
-                output=output,
+                output_dir=output_dir,
             )
 
     headers = get_authorization_headers()
@@ -592,7 +594,7 @@ def openapi_agent(
             return format_response(
                 {"state": "error", "message": msg or "主题解析失败", "data": [], "usage": {}},
                 "theme_tracking",
-                output=output,
+                output_dir=output_dir,
             )
         resolved_theme_id = rid
 
@@ -604,13 +606,13 @@ def openapi_agent(
             return format_response(
                 {"state": "error", "message": resolve_err, "data": [], "usage": {}},
                 method,
-                output=output,
+                output_dir=output_dir,
             )
         if not security_codes:
             return format_response(
                 {"state": "error", "message": f"{agent_type} 需要参数 security 或 securities", "data": [], "usage": {}},
                 method,
-                output=output,
+                output_dir=output_dir,
             )
     elif security or securities:
         security_codes, security_abbrs, resolve_err = _resolve_security_codes(security, securities)
@@ -618,7 +620,7 @@ def openapi_agent(
             return format_response(
                 {"state": "error", "message": resolve_err, "data": [], "usage": {}},
                 method,
-                output=output,
+                output_dir=output_dir,
             )
 
     try:
@@ -636,7 +638,7 @@ def openapi_agent(
                 date=date,
                 types=types,
             )
-            return format_response(result, method, output=output)
+            return format_response(result, method, output_dir=output_dir)
 
         all_rows: List[Dict] = []
         errors: List[str] = []
@@ -664,7 +666,7 @@ def openapi_agent(
             return format_response(
                 {"state": "error", "message": msg, "data": [], "usage": {}},
                 method,
-                output=output,
+                output_dir=output_dir,
             )
 
         msg = f"已获取 {len(security_codes)} 只证券的相关资料"
@@ -676,12 +678,12 @@ def openapi_agent(
             "data": [{"data": all_rows, "module": "agent", "type": agent_type}],
             "usage": {},
         }
-        return format_response(merged, method, output=output)
+        return format_response(merged, method, output_dir=output_dir)
     except Exception as e:
         return format_response(
             {"state": "error", "message": str(e), "data": [], "usage": {}},
             method,
-            output=output,
+            output_dir=output_dir,
         )
 
 
@@ -739,11 +741,7 @@ def main():
     else:
         default_theme_tracking_types = "morning"
     parser.add_argument("--type", default=default_theme_tracking_types, help="资讯类型（仅 theme-tracking），morning/night，逗号分隔")
-    parser.add_argument(
-        "-o",
-        "--output",
-        default=None,
-        help="结果保存路径（当前版本由后端统一管理，本参数暂不生效）",
+    parser.add_argument("-od", "--output-dir", default=None, help="结果保存目录路径",
     )
     args = parser.parse_args()
 
@@ -757,7 +755,7 @@ def main():
         theme_id=args.theme_id,
         date=args.date,
         types=_normalize_list(args.type),
-        output=args.output,
+        output_dir=args.output_dir,
     )
     print(out)
 

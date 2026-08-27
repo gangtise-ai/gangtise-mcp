@@ -12,7 +12,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, FILE_DEFAULT_LIMIT, RECORD_DOWNLOAD_URL, RECORD_LIST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
+from .utils import (FILE_DEFAULT_LIMIT, RECORD_DOWNLOAD_URL, RECORD_LIST_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, is_code_arg)
 
 DEFAULT_LIST_LIMIT = FILE_DEFAULT_LIMIT.get("private_record", 100)
 IDS_FILE_HINT = "可以删除行或保留需要的录音，再通过 --record-file 参数下载内容"
@@ -399,14 +399,14 @@ def private_record_search(
     limit: int = DEFAULT_LIST_LIMIT,
     page_from: int = 0,
     page_size: int = 20,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
     append_file_hint: bool = False,
     **kwargs,
 ):
     usage: dict = {}
     headers, err = _auth_headers()
     if err:
-        return format_response({"state": "error", "message": err, "data": [], "usage": usage}, "private_record", output=output)
+        return format_response({"state": "error", "message": err, "data": [], "usage": usage}, "private_record", output_dir=output_dir)
 
     records, total, part_err = _fetch_record_list(
         headers,
@@ -423,7 +423,7 @@ def private_record_search(
         return format_response(
             {"state": "error", "message": part_err or "未找到录音记录", "data": [], "usage": usage},
             "private_record",
-            output=output,
+            output_dir=output_dir,
         )
 
     msg = f"已找到 {len(records)} 条录音"
@@ -435,7 +435,7 @@ def private_record_search(
     return format_response(
         {"state": "success", "message": msg, "data": _list_response_parts(records), "usage": usage},
         "private_record",
-        output=output,
+        output_dir=output_dir,
         additional_message=extra.strip(),
     )
 
@@ -444,13 +444,13 @@ def private_record_get(
     record_ids: List[str],
     content_types: List[str],
     meta_by_id: Optional[Dict[str, dict]] = None,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
     **kwargs,
 ):
     usage: dict = {}
     headers, err = _auth_headers()
     if err:
-        return format_response({"state": "error", "message": err, "data": [], "usage": usage}, "private_record", output=output)
+        return format_response({"state": "error", "message": err, "data": [], "usage": usage}, "private_record", output_dir=output_dir)
 
     ids = [str(x).strip() for x in record_ids if str(x).strip()]
     ctypes = content_types or ["summary"]
@@ -463,7 +463,7 @@ def private_record_get(
                 "usage": usage,
             },
             "private_record",
-            output=output,
+            output_dir=output_dir,
         )
 
     files: List[dict] = []
@@ -499,7 +499,7 @@ def private_record_get(
                 "usage": usage,
             },
             "private_record",
-            output=output,
+            output_dir=output_dir,
         )
 
     parts = [{"data": files, "module": "private_record_content", "type": "files"}]
@@ -509,7 +509,7 @@ def private_record_get(
     return format_response(
         {"state": "success", "message": msg, "data": parts, "usage": usage},
         "private_record",
-        output=output,
+        output_dir=output_dir,
     )
 
 
@@ -524,7 +524,7 @@ def private_record_finder(
     limit: int = DEFAULT_LIST_LIMIT,
     page_from: int = 0,
     page_size: int = 20,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
 ):
     """检索录音列表，或在提供 record_ids 时下载录音内容。"""
     common = dict(
@@ -536,7 +536,7 @@ def private_record_finder(
         limit=int(limit),
         page_from=page_from,
         page_size=page_size,
-        output=output,
+        output_dir=output_dir,
     )
     ids: List[str] = []
     if record_ids and str(record_ids).strip():
@@ -546,7 +546,7 @@ def private_record_finder(
         ids = resolved or []
     ctypes = content_types or ["summary"]
     if ids:
-        return private_record_get(record_ids=ids, content_types=ctypes, output=output)
+        return private_record_get(record_ids=ids, content_types=ctypes, output_dir=output_dir)
     return private_record_search(**common, append_file_hint=True)
 
 
@@ -601,7 +601,7 @@ def main():
     parser.add_argument("-l", "--limit", type=int, default=DEFAULT_LIST_LIMIT, help="search 模式列表条数上限")
     parser.add_argument("--page-from", type=int, default=0)
     parser.add_argument("--page-size", type=int, default=20, help="单页最大 50")
-    parser.add_argument("-o", "--output", default=None, help="保存路径（GTS_SAVE_FILE=True）")
+    parser.add_argument("-od", "--output-dir", default=None, help="结果保存目录路径（GTS_SAVE_FILE=True）")
 
     args = parser.parse_args()
     content_types = _normalize_content_types(args.content_type)
@@ -628,7 +628,7 @@ def main():
             limit=int(args.limit),
             page_from=args.page_from,
             page_size=args.page_size,
-            output=args.output,
+            output_dir=args.output_dir,
         )
     )
 

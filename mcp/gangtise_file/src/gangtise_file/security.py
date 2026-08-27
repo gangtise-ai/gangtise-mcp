@@ -11,7 +11,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, SECURITIES_SEARCH_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, remove_html_tags)
+from .utils import (SECURITIES_SEARCH_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, remove_html_tags)
 
 
 _WEIGHT_MATCH = 0.62
@@ -687,7 +687,7 @@ def main():
         print("[WARNING] 检查 Gangtise data 版本失败\n")
 
     parser = argparse.ArgumentParser(
-        description="证券代码搜索（open-reference / securities/search，0 积分）",
+        description="证券代码搜索（open-reference / securities/search）",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--keyword", "-k", required=True, help="搜索关键词（名称、代码、拼音等）")

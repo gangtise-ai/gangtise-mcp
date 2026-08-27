@@ -13,7 +13,8 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (authorized_request, TOP_HOLDERS_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (
+    normalize_securities_arg, TOP_HOLDERS_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 HOLDER_TYPE_MAP = {
     "top10": "top10",
@@ -28,15 +29,6 @@ PERIOD_MAP = {
     "latest": "latest",
 }
 
-
-def _load_security_codes_from_file(path: str) -> List[str]:
-    full_path = path
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(f"证券文件不存在: {path}")
-    df = pd.read_csv(full_path)
-    if "security_code" not in df.columns:
-        raise ValueError("证券文件须包含 security_code 列（完整代码或证券名称等关键词）")
-    return [str(x) for x in df["security_code"].dropna().tolist()]
 
 
 def _normalize_holder_type(holder_type: str) -> Optional[str]:
@@ -141,13 +133,13 @@ def shareholder_data(
     end_date: Optional[str] = None,
     fiscal_year: Optional[List[str]] = None,
     period: Optional[List[str]] = None,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
-            "shareholder",
-        )
+            "shareholder", output_dir=output_dir)
 
     normalized_holder_type = _normalize_holder_type(holder_type)
     if not normalized_holder_type:
@@ -158,8 +150,7 @@ def shareholder_data(
                 "data": [],
                 "usage": usage,
             },
-            "shareholder",
-        )
+            "shareholder", output_dir=output_dir)
 
     fy = _normalize_fiscal_year(fiscal_year)
     periods = _normalize_periods(period)
@@ -185,8 +176,7 @@ def shareholder_data(
                 "data": [],
                 "usage": usage,
             },
-            "shareholder",
-        )
+            "shareholder", output_dir=output_dir)
     securities_codes = resolved.get("codes") or []
     securities_abbrs = resolved.get("abbrs") or []
     abbr_map = resolved_code_abbr_map(resolved)
@@ -200,8 +190,7 @@ def shareholder_data(
                 "data": [],
                 "usage": usage,
             },
-            "shareholder",
-        )
+            "shareholder", output_dir=output_dir)
 
     frames: List[pd.DataFrame] = []
     for abbr, code in zip(securities_abbrs, securities_codes):
@@ -221,8 +210,7 @@ def shareholder_data(
     if not frames:
         return format_response(
             {"state": "error", "message": "未找到股东数据", "data": [], "usage": usage},
-            "shareholder",
-        )
+            "shareholder", output_dir=output_dir)
 
     data = pd.concat(frames, ignore_index=True)
     if "date" in data.columns:
@@ -247,8 +235,7 @@ def shareholder_data(
             "data": parts,
             "usage": usage,
         },
-        "shareholder",
-    )
+        "shareholder", output_dir=output_dir)
 
 
 def main():
@@ -274,21 +261,18 @@ def main():
         default="latest",
         help="报告期：q1/interim/q3/annual/latest，逗号分隔；默认 latest",
     )
-    parser.add_argument("--securities", default=None, help="证券逗号分隔：完整代码或名称/拼音等")
-    parser.add_argument("--securities-file", default=None, help="csv 含 security_code 列（代码或名称）")
+    parser.add_argument("--securities", default=None, help="证券：完整代码/名称/拼音等，逗号分隔")
+
     args = parser.parse_args()
 
-    securities: Optional[List[str]] = None
-    if args.securities:
-        securities = [x.strip() for x in args.securities.replace("，", ",").split(",") if x.strip()]
-    if not securities and args.securities_file:
-        try:
-            securities = _load_security_codes_from_file(args.securities_file)
-        except Exception as e:
-            print(f"根据证券文件解析证券失败: {e}")
-            sys.exit(1)
+    try:
+        securities = normalize_securities_arg(args.securities)
+    except Exception as e:
+        print(f"解析 --securities 失败: {e}")
+        sys.exit(1)
+
     if not securities:
-        parser.error("必须至少提供 --securities 或 --securities-file")
+        parser.error("必须提供 --securities")
 
     fy: Optional[List[str]] = None
     if args.fiscal_year:
@@ -302,6 +286,7 @@ def main():
         end_date=args.end_date,
         fiscal_year=fy,
         period=period_list if period_list else None,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

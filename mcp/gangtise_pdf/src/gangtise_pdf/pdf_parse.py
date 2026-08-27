@@ -178,18 +178,16 @@ def _action_submit(
 
     (out / "task_id.txt").write_text(task_id + "\n", encoding="utf-8")
     est = estimate_parse_seconds(pages)
-    cost = pages * 0.8
     return (
         f"已提交 PDF 解析任务\n"
         f"- taskId: `{task_id}`\n"
         f"- 文件: `{path}`\n"
         f"- 页数: {pages}\n"
-        f"- 预估积分: {cost:.1f}（0.8/页）\n"
         f"- 预估耗时: {format_duration(est)}（启动约 {ESTIMATE_STARTUP_SECONDS}s + 约 {ESTIMATE_PER_PAGE_SECONDS}s/页）\n"
         f"- 预估秒数: {est}\n"
         f"- taskId 已写入: `{out / 'task_id.txt'}`\n\n"
         f"请稍后调用同一工具 action=`result`，传入 task_id=`{task_id}` 下载结果。"
-        f"若仍返回「生成中」，按预估时间再试，勿重复 submit（会再次扣积分）。"
+        f"若仍返回「生成中」，按预估时间再试，勿重复 submit（请用同一 taskId 取 result）。"
     )
 
 
@@ -264,7 +262,7 @@ def _action_result(
         f"结果仍在生成中（{last_msg}）\n"
         f"- taskId: `{tid}`\n"
         f"- 本次已等待约 {wait}s\n"
-        f"- 请稍后再调用 action=`result`（同一 task_id，不重复扣费）\n"
+        f"- 请稍后再调用 action=`result`（同一 task_id，勿重复 submit）\n"
         f"- output_dir: `{out}`"
     )
 

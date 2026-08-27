@@ -3,7 +3,7 @@ title: PDF Parse
 description: >
   高精度 PDF 解析为 Markdown（含图片）。一个工具两个 action：
   submit 提交任务并返回预估耗时（约 5s 启动 + 1s/页）；
-  result 按 taskId 下载结果。勿在结果未就绪时重复 submit（会再次扣积分）。
+  result 按 taskId 下载结果。勿在结果未就绪时重复 submit，请用同一 taskId 取 result。
 parameters:
   action:
     type: string

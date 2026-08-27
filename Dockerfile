@@ -77,9 +77,9 @@ RUN set -eux; \
         "starlette>=0.37.0" \
         "PyJWT>=2.8.0" \
         "cryptography>=42.0.0"; \
-    for pkg in gangtise_agent gangtise_data gangtise_file gangtise_kb gangtise_private gangtise_pdf gangtise_hub gangtise_mcp; do \
+    for pkg in gangtise_agent gangtise_data gangtise_file gangtise_kb gangtise_private gangtise_screener gangtise_pdf gangtise_hub gangtise_mcp; do \
          mkdir -p "/opt/mcp/api/${pkg}" "/opt/mcp/mcp/${pkg}"; \
-         pip install --no-deps --target "/opt/mcp/api/${pkg}" ${PIP_OPTS} "/app/api/${pkg}"; \
+         if [ -d "/app/api/${pkg}" ]; then pip install --no-deps --target "/opt/mcp/api/${pkg}" ${PIP_OPTS} "/app/api/${pkg}"; fi; \
          pip install --no-deps --target "/opt/mcp/mcp/${pkg}" ${PIP_OPTS} "/app/mcp/${pkg}"; \
        done; \
     cp /app/api/gangtise_mcp/src/oauth_consent.html /opt/mcp/api/gangtise_mcp/oauth_consent.html; \

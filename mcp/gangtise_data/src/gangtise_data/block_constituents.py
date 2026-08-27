@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, SECTOR_CONSTITUENTS_URL, SECTOR_SEARCH_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (SECTOR_CONSTITUENTS_URL, SECTOR_SEARCH_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra)
 
 MATCH_SCORE_THRESHOLD = 0.6
 SEARCH_TOP_DEFAULT = 10
@@ -148,6 +148,7 @@ def block_constituents_data(
     keyword: Optional[str] = None,
     sector_id: Optional[str] = None,
     top: int = SEARCH_TOP_DEFAULT,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
@@ -158,8 +159,7 @@ def block_constituents_data(
                 "data": [],
                 "usage": usage,
             },
-            "block_constituents",
-        )
+            "block_constituents", output_dir=output_dir)
 
     headers = get_authorization_headers()
 
@@ -177,15 +177,13 @@ def block_constituents_data(
                     "data": [],
                     "usage": usage,
                 },
-                "block_constituents",
-            )
+                "block_constituents", output_dir=output_dir)
 
         items, err = _search_sectors(headers, kw, top)
         if err:
             return format_response(
                 {"state": "error", "message": err, "data": [], "usage": usage},
-                "block_constituents",
-            )
+                "block_constituents", output_dir=output_dir)
 
         candidates = _filter_strong_candidates(items)
         if not candidates:
@@ -196,8 +194,7 @@ def block_constituents_data(
                     "data": [],
                     "usage": usage,
                 },
-                "block_constituents",
-            )
+                "block_constituents", output_dir=output_dir)
 
         picked = _pick_auto_candidate(candidates)
         if picked is None:
@@ -214,15 +211,13 @@ def block_constituents_data(
                     "data": [],
                     "usage": usage,
                 },
-                "block_constituents",
-            )
+                "block_constituents", output_dir=output_dir)
 
     rows, err = _fetch_constituents(headers, resolved_id)
     if err:
         return format_response(
             {"state": "error", "message": err, "data": [], "usage": usage},
-            "block_constituents",
-        )
+            "block_constituents", output_dir=output_dir)
 
     df = _constituents_to_dataframe(rows, resolved_id, resolved_name, resolved_hierarchy)
     if df.empty:
@@ -234,8 +229,7 @@ def block_constituents_data(
                 "data": [],
                 "usage": usage,
             },
-            "block_constituents",
-        )
+            "block_constituents", output_dir=output_dir)
 
     label = resolved_name or resolved_id
     parts = [
@@ -252,8 +246,7 @@ def block_constituents_data(
             "data": parts,
             "usage": usage,
         },
-        "block_constituents",
-    )
+        "block_constituents", output_dir=output_dir)
 
 
 def main():
@@ -282,12 +275,20 @@ def main():
         default=SEARCH_TOP_DEFAULT,
         help=f"关键词搜索返回条数上限（最大 {SEARCH_TOP_MAX}，仅 -k 时生效）",
     )
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
 
     out = block_constituents_data(
         keyword=args.keyword,
         sector_id=args.sector_id,
         top=args.top,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

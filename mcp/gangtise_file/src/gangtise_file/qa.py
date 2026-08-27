@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, FILE_DEFAULT_LIMIT, QA_DATA_LIST_URL, QA_QUESTION_CATEGORY_CODE_MAP, QA_QUESTION_CATEGORY_LABEL, QA_SOURCE_CODE_MAP, QA_SOURCE_LABEL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best)
+from .utils import (FILE_DEFAULT_LIMIT, QA_DATA_LIST_URL, QA_QUESTION_CATEGORY_CODE_MAP, QA_QUESTION_CATEGORY_LABEL, QA_SOURCE_CODE_MAP, QA_SOURCE_LABEL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best)
 from .security import batch_security_search  # noqa: E402
 
 PAGE_SIZE_MAX = 500
@@ -197,14 +197,14 @@ def qa_finder(
     question_category_list: Optional[List[str]] = None,
     answer_important: Optional[List[str]] = ["1"],
     limit: int = FILE_DEFAULT_LIMIT["qa"],
+    output_dir: Optional[str] = None,
 ):
     try:
         security_tokens = [str(s).strip() for s in (securities or []) if str(s).strip()]
         if not security_tokens:
             return format_response(
                 {"state": "error", "message": "证券 securities 不能为空"},
-                "qa",
-            )
+                "qa", output_dir=output_dir)
 
         headers = get_authorization_headers()
 
@@ -221,8 +221,7 @@ def qa_finder(
                     "message": resolved.get("message") or "证券解析失败",
                     "data": [],
                 },
-                "qa",
-            )
+                "qa", output_dir=output_dir)
 
         security_codes = [str(code).strip() for code in (resolved.get("codes") or []) if str(code).strip()]
         if not security_codes:
@@ -232,20 +231,19 @@ def qa_finder(
                     "message": "未解析到有效证券代码，请检查证券名称或代码",
                     "data": [],
                 },
-                "qa",
-            )
+                "qa", output_dir=output_dir)
 
         sources, source_err = _resolve_source_list(source_list)
         if source_err:
-            return format_response({"state": "error", "message": source_err}, "qa")
+            return format_response({"state": "error", "message": source_err}, "qa", output_dir=output_dir)
 
         categories, category_err = _resolve_question_category_list(question_category_list)
         if category_err:
-            return format_response({"state": "error", "message": category_err}, "qa")
+            return format_response({"state": "error", "message": category_err}, "qa", output_dir=output_dir)
 
         answer_vals, answer_err = _resolve_answer_important(answer_important)
         if answer_err:
-            return format_response({"state": "error", "message": answer_err}, "qa")
+            return format_response({"state": "error", "message": answer_err}, "qa", output_dir=output_dir)
 
         payload_common: dict = {}
         start_time = _normalize_api_time(start_date, end_of_day=False)
@@ -281,8 +279,7 @@ def qa_finder(
                 message += "；" + "；".join(part_errors)
             return format_response(
                 {"state": "error", "message": message, "data": []},
-                "qa",
-            )
+                "qa", output_dir=output_dir)
 
         all_results = all_results[:limit]
         usage_points = round(len(all_results) * POINTS_PER_ITEM, 2)
@@ -295,13 +292,11 @@ def qa_finder(
         return format_response(
             response_data,
             "qa",
-            additional_message="；".join(part_errors) if part_errors else "",
-        )
+            additional_message="；".join(part_errors) if part_errors else "", output_dir=output_dir)
     except Exception as e:
         return format_response(
             {"state": "error", "message": str(e), "data": [], "usage": {}},
-            "qa",
-        )
+            "qa", output_dir=output_dir)
 
 
 def main():
@@ -352,6 +347,13 @@ def main():
         help="是否涉及重要信息：1/是、0/否；传 0,1 或 all 表示不过滤",
     )
 
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
     check_version()
 
@@ -368,6 +370,7 @@ def main():
         question_category_list=question_category_list,
         answer_important=answer_important,
         limit=max(1, min(int(args.limit), PAGE_SIZE_MAX)),
+        output_dir=args.output_dir or None,
     )
     if isinstance(out, str):
         print(out)

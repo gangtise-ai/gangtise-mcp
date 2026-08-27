@@ -3,8 +3,9 @@ import re
 from typing import List, Optional, Tuple
 
 import requests
+from authorization import authorized_request
 
-from .utils import authorized_request, CHIEFS_SEARCH_URL
+from .utils import CHIEFS_SEARCH_URL
 
 MATCH_SCORE_THRESHOLD = 0.6
 SEARCH_TOP_DEFAULT = 10

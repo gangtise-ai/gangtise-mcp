@@ -11,7 +11,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import authorized_request, GANGTISE_OPENAI_DOMAIN, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra
+from .utils import GANGTISE_OPENAI_DOMAIN, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra
 from .security import security_search_basic
 
 # 未传起止时间时默认前溯窗口（与试用账号权限长度对齐；正式账号可显式传更长区间）
@@ -262,19 +262,19 @@ def normalize_security_clue_response(body: Dict[str, Any]) -> Dict[str, Any]:
     raw_data = body.get("data")
     if isinstance(raw_data, dict):
         rows = [{"markdown": markdown_security_clue_list(raw_data), "type": "security-clue-list"}]
-        points_cost = len(raw_data.get("list", [])) if isinstance(raw_data.get("list"), list) else 0
-        extra_message = (
-            f"提示：本次成功返回 {points_cost} 条线索，按 {POINTS_PER_ITEM} 积分/条计费。"
-        )
+        n = len(raw_data.get("list", [])) if isinstance(raw_data.get("list"), list) else 0
+        usage = {"security-clue": n * POINTS_PER_ITEM} if n else {}
+        extra_message = f"提示：本次成功返回 {n} 条线索。" if n else ""
     else:
         rows = [{"markdown": "（无数据）", "type": "security-clue-list"}]
+        usage = {}
         extra_message = ""
 
     return {
         "state": "success",
         "message": (body.get("msg", "请求成功") + ("\n" + extra_message if extra_message else "")).strip(),
         "data": [{"data": rows, "module": "agent", "type": "security-clue-list"}],
-        "usage": {},
+        "usage": usage,
     }
 
 
@@ -300,7 +300,7 @@ def run_security_clue_list(
     query_mode: str = "bySecurity",
     securities: Optional[List[str]] = None,
     source: Optional[List[str]] = None,
-    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
 ) -> str:
     query_mode_map = {
         "bySecurity": "证券",
@@ -315,13 +315,13 @@ def run_security_clue_list(
         else:
             security_search_response = security_search_basic(security, output_limit=1, category=["stock", "dr"])
         if security_search_response["state"] != "success":
-            return format_response(security_search_response, "security_clue_list", output=output)
+            return format_response(security_search_response, "security_clue_list", output_dir=output_dir)
         security_info = security_search_response["data"][0]
         if not security_info:
             return format_response(
                 {"state": "error", "message": f"证券 {security} 不存在", "data": [], "usage": {}},
                 "security_clue_list",
-                output=output,
+                output_dir=output_dir,
             )
         gts_code_list.append(security_info.get("security_code", ""))
         gts_pair_list.append(f"{security_info.get('security_code', '')}({security_info.get('security_abbr', '')})")
@@ -340,7 +340,7 @@ def run_security_clue_list(
         return format_response(
             {"state": "error", "message": str(e), "data": [], "usage": {}},
             "security_clue_list",
-            output=output,
+            output_dir=output_dir,
         )
 
     body, err = post_security_clue_list(payload=payload)
@@ -348,16 +348,16 @@ def run_security_clue_list(
         return format_response(
             {"state": "error", "message": err, "data": [], "usage": {}},
             "security_clue_list",
-            output=output,
+            output_dir=output_dir,
         )
     if body is None:
         return format_response(
             {"state": "error", "message": "空响应", "data": [], "usage": {}},
             "security_clue_list",
-            output=output,
+            output_dir=output_dir,
         )
     normalized = normalize_security_clue_response(body)
-    return format_response(normalized, "security_clue_list", output=output)
+    return format_response(normalized, "security_clue_list", output_dir=output_dir)
 
 
 def _normalize_list(raw: Optional[str]) -> Optional[List[str]]:
@@ -414,7 +414,7 @@ def main():
         default=None,
         help="来源筛选多选，逗号分隔：researchReport,conference,announcement,view",
     )
-    parser.add_argument("-o", "--output", default=None, help="结果保存路径")
+    parser.add_argument("-od", "--output-dir", default=None, help="结果保存目录路径")
     args = parser.parse_args()
 
     out = run_security_clue_list(
@@ -425,7 +425,7 @@ def main():
         query_mode=args.query_mode,
         securities=_normalize_list(args.securities),
         source=_normalize_list(args.source),
-        output=args.output,
+        output_dir=args.output_dir,
     )
     print(out)
 

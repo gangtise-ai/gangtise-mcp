@@ -12,7 +12,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, VALUATION_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (
+    normalize_securities_arg, VALUATION_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 from .security import batch_security_search, resolved_code_abbr_map
 
@@ -36,16 +37,6 @@ LOOKBACK_DAYS = 7
 
 _FIELD_LIST = ["value", "percentileRank"]
 
-
-def _load_security_codes_from_file(path: str) -> List[str]:
-    """读取 security_code 列；可为完整代码或名称，后续由 resolve_security_inputs 解析。"""
-    full_path = path
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(f"证券文件不存在: {path}")
-    df = pd.read_csv(full_path)
-    if "security_code" not in df.columns:
-        raise ValueError("证券文件须包含 security_code 列（完整代码或证券名称）")
-    return [str(x) for x in df["security_code"].dropna().tolist()]
 
 
 def _is_valid_metric_value(value: object) -> bool:
@@ -288,13 +279,13 @@ def valuation_data(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     limit: int = 2000,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
-            "valuation",
-        )
+            "valuation", output_dir=output_dir)
 
     headers = get_authorization_headers()
 
@@ -316,8 +307,7 @@ def valuation_data(
                 "data": [],
                 "usage": usage,
             },
-            "valuation",
-        )
+            "valuation", output_dir=output_dir)
     securities_codes = resolved.get("codes") or []
     securities_abbrs = resolved.get("abbrs") or []
     abbr_map = resolved_code_abbr_map(resolved)
@@ -340,8 +330,7 @@ def valuation_data(
     if not frames:
         return format_response(
             {"state": "error", "message": "未找到估值数据", "data": [], "usage": usage},
-            "valuation",
-        )
+            "valuation", output_dir=output_dir)
 
     valuation_data_df = pd.concat(frames, ignore_index=True)
     valuation_data_df = valuation_data_df.sort_values(
@@ -382,8 +371,7 @@ def valuation_data(
             "data": parts,
             "usage": usage,
         },
-        "valuation",
-    )
+        "valuation", output_dir=output_dir)
 
 
 def main():
@@ -413,33 +401,32 @@ def main():
         default=None,
         help=f"结束日期，如 2026-12-31；仅传一侧时另一侧按显式区间补齐（今天={today_str}）",
     )
-    parser.add_argument("--securities", default=None, help="证券名称或完整代码，逗号分隔")
-    parser.add_argument(
-        "--securities-file",
-        default=None,
-        help="从 csv 读取列 security_code（完整代码或名称等关键词）",
-    )
+    parser.add_argument("--securities", default=None, help="证券：完整代码/名称/拼音等，逗号分隔")
     parser.add_argument("-l", "--limit", type=int, default=2000, help="单次指标请求最大行数")
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
 
-    securities: Optional[List[str]] = None
-    if args.securities:
-        securities = [x.strip() for x in args.securities.replace("，", ",").split(",") if x.strip()]
-    if not securities and args.securities_file:
-        try:
-            securities = _load_security_codes_from_file(args.securities_file)
-        except Exception as e:
-            print(f"根据证券文件解析证券失败: {e}")
-            sys.exit(1)
+    try:
+        securities = normalize_securities_arg(args.securities)
+    except Exception as e:
+        print(f"解析 --securities 失败: {e}")
+        sys.exit(1)
 
     if not securities:
-        parser.error("必须至少提供 --securities 或 --securities-file")
+        parser.error("必须提供 --securities")
 
     out = valuation_data(
         securities=securities,
         start_date=args.start_date,
         end_date=args.end_date,
         limit=args.limit,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

@@ -11,7 +11,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, SECURITIES_SEARCH_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, remove_html_tags)
+from .utils import (SECURITIES_SEARCH_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, remove_html_tags)
 
 
 _WEIGHT_MATCH = 0.62
@@ -313,6 +313,7 @@ def security_search(
     top: int = 10,
     headers: Optional[dict] = None,
     output_limit: int = 3,
+    output_dir: Optional[str] = None,
     **kwargs,
 ) -> str:
     """
@@ -323,8 +324,7 @@ def security_search(
     if not raw_keyword:
         return format_response(
             {"state": "error", "message": "keyword 不能为空", "data": [], "usage": usage},
-            "security",
-        )
+            "security", output_dir=output_dir)
 
     if headers is None:
         headers = kwargs.get("basic_headers")
@@ -335,8 +335,7 @@ def security_search(
     if not auth:
         return format_response(
             {"state": "error", "message": "缺少 Authorization，请配置 GTS 授权", "data": [], "usage": usage},
-            "security",
-        )
+            "security", output_dir=output_dir)
 
     req_top = max(1, min(int(top), 10))
     kw_normalized = _normalize_keyword(raw_keyword)
@@ -351,30 +350,26 @@ def security_search(
     except Exception as e:
         return format_response(
             {"state": "error", "message": f"证券搜索请求失败: {e}", "data": [], "usage": usage},
-            "security",
-        )
+            "security", output_dir=output_dir)
 
     if str(body.get("code", "")) != "000000" or body.get("status") is not True:
         msg = body.get("msg") or body.get("message") or r.text[:500]
         return format_response(
             {"state": "error", "message": f"证券搜索接口错误: {msg}", "data": [], "usage": usage},
-            "security",
-        )
+            "security", output_dir=output_dir)
 
     data_block = body.get("data") or {}
     raw_list = data_block.get("list") or []
     if not raw_list:
         return format_response(
             {"state": "error", "message": "未找到相关证券", "data": [], "usage": usage},
-            "security",
-        )
+            "security", output_dir=output_dir)
 
     raw_list = _drop_weak_matches_if_any_strong(raw_list)
     if not raw_list:
         return format_response(
             {"state": "error", "message": "未找到相关证券", "data": [], "usage": usage},
-            "security",
-        )
+            "security", output_dir=output_dir)
 
     items = _rank_search_results(raw_list, raw_keyword, kw_normalized)
 
@@ -433,8 +428,7 @@ def security_search(
             "data": [{"data": df.to_dict(orient="records"), "module": "security", "type": "data"}],
             "usage": usage,
         },
-        "security",
-    )
+        "security", output_dir=output_dir)
 
 def security_search_basic(
     keyword: str,
@@ -722,7 +716,7 @@ def main():
         print("[WARNING] 检查 Gangtise data 版本失败\n")
 
     parser = argparse.ArgumentParser(
-        description="证券代码搜索（open-reference / securities/search，0 积分）",
+        description="证券代码搜索（open-reference / securities/search）",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--keyword", "-k", required=True, help="搜索关键词（名称、代码、拼音等）")
@@ -745,6 +739,13 @@ def main():
         default=3,
         help="落盘/输出条数上限（默认同原 backend 取前 3 条）",
     )
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
 
     try:
@@ -758,6 +759,7 @@ def main():
         category=cats,
         top=args.top,
         output_limit=args.limit,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

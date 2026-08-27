@@ -295,6 +295,10 @@ See [docs/docker-deploy.md](docs/docker-deploy.md).
 
 Credentials via the open platform. Docs issues welcome as GitHub Issues. Chinese: [README.cn.md](README.cn.md).
 
+## Repository layout note
+
+This repo’s **`mcp/` + `api/` + `cli/`** split, and the parallel copies under each domain package, exist because sources are **synced from Gangtise [skills](https://github.com/gangtise-ai/skills-backend)** (`skills/openapi/*` → `mcps/mcp/*` via `sync_skills_to_mcp.py`). That keeps **skills, MCP stdio, HTTP/SSE, and CLI** aligned when capabilities change—rather than maintaining four divergent trees by hand.
+
 ## License
 
 [MIT](LICENSE) © 2026 Gangtise

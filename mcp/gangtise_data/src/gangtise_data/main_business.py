@@ -14,7 +14,8 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (authorized_request, MAIN_BUSINESS_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (
+    normalize_securities_arg, MAIN_BUSINESS_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 # open 文档：可选指标，默认全取
 _FIELD_LIST_ALL = [
@@ -66,15 +67,6 @@ API_FIELD_TO_CN = {
 
 SORT_TYPE_COL = "分行业/分产品/分地区"
 
-
-def _load_security_codes_from_file(path: str) -> List[str]:
-    full_path = path
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(f"证券文件不存在: {path}")
-    df = pd.read_csv(full_path)
-    if "security_code" not in df.columns:
-        raise ValueError("证券文件须包含 security_code 列（完整代码或证券名称等关键词）")
-    return [str(x) for x in df["security_code"].dropna().tolist()]
 
 
 def _parse_main_business_body(body: dict, breakdown_key: str) -> pd.DataFrame:
@@ -199,19 +191,18 @@ def main_business_data(
     end_date: Optional[str] = None,
     period: Optional[str] = None,
     breakdown: Optional[str] = None,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
-            "main_business",
-        )
+            "main_business", output_dir=output_dir)
 
     if period is not None and period not in ("interim", "annual"):
         return format_response(
             {"state": "error", "message": "period 仅支持 interim（中报）或 annual（年报）", "data": [], "usage": usage},
-            "main_business",
-        )
+            "main_business", output_dir=output_dir)
 
     if breakdown is not None and breakdown not in BREAKDOWN_LABEL:
         return format_response(
@@ -221,8 +212,7 @@ def main_business_data(
                 "data": [],
                 "usage": usage,
             },
-            "main_business",
-        )
+            "main_business", output_dir=output_dir)
 
     headers = get_authorization_headers()
     if not end_date:
@@ -245,8 +235,7 @@ def main_business_data(
                 "data": [],
                 "usage": usage,
             },
-            "main_business",
-        )
+            "main_business", output_dir=output_dir)
     securities_codes = resolved.get("codes") or []
     securities_abbrs = resolved.get("abbrs") or []
     abbr_map = resolved_code_abbr_map(resolved)
@@ -261,8 +250,7 @@ def main_business_data(
                 "data": [],
                 "usage": usage,
             },
-            "main_business",
-        )
+            "main_business", output_dir=output_dir)
 
     frames: List[pd.DataFrame] = []
     for abbr, code in zip(securities_abbrs, securities_codes):
@@ -282,8 +270,7 @@ def main_business_data(
     if not frames:
         return format_response(
             {"state": "error", "message": "未找到主营业务数据", "data": [], "usage": usage},
-            "main_business",
-        )
+            "main_business", output_dir=output_dir)
 
     data = pd.concat(frames, ignore_index=True)
     data = data.sort_values(
@@ -330,8 +317,7 @@ def main_business_data(
             "data": parts,
             "usage": usage,
         },
-        "main_business",
-    )
+        "main_business", output_dir=output_dir)
 
 
 def main():
@@ -350,33 +336,30 @@ def main():
     )
     parser.add_argument("-sd", "--start-date", default=None, help="开始日期 yyyy-MM-dd，默认 end 往前三年")
     parser.add_argument("-ed", "--end-date", default=None, help="结束日期 yyyy-MM-dd，默认今天")
-    parser.add_argument("--securities", default=None, help="证券逗号分隔：完整代码或名称/拼音等")
-    parser.add_argument("--securities-file", default=None, help="csv 含 security_code 列（代码或名称）")
-    parser.add_argument(
-        "--period",
-        default=None,
-        help="报告期：仅 Q2=中报 或 Q4=年报；不传则不限定",
-    )
+    parser.add_argument("--securities", default=None, help="证券：完整代码/名称/拼音等，逗号分隔")
     parser.add_argument(
         "--breakdown",
         default=None,
         choices=["product", "industry", "region"],
         help="拆分维度；不传则并发拉取 product / industry / region 三种",
     )
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
 
-    securities: Optional[List[str]] = None
-    if args.securities:
-        securities = [x.strip() for x in args.securities.replace("，", ",").split(",") if x.strip()]
-    if not securities and args.securities_file:
-        try:
-            securities = _load_security_codes_from_file(args.securities_file)
-        except Exception as e:
-            print(f"根据证券文件解析证券失败: {e}")
-            sys.exit(1)
+    try:
+        securities = normalize_securities_arg(args.securities)
+    except Exception as e:
+        print(f"解析 --securities 失败: {e}")
+        sys.exit(1)
 
     if not securities:
-        parser.error("必须至少提供 --securities 或 --securities-file")
+        parser.error("必须提供 --securities")
 
     api_period = None
     if args.period is not None and str(args.period).strip():
@@ -393,6 +376,7 @@ def main():
         end_date=args.end_date,
         period=api_period,
         breakdown=args.breakdown,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

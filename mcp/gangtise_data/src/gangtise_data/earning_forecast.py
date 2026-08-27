@@ -12,7 +12,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, EARNING_FORECAST_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (
+    normalize_securities_arg, EARNING_FORECAST_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 from .security import batch_security_search, resolved_code_abbr_map
 
 ALL_CONSENSUS_FIELDS: List[str] = [
@@ -39,15 +40,6 @@ CONSENSUS_CN: Dict[str, str] = {
     "ps": "市销率",
 }
 
-
-def _load_security_codes_from_file(path: str) -> List[str]:
-    full_path = path
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(f"证券文件不存在: {path}")
-    df = pd.read_csv(full_path)
-    if "security_code" not in df.columns:
-        raise ValueError("证券文件须包含 security_code 列（完整代码或证券名称等关键词）")
-    return [str(x) for x in df["security_code"].dropna().tolist()]
 
 
 def _normalize_consensus_list(consensus_list: Optional[List[str]]) -> Tuple[List[str], Optional[str]]:
@@ -178,13 +170,13 @@ def earning_forecast_data(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     consensus_list: Optional[List[str]] = None,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
-            "earning_forecast",
-        )
+            "earning_forecast", output_dir=output_dir)
 
     headers = get_authorization_headers()
     tokens = parse_str_list(securities)
@@ -202,8 +194,7 @@ def earning_forecast_data(
                 "data": [],
                 "usage": usage,
             },
-            "earning_forecast",
-        )
+            "earning_forecast", output_dir=output_dir)
     codes = resolved.get("codes") or []
     securities_abbrs = resolved.get("abbrs") or []
     abbr_map = resolved_code_abbr_map(resolved)
@@ -219,8 +210,7 @@ def earning_forecast_data(
     if consensus_err:
         return format_response(
             {"state": "error", "message": consensus_err, "data": [], "usage": usage},
-            "earning_forecast",
-        )
+            "earning_forecast", output_dir=output_dir)
 
     frames: List[pd.DataFrame] = []
     fallback_codes: List[str] = []
@@ -254,8 +244,7 @@ def earning_forecast_data(
             err_msg = "；".join(request_errors)
         return format_response(
             {"state": "error", "message": err_msg, "data": [], "usage": usage},
-            "earning_forecast",
-        )
+            "earning_forecast", output_dir=output_dir)
 
     df = pd.concat(frames, ignore_index=True)
     df = df.sort_values(by=["security_code", "date", "预测年份"], ascending=[True, False, True]).reset_index(drop=True)
@@ -290,8 +279,7 @@ def earning_forecast_data(
             "data": parts,
             "usage": usage,
         },
-        "earning_forecast",
-    )
+        "earning_forecast", output_dir=output_dir)
 
 
 def main():
@@ -309,39 +297,35 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     today_str = date.today().strftime("%Y-%m-%d")
-    parser.add_argument("--securities", default=None, help="证券逗号分隔：完整代码或名称/拼音等")
-    parser.add_argument("--securities-file", default=None, help="csv 须含 security_code 列（代码或名称）")
-    parser.add_argument("-sd", "--start-date", default=today_str, help="开始日期 yyyy-MM-dd")
-    parser.add_argument("-ed", "--end-date", default=today_str, help="结束日期 yyyy-MM-dd")
+    parser.add_argument("--securities", default=None, help="证券：完整代码/名称/拼音等，逗号分隔")
     parser.add_argument(
-        "--consensus-list",
+        "-od",
+        "--output-dir",
         default=None,
-        help=f"一致预期指标，逗号分隔；可选 {','.join(ALL_CONSENSUS_FIELDS)}；不传默认全部",
+        help="结果保存目录路径，建议使用绝对路径",
     )
+
     args = parser.parse_args()
 
     consensus: Optional[List[str]] = None
     if args.consensus_list:
         consensus = [x.strip() for x in args.consensus_list.replace("，", ",").split(",") if x.strip()]
 
-    securities: Optional[List[str]] = None
-    if args.securities:
-        securities = [x.strip() for x in args.securities.replace("，", ",").split(",") if x.strip()]
-    if not securities and args.securities_file:
-        try:
-            securities = _load_security_codes_from_file(args.securities_file)
-        except Exception as e:
-            print(f"根据证券文件解析证券失败: {e}")
-            sys.exit(1)
+    try:
+        securities = normalize_securities_arg(args.securities)
+    except Exception as e:
+        print(f"解析 --securities 失败: {e}")
+        sys.exit(1)
 
     if not securities:
-        parser.error("必须至少提供 --securities 或 --securities-file")
+        parser.error("必须提供 --securities")
 
     out = earning_forecast_data(
         securities=securities,
         start_date=args.start_date,
         end_date=args.end_date,
         consensus_list=consensus,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

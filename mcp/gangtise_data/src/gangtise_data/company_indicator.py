@@ -16,7 +16,7 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search
 
-from .utils import (authorized_request, INDICATOR_SEARCH_URL, INDICATOR_TIME_SERIES_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, normalize_securities_arg, parse_str_list)
+from .utils import (INDICATOR_CROSS_SECTION_URL, INDICATOR_SEARCH_URL, INDICATOR_TIME_SERIES_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, normalize_securities_arg, parse_str_list)
 
 INDICATORS_FILE_HINT = (
     "可以删除行或编辑参数列，再通过--indicators-file参数读取文件查询指标代码和参数"
@@ -191,14 +191,6 @@ def _merge_param_dicts(base: Dict[str, Any], override: Dict[str, Any], indicator
             result[key] = val
     return result
 
-
-def _load_security_codes_from_file(path: str) -> List[str]:
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"证券文件不存在: {path}")
-    df = pd.read_csv(path)
-    if "security_code" not in df.columns:
-        raise ValueError("证券文件须包含 security_code 列（完整代码或证券名称等关键词）")
-    return [str(x) for x in df["security_code"].dropna().tolist()]
 
 
 def _default_dates(
@@ -578,6 +570,7 @@ def _items_to_markdown(keyword: str, items: List[dict], exact_only: bool) -> str
 
 def _post_indicator_api(url: str, headers: dict, payload: dict) -> Tuple[Optional[dict], Optional[str]]:
     try:
+        print(payload)
         r = authorized_request("POST", url, headers=headers, json=payload, timeout=300)
         if r.status_code != 200:
             return None, f"HTTP {r.status_code}: {r.text[:500]}"
@@ -790,7 +783,9 @@ def _resolve_a_share_codes(headers: dict, tokens: List[str]) -> Tuple[List[str],
     return a_codes, skipped, usage
 
 
-def company_indicator_search(keyword: str):
+def company_indicator_search(keyword: str,
+    output_dir: Optional[str] = None,
+):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
@@ -800,21 +795,18 @@ def company_indicator_search(keyword: str):
                 "data": [],
                 "usage": usage,
             },
-            "company_indicator",
-        )
+            "company_indicator", output_dir=output_dir)
     kw = (keyword or "").strip()
     if not kw:
         return format_response(
             {"state": "error", "message": "keyword 不能为空", "data": [], "usage": usage},
-            "company_indicator",
-        )
+            "company_indicator", output_dir=output_dir)
     headers = get_authorization_headers()
     items, err = _search_indicators(headers, kw, SEARCH_LIMIT)
     if err:
         return format_response(
             {"state": "error", "message": err, "data": [], "usage": usage},
-            "company_indicator",
-        )
+            "company_indicator", output_dir=output_dir)
     if not items:
         return format_response(
             {
@@ -823,8 +815,7 @@ def company_indicator_search(keyword: str):
                 "data": [],
                 "usage": usage,
             },
-            "company_indicator",
-        )
+            "company_indicator", output_dir=output_dir)
     before_filter = items
     items = _filter_search_results(kw, items)
     exact_only = len(items) < len(before_filter)
@@ -838,8 +829,7 @@ def company_indicator_search(keyword: str):
                 "data": [],
                 "usage": usage,
             },
-            "company_indicator",
-        )
+            "company_indicator", output_dir=output_dir)
     if exact_only:
         msg = f"共 {len(records)} 条与「{kw}」完全匹配的公司指标"
     else:
@@ -859,8 +849,7 @@ def company_indicator_search(keyword: str):
             "data": parts,
             "usage": usage,
         },
-        "company_indicator",
-    )
+        "company_indicator", output_dir=output_dir)
 
 
 def company_indicator_get(
@@ -870,6 +859,7 @@ def company_indicator_get(
     end_date: Optional[str] = None,
     params: Optional[Dict[str, Any]] = None,
     indicator_meta: Optional[List[Dict[str, Any]]] = None,
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
@@ -880,26 +870,23 @@ def company_indicator_get(
                 "data": [],
                 "usage": usage,
             },
-            "company_indicator",
-        )
+            "company_indicator", output_dir=output_dir)
 
     indicators = [str(x).strip() for x in indicator_codes if str(x).strip()]
     if not indicators:
         return format_response(
             {"state": "error", "message": "indicatorCodeList 不能为空", "data": [], "usage": usage},
-            "company_indicator",
-        )
+            "company_indicator", output_dir=output_dir)
     tokens = parse_str_list(securities)
     if not tokens:
         return format_response(
             {
                 "state": "error",
-                "message": "请指定 --securities / --securities-file",
+                "message": "请指定 --securities",
                 "data": [],
                 "usage": usage,
             },
-            "company_indicator",
-        )
+            "company_indicator", output_dir=output_dir)
 
     start_date, end_date = _default_dates(start_date, end_date)
     headers = get_authorization_headers()
@@ -917,8 +904,7 @@ def company_indicator_get(
         msg = usage_note or "未解析到有效 A 股证券代码"
         return format_response(
             {"state": "error", "message": msg, "data": [], "usage": usage},
-            "company_indicator",
-        )
+            "company_indicator", output_dir=output_dir)
 
     param_dict = _normalize_params_input(params)
     root_opts, indicator_param_list = _build_request_options(param_dict, indicators)
@@ -974,8 +960,7 @@ def company_indicator_get(
         err_tail = "；".join(errors) if errors else "未获取到指标数据"
         return format_response(
             {"state": "error", "message": err_tail, "data": [], "usage": usage},
-            "company_indicator",
-        )
+            "company_indicator", output_dir=output_dir)
 
     data = pd.concat(frames, ignore_index=True)
     data = _fill_indicator_data_types(data, indicator_meta)
@@ -989,8 +974,7 @@ def company_indicator_get(
         err_tail = "；".join(errors) if errors else "指标数据均为空值"
         return format_response(
             {"state": "error", "message": err_tail, "data": [], "usage": usage},
-            "company_indicator",
-        )
+            "company_indicator", output_dir=output_dir)
 
     if total_cells > 0:
         usage["ede_indicator_get"] = usage.get("ede_indicator_get", 0) + _usage_from_cells(total_cells)
@@ -1017,8 +1001,7 @@ def company_indicator_get(
             "data": parts,
             "usage": usage,
         },
-        "company_indicator",
-    )
+        "company_indicator", output_dir=output_dir)
 
 
 def company_indicator_data(
@@ -1028,6 +1011,7 @@ def company_indicator_data(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     params: Optional[Dict[str, Any]] = None,
+    output_dir: Optional[str] = None,
 ):
     """检索公司指标元信息，或在提供 indicator_codes + securities 时拉取时序/截面数据。
 
@@ -1046,8 +1030,7 @@ def company_indicator_data(
                     "data": [],
                     "usage": {},
                 },
-                "company_indicator",
-            )
+                "company_indicator", output_dir=output_dir)
         if not get_authorization_token():
             return format_response(
                 {
@@ -1056,8 +1039,7 @@ def company_indicator_data(
                     "data": [],
                     "usage": {},
                 },
-                "company_indicator",
-            )
+                "company_indicator", output_dir=output_dir)
         headers = get_authorization_headers()
         codes, search_md, err, indicator_aliases, indicator_matches, param_aliases, indicator_meta = (
             _resolve_indicators_from_arg(headers, indicators_raw)
@@ -1065,8 +1047,7 @@ def company_indicator_data(
         if err:
             return format_response(
                 {"state": "error", "message": err, "data": [], "usage": {}},
-                "company_indicator",
-            )
+                "company_indicator", output_dir=output_dir)
         if search_md:
             return format_response(
                 {
@@ -1075,8 +1056,7 @@ def company_indicator_data(
                     "data": [],
                     "usage": {},
                 },
-                "company_indicator",
-            )
+                "company_indicator", output_dir=output_dir)
         try:
             param_dict = _normalize_params_keys(
                 _normalize_params_input(params),
@@ -1086,8 +1066,7 @@ def company_indicator_data(
         except ValueError as e:
             return format_response(
                 {"state": "error", "message": str(e), "data": [], "usage": {}},
-                "company_indicator",
-            )
+                "company_indicator", output_dir=output_dir)
         return company_indicator_get(
             indicator_codes=codes,
             securities=sec_list,
@@ -1095,11 +1074,12 @@ def company_indicator_data(
             end_date=end_date,
             params=param_dict,
             indicator_meta=indicator_meta,
+            output_dir=output_dir,
         )
 
     kw = (keyword or "").strip()
     if kw:
-        return company_indicator_search(kw)
+        return company_indicator_search(kw, output_dir=output_dir)
 
     return format_response(
         {
@@ -1108,8 +1088,7 @@ def company_indicator_data(
             "data": [],
             "usage": {},
         },
-        "company_indicator",
-    )
+        "company_indicator", output_dir=output_dir)
 
 
 def main():
@@ -1147,16 +1126,14 @@ def main():
         default=None,
         help="CSV 含 indicator_code、indicator_name、indicator_params 列（get 模式）",
     )
-    parser.add_argument("--securities", default=None, help="证券逗号分隔：代码或名称（get 模式）")
-    parser.add_argument("--securities-file", default=None, help="csv 含 security_code 列（get 模式）")
-    parser.add_argument("-sd", "--start-date", default=None, help=f"开始日期 yyyy-MM-dd（get），默认 {default_start}")
-    parser.add_argument("-ed", "--end-date", default=None, help=f"结束日期 yyyy-MM-dd（get），默认 {today_str}")
+    parser.add_argument("--securities", default=None, help="证券：完整代码/名称/拼音等，逗号分隔")
     parser.add_argument(
-        "-p",
-        "--params",
+        "-od",
+        "--output-dir",
         default=None,
-        help='指标参数字典 JSON：scale/量纲、calendarType/日期类型 支持中文键与枚举值；其余见 references/company_indicatory.md',
+        help="结果保存目录路径，建议使用绝对路径",
     )
+
     args = parser.parse_args()
 
     indicator_meta: List[Dict[str, Any]] = []
@@ -1170,13 +1147,6 @@ def main():
         except Exception as e:
             print(f"解析指标文件失败: {e}")
             sys.exit(1)
-    if args.securities_file:
-        try:
-            securities_raw = ",".join(_load_security_codes_from_file(args.securities_file))
-        except Exception as e:
-            print(f"解析证券文件失败: {e}")
-            sys.exit(1)
-
     # 优先级：--indicators / --indicators-file → get；否则 -k → search
     # （单独 --securities 不会进入 get，避免 -k + --securities 被误判）
     if indicators_raw:
@@ -1187,9 +1157,13 @@ def main():
             except Exception as e:
                 parser.error(str(e))
         if indicator_meta:
-            sec_list = normalize_securities_arg(securities_raw)
+            try:
+                sec_list = normalize_securities_arg(securities_raw)
+            except Exception as e:
+                print(f"解析 --securities 失败: {e}")
+                sys.exit(1)
             if not sec_list:
-                parser.error("拉取数据须提供 --securities 或 --securities-file")
+                parser.error("拉取数据须提供 --securities")
             codes = [str(x["code"]) for x in indicator_meta]
             file_params = _params_dict_from_file_entries(indicator_meta)
             try:
@@ -1214,13 +1188,16 @@ def main():
                 start_date=args.start_date,
                 end_date=args.end_date,
                 params=param_dict or None,
-            )
+        output_dir=args.output_dir or None,
+    )
         )
         return
 
     kw = (args.keyword or "").strip()
     if kw:
-        print(company_indicator_search(kw))
+        print(company_indicator_search(kw,
+        output_dir=args.output_dir or None,
+    ))
         return
     if securities_raw:
         parser.error("拉取数据须同时提供 --indicators/--indicators-file；仅检索请用 -k/--keyword")

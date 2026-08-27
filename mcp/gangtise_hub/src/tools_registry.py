@@ -8,6 +8,7 @@ from gangtise_data import tools_registry as _data_reg
 from gangtise_file import tools_registry as _file_reg
 from gangtise_kb import tools_registry as _kb_reg
 from gangtise_private import tools_registry as _private_reg
+from gangtise_screener import tools_registry as _screener_reg
 from gangtise_pdf import tools_registry as _pdf_reg
 
 ToolHandler = Callable[..., Any]
@@ -29,6 +30,9 @@ TOOL_HANDLERS.update(_kb_reg.TOOL_HANDLERS)
 
 DOMAIN_TOOL_NAMES["gangtise-private"] = list(_private_reg.TOOL_HANDLERS)
 TOOL_HANDLERS.update(_private_reg.TOOL_HANDLERS)
+
+DOMAIN_TOOL_NAMES["gangtise-screener"] = list(_screener_reg.TOOL_HANDLERS)
+TOOL_HANDLERS.update(_screener_reg.TOOL_HANDLERS)
 
 DOMAIN_TOOL_NAMES["gangtise-pdf"] = list(_pdf_reg.TOOL_HANDLERS)
 TOOL_HANDLERS.update(_pdf_reg.TOOL_HANDLERS)

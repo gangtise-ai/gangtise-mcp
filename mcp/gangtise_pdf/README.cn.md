@@ -7,7 +7,7 @@
 | `submit` | 上传 PDF，返回 `taskId` 与预估耗时（约 **5s 启动 + 1s/页**） |
 | `result` | 按 `taskId` 下载并解压 Markdown + 图片；未完成可稍后重试 |
 
-积分：提交成功后 **0.8 积分/页**；`result` 不另计费。勿在结果未就绪时重复 `submit`。
+勿在结果未就绪时重复 `submit`，请用同一 `taskId` 调用 `result`。
 
 ## 本地 stdio
 

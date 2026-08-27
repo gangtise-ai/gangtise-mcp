@@ -10,7 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, INDUSTRIES_MAP, REPORT_URL, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, report_category_display, report_llm_tag_display, resolve_report_category_list, resolve_report_llm_tag_list, resolve_result_limit)
+from .utils import (DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, INDUSTRIES_MAP, REPORT_URL, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, report_category_display, report_llm_tag_display, resolve_report_category_list, resolve_report_llm_tag_list, resolve_result_limit)
 from .get_file import download_files
 from .security import batch_security_search
 from .search_institution import (
@@ -238,13 +238,12 @@ def report_finder(
             if inst_candidates:
                 return format_response(
                     {"state": "error", "message": inst_candidates},
-                    "report",
-                )
+                    "report", output_dir=output_dir)
             if not org_ids:
                 msg = "机构解析失败"
                 if inst_notes:
                     msg += "：" + "；".join(inst_notes)
-                return format_response({"state": "error", "message": msg}, "report")
+                return format_response({"state": "error", "message": msg}, "report", output_dir=output_dir)
         source_ids = _resolve_sources(source_types) if source_types else []
 
         securities_input = list(securities) if securities else []
@@ -256,8 +255,7 @@ def report_finder(
             if resolved.get("state") != "success":
                 return format_response(
                     {"state": "error", "message": resolved.get("message") or "证券解析失败"},
-                    "report",
-                )
+                    "report", output_dir=output_dir)
             securities = resolved["codes"]
         else:
             securities = None
@@ -306,22 +304,21 @@ def report_finder(
         part_error_message = ""
         all_results, err = _fetch_reports(headers, payload_base, keyword_str, search_type, rank_type, limit)
         if err and not all_results:
-            return format_response({"state": "error", "message": err}, "report")
+            return format_response({"state": "error", "message": err}, "report", output_dir=output_dir)
         elif err and all_results:
             part_error_message = f"未完整获取全部结果，错误信息：{err}"
 
         if not all_results and keyword_str:
             all_results, err = _fetch_reports(headers, payload_base, keyword_str, 2, rank_type, limit)
             if err and not all_results:
-                return format_response({"state": "error", "message": err}, "report")
+                return format_response({"state": "error", "message": err}, "report", output_dir=output_dir)
             elif err and all_results:
                 part_error_message = f"未完整获取全部结果，错误信息：{err}"
 
         if not all_results:
             return format_response(
                 {"state": "error", "message": "未找到相关研报，建议修改查询条件", "data": []},
-                "report",
-            )
+                "report", output_dir=output_dir)
 
         all_results = all_results[:limit]
 
@@ -334,12 +331,11 @@ def report_finder(
             "message": "已找到相关研报",
             "data": [{"data": all_results, "module": "report", "type": "files"}],
         }
-        return format_response(response_data, "report", additional_message=additional_message)
+        return format_response(response_data, "report", additional_message=additional_message, output_dir=output_dir)
     except Exception as e:
         return format_response(
             {"state": "error", "message": str(e), "data": [], "usage": {}},
-            "report",
-        )
+            "report", output_dir=output_dir)
 
 
 def _parse_str_list(raw: str) -> Optional[List[str]]:
@@ -440,7 +436,7 @@ def main():
         "-od",
         "--output-dir",
         default=None,
-        help="下载文件保存路径，建议使用绝对路径",
+        help="结果与下载文件保存目录路径，建议使用绝对路径",
     )
     parser.add_argument(
         "-dt",
@@ -468,9 +464,6 @@ def main():
     download = args.download or False
     output_dir = args.output_dir or None
     download_types = _parse_str_list(args.download_types)
-    if not download and output_dir:
-        print(f"[WARNING] 参数 -od/--output-dir 仅在下载文件时有效，已忽略\n")
-        output_dir = None
 
     try:
         if not check_version():

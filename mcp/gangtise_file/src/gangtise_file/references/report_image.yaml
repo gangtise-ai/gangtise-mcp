@@ -1,6 +1,6 @@
 name: report_image
 title: Report Image
-description: 按关键词搜索研报中的图片，返回图注、页码、页面内容描述及 chunkId；支持时间范围、研报 ID 过滤。检索无积分消耗，下载原图按 0.1 积分/张计费。
+description: 按关键词搜索研报中的图片，返回图注、页码、页面内容描述及 chunkId；支持时间范围、研报 ID 过滤。
 parameters:
   keyword:
     type: string

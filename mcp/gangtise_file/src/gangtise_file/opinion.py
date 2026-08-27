@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (authorized_request, FILE_DEFAULT_LIMIT, OPINION_URL, RESEARCH_AREA_MAP, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags)
+from .utils import (FILE_DEFAULT_LIMIT, OPINION_URL, RESEARCH_AREA_MAP, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags)
 from .security import batch_security_search
 from .search_chief import SEARCH_TOP_DEFAULT, resolve_chief_token
 from .search_institution import (
@@ -294,6 +294,7 @@ def opinion_finder(
     source_types: Optional[List[str]] = None,
     rank_type: int = 1,
     limit: int = FILE_DEFAULT_LIMIT["opinion"],
+    output_dir: Optional[str] = None,
 ):
     try:
         headers = get_authorization_headers()
@@ -311,13 +312,12 @@ def opinion_finder(
             if inst_candidates:
                 return format_response(
                     {"state": "error", "message": inst_candidates},
-                    "opinion",
-                )
+                    "opinion", output_dir=output_dir)
             if not broker_ids:
                 msg = "机构解析失败"
                 if inst_notes:
                     msg += "：" + "；".join(inst_notes)
-                return format_response({"state": "error", "message": msg}, "opinion")
+                return format_response({"state": "error", "message": msg}, "opinion", output_dir=output_dir)
         llm_resolved = _resolve_llm_tags(llm_tags) if llm_tags else []
         source_resolved = _resolve_opinion_sources(source_types) if source_types else []
 
@@ -330,8 +330,7 @@ def opinion_finder(
             if resolved.get("state") != "success":
                 return format_response(
                     {"state": "error", "message": resolved.get("message") or "证券解析失败"},
-                    "opinion",
-                )
+                    "opinion", output_dir=output_dir)
             securities = resolved["codes"]
         else:
             securities = None
@@ -343,13 +342,12 @@ def opinion_finder(
             if chief_candidates:
                 return format_response(
                     {"state": "error", "message": chief_candidates},
-                    "opinion",
-                )
+                    "opinion", output_dir=output_dir)
             if not chief_list:
                 msg = "首席解析失败"
                 if chief_notes:
                     msg += "：" + "；".join(chief_notes)
-                return format_response({"state": "error", "message": msg}, "opinion")
+                return format_response({"state": "error", "message": msg}, "opinion", output_dir=output_dir)
 
         concept_list: List[str] = []
         if concepts:
@@ -392,7 +390,7 @@ def opinion_finder(
 
         all_results, err = _fetch_opinions(headers, payload_base, keyword_str, limit)
         if err and not all_results:
-            return format_response({"state": "error", "message": err}, "opinion")
+            return format_response({"state": "error", "message": err}, "opinion", output_dir=output_dir)
         part_error_message = ""
         if err and all_results:
             part_error_message = f"未完整获取全部结果，错误信息：{err}"
@@ -405,8 +403,7 @@ def opinion_finder(
         if not all_results:
             return format_response(
                 {"state": "error", "message": "未找到相关观点，建议修改查询条件", "data": []},
-                "opinion",
-            )
+                "opinion", output_dir=output_dir)
 
         all_results = all_results[:limit]
 
@@ -415,14 +412,13 @@ def opinion_finder(
             "message": "已找到相关观点",
             "data": [{"data": all_results, "module": "opinion", "type": "files"}],
         }
-        return format_response(response_data, "opinion", additional_message=part_error_message or "")
+        return format_response(response_data, "opinion", additional_message=part_error_message or "", output_dir=output_dir)
     except Exception as e:
         import traceback
         traceback.print_exc()
         return format_response(
             {"state": "error", "message": str(e), "data": [], "usage": {}},
-            "opinion",
-        )
+            "opinion", output_dir=output_dir)
 
 
 def _parse_str_list(raw: str) -> Optional[List[str]]:
@@ -496,6 +492,13 @@ def main():
         help="来源，逗号分隔：realTime/openSource 或 实时/开放来源",
     )
 
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
+
     args = parser.parse_args()
 
     keyword = args.keyword or ""
@@ -530,6 +533,7 @@ def main():
         source_types=source_types,
         rank_type=rank_type,
         limit=limit,
+        output_dir=args.output_dir or None,
     )
     print(out)
 

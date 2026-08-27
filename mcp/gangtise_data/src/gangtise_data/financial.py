@@ -13,7 +13,8 @@ if script_dir not in sys.path:
 
 from .security import batch_security_search, resolved_code_abbr_map
 
-from .utils import (authorized_request, BALANCE_FIELD_CN, CASH_FLOW_FIELD_CN, FINANCIAL_REPORT_BALANCE_URL, FINANCIAL_REPORT_CASH_FLOW_QUARTERLY_URL, FINANCIAL_REPORT_CASH_FLOW_URL, FINANCIAL_REPORT_INCOME_QUARTERLY_URL, FINANCIAL_REPORT_INCOME_URL, HK_BALANCE_FIELD_CN, HK_CASH_FLOW_FIELD_CN, HK_FINANCIAL_REPORT_BALANCE_URL, HK_FINANCIAL_REPORT_CASH_FLOW_URL, HK_FINANCIAL_REPORT_INCOME_URL, HK_INCOME_FIELD_CN, INCOME_FIELD_CN, US_BALANCE_FIELD_CN, US_CASH_FLOW_FIELD_CN, US_FINANCIAL_REPORT_BALANCE_URL, US_FINANCIAL_REPORT_CASH_FLOW_URL, US_FINANCIAL_REPORT_INCOME_URL, US_INCOME_FIELD_CN, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
+from .utils import (
+    normalize_securities_arg, BALANCE_FIELD_CN, CASH_FLOW_FIELD_CN, FINANCIAL_REPORT_BALANCE_URL, FINANCIAL_REPORT_CASH_FLOW_QUARTERLY_URL, FINANCIAL_REPORT_CASH_FLOW_URL, FINANCIAL_REPORT_INCOME_QUARTERLY_URL, FINANCIAL_REPORT_INCOME_URL, HK_BALANCE_FIELD_CN, HK_CASH_FLOW_FIELD_CN, HK_FINANCIAL_REPORT_BALANCE_URL, HK_FINANCIAL_REPORT_CASH_FLOW_URL, HK_FINANCIAL_REPORT_INCOME_URL, HK_INCOME_FIELD_CN, INCOME_FIELD_CN, US_BALANCE_FIELD_CN, US_CASH_FLOW_FIELD_CN, US_FINANCIAL_REPORT_BALANCE_URL, US_FINANCIAL_REPORT_CASH_FLOW_URL, US_FINANCIAL_REPORT_INCOME_URL, US_INCOME_FIELD_CN, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, parse_str_list)
 
 # 命令行使用 Q1~Q4、Q0；发往 open 接口时映射为官方 period 枚举
 FINANCIAL_PERIOD_CLI_TO_API_A = {
@@ -426,15 +427,6 @@ def _unsupported_financial_note(skipped: List[Tuple[str, str]]) -> Optional[str]
     return "[WARNING]存在部分标的类型不支持财务报表查询，已跳过：" + "；".join(parts)
 
 
-def _load_security_codes_from_file(path: str) -> List[str]:
-    full_path = path
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(f"证券文件不存在: {path}")
-    df = pd.read_csv(full_path)
-    if "security_code" not in df.columns:
-        raise ValueError("证券文件须包含 security_code 列（完整代码或证券名称等关键词）")
-    return [str(x) for x in df["security_code"].dropna().tolist()]
-
 
 def _fmt_yyyymmdd(val) -> str:
     if val is None or (isinstance(val, float) and pd.isna(val)):
@@ -711,26 +703,24 @@ def financial_data(
     field_list: Optional[List[str]] = None,
     table_type: str = "income",
     granularity: str = "accumulated",
+    output_dir: Optional[str] = None,
 ):
     usage: dict = {}
     if not get_authorization_token():
         return format_response(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     table_norm, table_err = _normalize_table_type(table_type)
     if table_err:
         return format_response(
             {"state": "error", "message": table_err, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
     granularity_norm, granularity_err = _normalize_financial_granularity(granularity)
     if granularity_err:
         return format_response(
             {"state": "error", "message": granularity_err, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     table_label = TABLE_TYPE_LABEL_CN[table_norm]
 
@@ -755,8 +745,7 @@ def financial_data(
                 "data": [],
                 "usage": usage,
             },
-            "financial",
-        )
+            "financial", output_dir=output_dir)
     codes = resolved.get("codes") or []
     abbr_map = resolved_code_abbr_map(resolved)
     resolved_types = list(resolved.get("types") or [])
@@ -770,8 +759,7 @@ def financial_data(
                 "data": [],
                 "usage": usage,
             },
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     while len(resolved_types) < len(codes):
         resolved_types.append("")
@@ -783,27 +771,23 @@ def financial_data(
         msg = skip_note if skip_note else "未解析到支持财务报表查询的证券（仅支持 A 股、存托凭证、港股与美股）"
         return format_response(
             {"state": "error", "message": msg, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     period_a, period_err = _map_financial_periods_cli_to_api(period, "a_share")
     if period_err:
         return format_response(
             {"state": "error", "message": period_err, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
     period_hk, period_hk_err = _map_financial_periods_cli_to_api(period, "hk")
     if period_hk_err:
         return format_response(
             {"state": "error", "message": period_hk_err, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
     period_us, period_us_err = _map_financial_periods_cli_to_api(period, "us")
     if period_us_err:
         return format_response(
             {"state": "error", "message": period_us_err, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     a_frames: List[pd.DataFrame] = []
     hk_frames: List[pd.DataFrame] = []
@@ -834,8 +818,7 @@ def financial_data(
         if a_url_err:
             return format_response(
                 {"state": "error", "message": a_url_err, "data": [], "usage": usage},
-                "financial",
-            )
+                "financial", output_dir=output_dir)
         a_frames = _fetch_financial_reports_batch(
             a_url,
             headers,
@@ -853,8 +836,7 @@ def financial_data(
         if hk_url_err:
             return format_response(
                 {"state": "error", "message": hk_url_err, "data": [], "usage": usage},
-                "financial",
-            )
+                "financial", output_dir=output_dir)
         hk_frames = _fetch_financial_reports_batch(
             hk_url,
             headers,
@@ -872,8 +854,7 @@ def financial_data(
         if us_url_err:
             return format_response(
                 {"state": "error", "message": us_url_err, "data": [], "usage": usage},
-                "financial",
-            )
+                "financial", output_dir=output_dir)
         us_frames = _fetch_financial_reports_batch(
             us_url,
             headers,
@@ -892,8 +873,7 @@ def financial_data(
             err_msg = f"{skip_note}；{err_msg}"
         return format_response(
             {"state": "error", "message": err_msg, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     # A 股与港股科目列结构不同，不合并宽表；按市场分块，对应多份 CSV（同 quote.py）
     output_blocks: List[Tuple[pd.DataFrame, str]] = []
@@ -934,8 +914,7 @@ def financial_data(
             err_msg = f"{skip_note}；{err_msg}"
         return format_response(
             {"state": "error", "message": err_msg, "data": [], "usage": usage},
-            "financial",
-        )
+            "financial", output_dir=output_dir)
 
     extra_notes: List[str] = []
     if len(output_blocks) > 1:
@@ -964,8 +943,7 @@ def financial_data(
             "data": parts,
             "usage": usage,
         },
-        "financial",
-    )
+        "financial", output_dir=output_dir)
 
 
 def main():
@@ -1016,8 +994,8 @@ def main():
         default=None,
         help="指定科目英文字段名或中文名，逗号分隔；毛利=营业收入-营业成本，毛利率/净利率为衍生比率；不传则 fieldList=[] 取全部",
     )
-    parser.add_argument("--securities", default=None, help="证券逗号分隔：完整代码或名称/拼音等")
-    parser.add_argument("--securities-file", default=None, help="csv 含 security_code 列（代码或名称）")
+    parser.add_argument("--securities", default=None, help="证券：完整代码/名称/拼音等，逗号分隔")
+
     args = parser.parse_args()
 
     fy: Optional[List[str]] = None
@@ -1040,18 +1018,14 @@ def main():
     if fl:
         fl = [common_map.get(x, x) for x in fl]
 
-    securities: Optional[List[str]] = None
-    if args.securities:
-        securities = [x.strip() for x in args.securities.replace("，", ",").split(",") if x.strip()]
-    if not securities and args.securities_file:
-        try:
-            securities = _load_security_codes_from_file(args.securities_file)
-        except Exception as e:
-            print(f"根据证券文件解析证券失败: {e}")
-            sys.exit(1)
+    try:
+        securities = normalize_securities_arg(args.securities)
+    except Exception as e:
+        print(f"解析 --securities 失败: {e}")
+        sys.exit(1)
 
     if not securities:
-        parser.error("必须至少提供 --securities 或 --securities-file")
+        parser.error("必须提供 --securities")
 
     out = financial_data(
         securities=securities,
@@ -1063,6 +1037,7 @@ def main():
         field_list=fl,
         table_type=args.table_type,
         granularity=args.granularity,
+        output_dir=args.output_dir or None,
     )
     print(out)
 
