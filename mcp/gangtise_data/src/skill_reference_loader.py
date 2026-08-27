@@ -6,10 +6,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
-# mcps/gangtise_data/src -> skills-backend/skills/openapi
+# mcps/mcp/gangtise_data/src -> skills-backend/skills/openapi
 _SKILLS_CANDIDATES = [
-    Path(__file__).resolve().parents[2] / "skills" / "openapi",
+    Path(__file__).resolve().parents[4] / "skills" / "openapi",
     Path(__file__).resolve().parents[3] / "skills" / "openapi",
+    Path(__file__).resolve().parents[2] / "skills" / "openapi",
 ]
 
 
@@ -643,6 +644,7 @@ def load_tool_reference(tool_name: str) -> SkillReference:
     rows = _parse_table_rows(md)
     ref.param_descriptions = _build_param_map(tool_name, rows, mode)
     ref.param_descriptions = _apply_indicator_param_hints(tool_name, ref.param_descriptions)
+    ref.param_descriptions.pop("output_dir", None)
     return ref
 
 

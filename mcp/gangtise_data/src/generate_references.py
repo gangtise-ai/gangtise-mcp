@@ -62,7 +62,7 @@ TOOL_DESCRIPTIONS: Dict[str, str] = {
     ),
     "block_constituents": (
         "按板块关键词或直接指定板块 ID，获取行业/概念/指数等板块的成分股列表，输出 CSV。"
-        "关键词搜索仅返回匹配项（非全量板块目录），会排除指数成份类板块。"
+        "关键词搜索仅返回匹配项（非全量板块目录）。"
     ),
     "company_indicator": (
         "检索或拉取 A 股公司指标（EDE）：行情、三大财报科目、财务比率、分红、"
@@ -258,7 +258,7 @@ PARAM_DESCRIPTIONS: Dict[str, str] = {
     "with_close_reading": "热点报告是否包含话题精读",
 }
 
-SKIP_PARAMS = INTERNAL_PARAMS | frozenset({"output_dir"})
+SKIP_PARAMS = INTERNAL_PARAMS
 
 
 def _sanitize_param_description(desc: str) -> str:

@@ -37,6 +37,8 @@ TOOL_HANDLERS.update(_screener_reg.TOOL_HANDLERS)
 DOMAIN_TOOL_NAMES["gangtise-pdf"] = list(_pdf_reg.TOOL_HANDLERS)
 TOOL_HANDLERS.update(_pdf_reg.TOOL_HANDLERS)
 
+CLI_ONLY_PARAMS = frozenset({"output_dir"})
+
 INTERNAL_PARAMS = frozenset(
     {
         "headers",
@@ -47,4 +49,4 @@ INTERNAL_PARAMS = frozenset(
         "indicator_meta",
         "kwargs",
     }
-)
+) | CLI_ONLY_PARAMS

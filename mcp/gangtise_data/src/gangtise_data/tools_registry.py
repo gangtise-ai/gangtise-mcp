@@ -35,6 +35,9 @@ TOOL_HANDLERS: Dict[str, ToolHandler] = {
     "valuation": valuation,
 }
 
+# CLI / 脚本专用；MCP API schema 与 callTool 均不暴露
+CLI_ONLY_PARAMS = frozenset({"output_dir"})
+
 INTERNAL_PARAMS = frozenset(
     {
         "headers",
@@ -45,4 +48,4 @@ INTERNAL_PARAMS = frozenset(
         "indicator_meta",
         "kwargs",
     }
-)
+) | CLI_ONLY_PARAMS

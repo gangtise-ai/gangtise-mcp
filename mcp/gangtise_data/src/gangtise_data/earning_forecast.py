@@ -298,6 +298,16 @@ def main():
     )
     today_str = date.today().strftime("%Y-%m-%d")
     parser.add_argument("--securities", default=None, help="证券：完整代码/名称/拼音等，逗号分隔")
+    parser.add_argument("-sd", "--start-date", default=today_str, help="开始日期 yyyy-MM-dd")
+    parser.add_argument("-ed", "--end-date", default=today_str, help="结束日期 yyyy-MM-dd")
+    parser.add_argument(
+        "--consensus-list",
+        default=None,
+        help=(
+            "一致预期指标，逗号分隔；可选 netIncome/netIncomeYoy/eps/pe/bps/pb/peg/roe/ps；"
+            "不传返回全部"
+        ),
+    )
     parser.add_argument(
         "-od",
         "--output-dir",

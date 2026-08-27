@@ -4,7 +4,7 @@ description: 查询 A 股日资金流向（小/中/大/特大单及主力净流�
 parameters:
   securities:
     type: array
-    description: 逗号分隔；可为证券名称、代码或拼音首字母。与 all_market 二选一
+    description: 逗号分隔的证券名称/代码/拼音；亦可传 .csv 路径（须存在且后缀为 .csv，读 security_code / code / 代码 / security_abbr 列）。与 all_market 二选一
     items:
       type: string
   start_date:

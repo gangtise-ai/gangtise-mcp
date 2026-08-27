@@ -262,6 +262,12 @@ def main():
         help="报告期：q1/interim/q3/annual/latest，逗号分隔；默认 latest",
     )
     parser.add_argument("--securities", default=None, help="证券：完整代码/名称/拼音等，逗号分隔")
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
 
     args = parser.parse_args()
 

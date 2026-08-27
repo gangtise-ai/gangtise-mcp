@@ -15,12 +15,6 @@ from .utils import (SECTOR_CONSTITUENTS_URL, SECTOR_SEARCH_URL, authorized_reque
 MATCH_SCORE_THRESHOLD = 0.6
 SEARCH_TOP_DEFAULT = 10
 SEARCH_TOP_MAX = 10
-_EXCLUDED_HIERARCHY_MARKERS = ("指数成份类", "指数成分类")
-
-
-def _is_excluded_sector(item: dict) -> bool:
-    hierarchy = str(item.get("hierarchy") or "")
-    return any(marker in hierarchy for marker in _EXCLUDED_HIERARCHY_MARKERS)
 
 
 def _api_error_message(body: dict, fallback: str = "") -> str:
@@ -87,8 +81,6 @@ def _match_score(item: dict) -> float:
 def _filter_strong_candidates(items: List[dict]) -> List[dict]:
     out = []
     for item in items:
-        if _is_excluded_sector(item):
-            continue
         if _match_score(item) > MATCH_SCORE_THRESHOLD:
             out.append(item)
     out.sort(key=_match_score, reverse=True)

@@ -4,14 +4,14 @@ description: 查询估值指标（PE/PB/PS/PEG/PCF 等）及历史分位，多�
 parameters:
   securities:
     type: string
-    description: 逗号分隔；可为证券名称、代码或拼音首字母
+    description: 逗号分隔的证券名称/代码/拼音；亦可传 .csv 路径（须存在且后缀为 .csv，读 security_code / code / 代码 / security_abbr 列）
     required: true
   start_date:
     type: string
-    description: 开始日期 yyyy-MM-dd。与 end_date 均不传时先查当天，无有效数据则向前回退至多 7 日并取最近有效日
+    description: 开始日期 yyyy-MM-dd。与 end_date 均不传时先查当天，无有效数据则向前回退至多 7 日并取最近有效交易日
   end_date:
     type: string
-    description: 结束日期 yyyy-MM-dd。与 start_date 均不传时先查当天，无有效数据则向前回退至多 7 日并取最近有效日
+    description: 结束日期 yyyy-MM-dd。与 start_date 均不传时同上；仅传一侧时另一侧按显式区间补齐
   limit:
     type: integer
     description: 单次指标请求最大行数，默认 2000（接口上限以官方文档为准）

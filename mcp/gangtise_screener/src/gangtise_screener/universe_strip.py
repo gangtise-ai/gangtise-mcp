@@ -8,11 +8,10 @@
 
 剥壳流程：
   1. 全角→半角、去空格
-  2. 检查指数类（平台无成分股接口，返回不支持）
-  3. 检查高频别名直通（全A / 两市 / 创业板 …）
-  4. 逐层剥壳：去 UNI_TAIL 后缀 → 去 UNIVERSE_STRIP 修饰词
-  5. 提取体系/市场提示
-  6. 查 universe_rewrite 改写表
+  2. 检查高频别名直通（全A / 两市 / 创业板 …）
+  3. 逐层剥壳：去 UNI_TAIL 后缀 → 去 UNIVERSE_STRIP 修饰词
+  4. 提取体系/市场提示
+  5. 查 universe_rewrite 改写表
 
 用法：
   python3 universe_strip.py "白酒板块"
@@ -42,7 +41,6 @@ def load_asset(name, default):
 HINTS = load_asset("hints.json", {})
 UNIVERSE_ALIAS = HINTS.get("universe_alias", {})
 UNIVERSE_REWRITE = HINTS.get("universe_rewrite", {})
-INDEX_UNIVERSE = HINTS.get("index_universe", {})
 
 UNIVERSE_STRIP = ["的成分股", "成分股", "成份股", "成分", "成份", "产业链", "概念股",
                   "上市公司", "相关公司", "板块", "行业", "概念", "题材", "主题",
@@ -77,21 +75,7 @@ def strip_universe(phrase: str) -> dict:
     """剥壳主逻辑，返回结构化结果"""
     raw0 = norm(phrase)
 
-    # 1) 指数类：平台无成分股接口，直接返回不支持
-    for k, info in INDEX_UNIVERSE.items():
-        if k in raw0:
-            return {
-                "input": phrase,
-                "status": "index_unsupported",
-                "keywords": [],
-                "system": None,
-                "market": None,
-                "alias": None,
-                "rewrite": [],
-                "note": info,
-            }
-
-    # 2) 高频别名直通
+    # 1) 高频别名直通
     alias_match = UNIVERSE_ALIAS.get(raw0)
     if alias_match:
         return {
@@ -104,7 +88,7 @@ def strip_universe(phrase: str) -> dict:
             "rewrite": [],
         }
 
-    # 3) 逐层剥壳：去 UNI_TAIL 后缀
+    # 2) 逐层剥壳：去 UNI_TAIL 后缀
     forms, queue = [raw0], [raw0]
     while queue:
         cur = queue.pop(0)
@@ -115,7 +99,7 @@ def strip_universe(phrase: str) -> dict:
                     forms.append(nxt)
                     queue.append(nxt)
 
-    # 4) 提取体系/市场提示（在剥壳前的原词上检测）
+    # 3) 提取体系/市场提示（在剥壳前的原词上检测）
     sys_want = None
     for k, v in SYSTEM_HINT:
         if k in raw0:

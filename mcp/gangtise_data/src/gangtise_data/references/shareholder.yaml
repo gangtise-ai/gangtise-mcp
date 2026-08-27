@@ -4,7 +4,7 @@ description: 查询股东结构：前十大股东或前十大流通股东，支�
 parameters:
   securities:
     type: string
-    description: 逗号分隔；可为证券名称、代码或拼音首字母
+    description: 逗号分隔的证券名称/代码/拼音；亦可传 .csv 路径（须存在且后缀为 .csv，读 security_code / code / 代码 / security_abbr 列）
     required: true
   holder_type:
     type: string

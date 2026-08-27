@@ -47,7 +47,7 @@ if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 from references_loader import ToolSpec, load_tool_spec_map
-from gangtise_data.tools_registry import INTERNAL_PARAMS, TOOL_HANDLERS
+from gangtise_data.tools_registry import CLI_ONLY_PARAMS, INTERNAL_PARAMS, TOOL_HANDLERS
 from authorization import (
     get_authorization_path,
     is_auth_configured,
@@ -67,6 +67,7 @@ _SHORT_FLAGS: Dict[str, str] = {
     "params": "p",
     "theme_id": "t",
     "concepts": "c",
+    "output_dir": "od",
 }
 
 # 额外长选项别名（kebab-case -> 参数名）
@@ -83,6 +84,13 @@ _LONG_ALIASES: Dict[str, str] = {
     "page-size": "page_size",
     "output-limit": "output_limit",
     "sector-id": "sector_id",
+    "output-dir": "output_dir",
+    "consensus-list": "consensus_list",
+    "holder-type": "holder_type",
+    "fiscal-year": "fiscal_year",
+    "field-list": "field_list",
+    "report-type": "report_type",
+    "table-type": "table_type",
     "file-id": "file_id",
     "file-ids": "file_ids",
 }
@@ -117,13 +125,23 @@ def _check_auth_configured() -> Optional[str]:
     )
 
 
-def _filter_arguments(handler: Callable[..., Any], arguments: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]:
-    sig = inspect.signature(handler)
-    allowed = {
+def _is_allowed_param(name: str, *, for_cli: bool) -> bool:
+    if name in CLI_ONLY_PARAMS:
+        return for_cli
+    return name not in INTERNAL_PARAMS
+
+
+def _allowed_params(sig: inspect.Signature, *, for_cli: bool) -> Set[str]:
+    return {
         name
         for name, p in sig.parameters.items()
-        if name not in INTERNAL_PARAMS and p.kind != p.VAR_KEYWORD
+        if p.kind != p.VAR_KEYWORD and _is_allowed_param(name, for_cli=for_cli)
     }
+
+
+def _filter_arguments(handler: Callable[..., Any], arguments: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]:
+    sig = inspect.signature(handler)
+    allowed = _allowed_params(sig, for_cli=True)
     extra = set(arguments) - allowed
     if extra:
         valid = ", ".join(sorted(allowed))
@@ -315,6 +333,22 @@ def _build_tool_parser(
             pname,
             {"type": "string", "description": pname},
             required_yaml=default is inspect.Parameter.empty,
+            default=default,
+        )
+        seen.add(pname)
+
+    for pname in CLI_ONLY_PARAMS:
+        if pname in seen or pname not in sig.parameters:
+            continue
+        param = sig.parameters[pname]
+        if param.kind not in (param.POSITIONAL_OR_KEYWORD, param.KEYWORD_ONLY):
+            continue
+        default = param.default if param.default is not inspect.Parameter.empty else None
+        _add_param_argument(
+            parser,
+            pname,
+            {"type": "string", "description": "结果保存目录路径，建议使用绝对路径"},
+            required_yaml=False,
             default=default,
         )
 

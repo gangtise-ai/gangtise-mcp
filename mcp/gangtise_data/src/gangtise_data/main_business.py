@@ -199,10 +199,21 @@ def main_business_data(
             {"state": "error", "message": "未配置 gangtise 授权，无法调用 open 接口", "data": [], "usage": usage},
             "main_business", output_dir=output_dir)
 
-    if period is not None and period not in ("interim", "annual"):
-        return format_response(
-            {"state": "error", "message": "period 仅支持 interim（中报）或 annual（年报）", "data": [], "usage": usage},
-            "main_business", output_dir=output_dir)
+    if period is not None and str(period).strip():
+        k = str(period).strip().upper()
+        if k in MAIN_BUSINESS_PERIOD_CLI_TO_API:
+            period = MAIN_BUSINESS_PERIOD_CLI_TO_API[k]
+        elif str(period).strip().lower() not in ("interim", "annual"):
+            return format_response(
+                {
+                    "state": "error",
+                    "message": "period 仅支持 Q2（中报）或 Q4（年报）",
+                    "data": [],
+                    "usage": usage,
+                },
+                "main_business",
+                output_dir=output_dir,
+            )
 
     if breakdown is not None and breakdown not in BREAKDOWN_LABEL:
         return format_response(
@@ -342,6 +353,11 @@ def main():
         default=None,
         choices=["product", "industry", "region"],
         help="拆分维度；不传则并发拉取 product / industry / region 三种",
+    )
+    parser.add_argument(
+        "--period",
+        default=None,
+        help="报告期：Q2（中报/interim）或 Q4（年报/annual）；不传则不限定",
     )
     parser.add_argument(
         "-od",

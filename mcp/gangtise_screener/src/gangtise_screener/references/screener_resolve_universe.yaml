@@ -1,8 +1,0 @@
-name: screener_resolve_universe
-title: Resolve Universe
-description: 解析选股范围说法（板块名/别名/证券名），返回 sectorId 或 gtsCode 候选。
-parameters:
-  phrase:
-    type: string
-    description: 范围说法，逗号分隔可传多个
-    required: true

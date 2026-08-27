@@ -995,6 +995,12 @@ def main():
         help="指定科目英文字段名或中文名，逗号分隔；毛利=营业收入-营业成本，毛利率/净利率为衍生比率；不传则 fieldList=[] 取全部",
     )
     parser.add_argument("--securities", default=None, help="证券：完整代码/名称/拼音等，逗号分隔")
+    parser.add_argument(
+        "-od",
+        "--output-dir",
+        default=None,
+        help="结果保存目录路径，建议使用绝对路径",
+    )
 
     args = parser.parse_args()
 

@@ -28,7 +28,6 @@ MATCH_SCORE_THRESHOLD = 0.6
 NAME_RELEVANCE_MIN = 0.5
 NAME_RELEVANCE_AUTO = 0.7
 SEARCH_TOP = 10
-_EXCLUDED_HIERARCHY_MARKERS = ("指数成份类", "指数成分类")
 _GTS_CODE_RE = re.compile(
     r"^[0-9A-Za-z]+\.(SH|SZ|BJ|HK|O|N|A|US|SWI|CI|GT)$", re.IGNORECASE
 )
@@ -89,11 +88,6 @@ def textual_relevance(keyword: str, name: str, hierarchy: str = "") -> float:
     return max(scores) if scores else 0.0
 
 
-def _is_excluded_sector(item: dict) -> bool:
-    hierarchy = str(item.get("hierarchy") or "")
-    return any(m in hierarchy for m in _EXCLUDED_HIERARCHY_MARKERS)
-
-
 def search_sectors(keyword: str, top: int = SEARCH_TOP) -> Tuple[List[dict], Optional[str]]:
     payload = {"keyword": keyword.strip(), "top": max(1, min(int(top), 10))}
     try:
@@ -146,8 +140,6 @@ def _rank_sectors(
 ) -> List[dict]:
     scored = []
     for it in items:
-        if _is_excluded_sector(it):
-            continue
         score = _match_score(it)
         if score < MATCH_SCORE_THRESHOLD:
             continue
@@ -313,8 +305,6 @@ def resolve_one_universe(phrase: str) -> dict:
         if err:
             continue
         for it in items:
-            if _is_excluded_sector(it):
-                continue
             name = str(it.get("sectorName") or "")
             hierarchy = str(it.get("hierarchy") or "")
             rel = textual_relevance(kw, name, hierarchy)
