@@ -18,9 +18,16 @@ from authorization import (
     invalidate_authorization,
 )
 
-GTS_SAVE_FILE = os.getenv("GTS_SAVE_FILE", True)
+def _env_truthy(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in ("1", "true", "yes", "on")
+
+
+GTS_SAVE_FILE = _env_truthy("GTS_SAVE_FILE", True)
 GTS_SAVE_EXTENSION = os.getenv("GTS_SAVE_EXTENSION", "md")
-DOWNLOAD_DEFAULT = bool(os.getenv("DOWNLOAD_DEFAULT", False))
+DOWNLOAD_DEFAULT = _env_truthy("DOWNLOAD_DEFAULT", False)
 DOWNLOAD_TYPE_DEFAULT_STR = os.getenv("DOWNLOAD_TYPE_DEFAULT", """
 {
     "announcement": "pdf",
@@ -32,7 +39,7 @@ DOWNLOAD_TYPE_DEFAULT_STR = os.getenv("DOWNLOAD_TYPE_DEFAULT", """
 }
 """)
 DOWNLOAD_TYPE_DEFAULT = json.loads(DOWNLOAD_TYPE_DEFAULT_STR)
-TRY_MORE_DOWNLOAD = os.getenv("TRY_MORE_DOWNLOAD", False)
+TRY_MORE_DOWNLOAD = _env_truthy("TRY_MORE_DOWNLOAD", False)
 # 开启下载（-d）且未显式传 -l/--limit 时的条数上限
 FILE_DOWNLOAD_DEFAULT_LIMIT = int(os.getenv("FILE_DOWNLOAD_DEFAULT_LIMIT", "5"))
 
@@ -1626,12 +1633,10 @@ if __name__ == "__main__":
         print("  无法检测到gangtise密钥环境变量或授权文件, gangtise-file 无法正常工作")
     else:
         print("  检测到gangtise授权文件, gangtise-file 可以正常工作")
-    if GTS_SAVE_FILE is None:
-        print("  环境变量 GTS_SAVE_FILE 未配置, 默认值为 False, gangtise服务端 将不保存查询结果到文件中")
-    elif GTS_SAVE_FILE == "True":
+    if GTS_SAVE_FILE:
         print("  环境变量 GTS_SAVE_FILE 为 True, gangtise服务端 将保存查询结果到文件中")
     else:
-        print("  环境变量 GTS_SAVE_FILE 为 False, gangtise服务端 将不保存查询结果到文件中")
+        print("  环境变量 GTS_SAVE_FILE 为 False（未配置或非真值）, gangtise服务端 将不保存查询结果到文件中")
     if check_version(large_version=False):
         print("  gangtise-file 版本为最新")
     else:

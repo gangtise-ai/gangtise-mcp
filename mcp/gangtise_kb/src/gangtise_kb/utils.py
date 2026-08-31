@@ -20,7 +20,14 @@ from authorization import (
     invalidate_authorization,
 )
 
-GTS_SAVE_FILE = os.getenv("GTS_SAVE_FILE", True)
+def _env_truthy(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in ("1", "true", "yes", "on")
+
+
+GTS_SAVE_FILE = _env_truthy("GTS_SAVE_FILE", True)
 GTS_SAVE_EXTENSION = os.getenv("GTS_SAVE_EXTENSION", "md")
 
 GANGTISE_DATA_DOMAIN = gangtise_domain("GANGTISE_DATA_DOMAIN", "https://openapi.gangtise.com/application/open-data")
@@ -271,12 +278,10 @@ if __name__ == "__main__":
         print("  无法检测到gangtise密钥环境变量或授权文件, gangtise-kb 无法正常工作")
     else:
         print("  检测到gangtise授权文件, gangtise-kb 可以正常工作")
-    if GTS_SAVE_FILE is None:
-        print("  环境变量 GTS_SAVE_FILE 未配置, 默认值为 False, gangtise服务端 将不保存查询结果到文件中")
-    elif GTS_SAVE_FILE == "True":
+    if GTS_SAVE_FILE:
         print("  环境变量 GTS_SAVE_FILE 为 True, gangtise服务端 将保存查询结果到文件中")
     else:
-        print("  环境变量 GTS_SAVE_FILE 为 False, gangtise服务端 将不保存查询结果到文件中")
+        print("  环境变量 GTS_SAVE_FILE 为 False（未配置或非真值）, gangtise服务端 将不保存查询结果到文件中")
     if check_version(large_version=False):
         print("  gangtise-kb 版本为最新")
     else:

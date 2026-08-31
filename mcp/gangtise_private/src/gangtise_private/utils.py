@@ -24,7 +24,14 @@ from authorization import (
     invalidate_authorization,
 )
 
-GTS_SAVE_FILE = os.getenv("GTS_SAVE_FILE", True)
+def _env_truthy(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in ("1", "true", "yes", "on")
+
+
+GTS_SAVE_FILE = _env_truthy("GTS_SAVE_FILE", True)
 GTS_SAVE_EXTENSION = os.getenv("GTS_SAVE_EXTENSION", "md")
 
 GANGTISE_VAULT_DOMAIN = gangtise_domain("GANGTISE_VAULT_DOMAIN", "https://openapi.gangtise.com/application/open-vault")
@@ -95,12 +102,7 @@ _FILE_SKIP_IN_BODY = frozenset({"标题", "文件时间", "消息时间", "文�
 _FILE_MULTILINE = frozenset({"摘要", "中文摘要", "正文", "消息全文"})
 
 def _save_file_enabled() -> bool:
-    v = GTS_SAVE_FILE
-    if v is True:
-        return True
-    if isinstance(v, str):
-        return v.strip().lower() in ("true", "1", "yes")
-    return bool(v)
+    return bool(GTS_SAVE_FILE)
 
 def _format_file_record_text(file: dict, method_name: str, module_name: str, output_dir: Optional[str] = None) -> str:
     lines: List[str] = []
