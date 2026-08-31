@@ -67,6 +67,7 @@ from authorization import (
 )
 from http_compat import HttpMiddleware
 from http_gateway import main as gateway_main
+from subpath_routing import SubpathMiddleware, parse_subpaths
 from oauth_server import oauth_routes
 from result_attachments import with_path_attachments
 from services import (
@@ -317,7 +318,11 @@ def _build_network_app(
     if enable_sse:
         mcp_paths.add(sse_path)
         mcp_paths.add(message_path.rstrip("/"))
-    return _wrap_http_middleware(starlette_app, mcp_paths=mcp_paths)
+    app = _wrap_http_middleware(starlette_app, mcp_paths=mcp_paths)
+    subpaths = parse_subpaths()
+    if subpaths:
+        app = SubpathMiddleware(app, mcp_base=path, subpaths=subpaths)
+    return app
 
 
 def _run_network(**kwargs) -> None:
@@ -486,6 +491,12 @@ def main(argv: list[str] | None = None) -> None:
 
     _apply_network_gts_save_file_default()
     _preload_or_warn()
+    subpaths = parse_subpaths()
+    if subpaths:
+        print(
+            f"[gangtise-mcp] SUBPATHS={','.join(subpaths)} (MCP_PATH={args.path})",
+            file=sys.stderr,
+        )
     _run_network(
         host=args.host,
         port=args.port,

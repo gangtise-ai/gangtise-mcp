@@ -19,6 +19,7 @@ export MCP_REQUIRE_AUTH
 export MCP_PATH="${MCP_PATH:-/}"
 export MCP_STATELESS="${MCP_STATELESS:-true}"
 export MCP_JSON_RESPONSE="${MCP_JSON_RESPONSE:-true}"
+export SUBPATHS="${SUBPATHS:-}"
 
 # 空字符串视为根路径
 if [[ -z "${MCP_PATH// }" ]]; then
@@ -123,6 +124,9 @@ fi
 
 if [[ -n "${MCP_TOOL_BLACKLIST:-}" ]]; then
   echo "[gangtise-mcp] MCP_TOOL_BLACKLIST=${MCP_TOOL_BLACKLIST}" >&2
+fi
+if [[ -n "${SUBPATHS// }" ]]; then
+  echo "[gangtise-mcp] SUBPATHS=${SUBPATHS} MCP_PATH=${MCP_PATH}" >&2
 fi
 
 EXTRA=(

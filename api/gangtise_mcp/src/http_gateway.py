@@ -22,6 +22,7 @@ from http_compat import (
 )
 from oauth_server import oauth_routes
 from services import ALL_SERVICES, backend_mcp_path, mcp_path_base
+from subpath_routing import SubpathMiddleware, parse_subpaths
 
 DEFAULT_BACKENDS = {s.slug: s.port for s in ALL_SERVICES}
 
@@ -168,7 +169,7 @@ def create_app(backends: Dict[str, int]) -> Starlette:
         finally:
             await app.state.http_client.aclose()
 
-    return Starlette(
+    app = Starlette(
         routes=[
             Route("/health", endpoint=health, methods=["GET"]),
             *[r for r in oauth_routes() if getattr(r, "path", None) != "/health"],
@@ -180,6 +181,10 @@ def create_app(backends: Dict[str, int]) -> Starlette:
         ],
         lifespan=lifespan,
     )
+    subpaths = parse_subpaths()
+    if subpaths:
+        app = SubpathMiddleware(app, mcp_base=mcp_path_base(), subpaths=subpaths)
+    return app
 
 
 def main(argv: list[str] | None = None) -> None:

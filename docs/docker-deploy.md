@@ -32,6 +32,7 @@ Connect to `http://127.0.0.1:8000/` with `Authorization: Bearer <token>` (forwar
 | `MCP_LAYOUT` | `unified` | `unified` / `gateway` |
 | `MCP_PACKAGE` | `domains` | `domains` / `all` / single-domain slug |
 | `MCP_PATH` | `/` | In-process MCP mount; empty = root |
+| `SUBPATHS` | empty | Comma-separated source subpaths; e.g. `doubao,ali,comate` makes `/open-mcp/doubao/` equivalent to `/open-mcp/`; access logs include `source` |
 | `MCP_REQUIRE_AUTH` | `true` | HTTP 401 if MCP path lacks `Authorization` |
 | `MCP_TOOL_BLACKLIST` | empty | Comma-separated tool names; hidden from `tools/list` and rejected on `call` |
 | `TOOL_URL_DEPS_PATH` | `/opt/mcp/tool_url_deps.json` | Build-time tool→API path dependency map |

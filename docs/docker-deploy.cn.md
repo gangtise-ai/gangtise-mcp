@@ -43,6 +43,7 @@ curl -sS http://127.0.0.1:8000/health
 | `MCP_LAYOUT` | `unified` | `unified`（单进程全量叶子）/ `gateway` |
 | `MCP_PACKAGE` | `domains` | `domains` / `all` / 单域 slug |
 | `MCP_PATH` | `/` | 服务内 MCP 挂载路径；空或不配=根路径 |
+| `SUBPATHS` | 空 | 来源方子路径，逗号分隔；如 `doubao,ali,comate` 时 `/open-mcp/doubao/` 与 `/open-mcp/` 等价，访问日志带 `source` 字段 |
 | `MCP_REQUIRE_AUTH` | `true` | MCP 路径缺少 `Authorization` 时返回 401 |
 | `MCP_TOOL_BLACKLIST` | 空 | 逗号分隔工具名黑名单；命中则 `tools/list` 不展示且 `call` 拒绝 |
 | `TOOL_URL_DEPS_PATH` | `/opt/mcp/tool_url_deps.json` | 构建期工具→API path 依赖图 |

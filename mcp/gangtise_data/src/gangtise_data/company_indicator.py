@@ -1127,6 +1127,14 @@ def main():
         help="CSV 含 indicator_code、indicator_name、indicator_params 列（get 模式）",
     )
     parser.add_argument("--securities", default=None, help="证券：完整代码/名称/拼音等，逗号分隔")
+    parser.add_argument("-sd", "--start-date", default=None, help=f"开始日期 yyyy-MM-dd（get），默认 {default_start}")
+    parser.add_argument("-ed", "--end-date", default=None, help=f"结束日期 yyyy-MM-dd（get），默认 {today_str}")
+    parser.add_argument(
+        "-p",
+        "--params",
+        default=None,
+        help='指标参数字典 JSON：scale/量纲、calendarType/日期类型 支持中文键与枚举值；其余见 references/company_indicatory.md',
+    )
     parser.add_argument(
         "-od",
         "--output-dir",

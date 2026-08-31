@@ -37,8 +37,9 @@ TOOL_HANDLERS.update(_screener_reg.TOOL_HANDLERS)
 DOMAIN_TOOL_NAMES["gangtise-pdf"] = list(_pdf_reg.TOOL_HANDLERS)
 TOOL_HANDLERS.update(_pdf_reg.TOOL_HANDLERS)
 
-CLI_ONLY_PARAMS = frozenset({"output_dir"})
-
+# 勿把 output_dir 全局列入 INTERNAL：screener YAML 会暴露该参数，
+# 列入后 call_tool 会误报「未知参数: output_dir」。data 域 YAML 通常不暴露，
+# 客户端不传即可；若传入则 handler 本身支持。
 INTERNAL_PARAMS = frozenset(
     {
         "headers",
@@ -49,4 +50,4 @@ INTERNAL_PARAMS = frozenset(
         "indicator_meta",
         "kwargs",
     }
-) | CLI_ONLY_PARAMS
+)

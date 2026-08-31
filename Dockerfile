@@ -9,6 +9,7 @@
 #   docker run -d -p 8000:8000 gangtise-mcp
 #   Endpoint: https://<host>:8000/  （默认挂根路径；网关可再加 /application/open-mcp 前缀）
 #   可选：-e MCP_PATH=/open-mcp 自定义服务内挂载路径
+#   可选：-e SUBPATHS=doubao,ali,comate 来源方子路径（/open-mcp/{name}/ 与 /open-mcp/ 等价）
 #   鉴权：Authorization Bearer（业务 token 或 MCP OAuth JWT）/
 #         X-GTS-Credentials AK·SK / OAuth 同意页（需 GTS_JWT_SECRET）
 
@@ -38,6 +39,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     MCP_PACKAGE=domains \
     MCP_LAYOUT=unified \
     MCP_PATH=/ \
+    SUBPATHS= \
     MCP_STATELESS=true \
     MCP_JSON_RESPONSE=true \
     MCP_REQUIRE_AUTH=true \

@@ -11,13 +11,35 @@ from .report_image import report_image_finder as report_image
 from .summary import summary_finder as summary
 from .pamirs_summary import pamirs_summary_finder as pamirs_summary
 
-from .get_announcement_types import main as get_announcement_types
+from .get_announcement_types import ANNOUNCEMENT_CATEGORYS, tree_to_string
 from .get_chiefs import get_chiefs as _get_chiefs
-from .get_industries import main as get_industries
+from .get_industries import main as _get_industries_cli
 from .get_institutions import get_institutions as _get_institutions
-from .get_regions import main as get_regions
-
+from .get_regions import main as _get_regions_cli
 from .get_file import get_file
+from .utils import INDUSTRIES_MAP, REGIONS_MAP, RESEARCH_AREA_MAP
+
+
+def get_announcement_types(market: str = "cn") -> str:
+    valid_types = ["港股公告"] if market == "hk" else ["股票公告"]
+    return "\n".join(tree_to_string(ANNOUNCEMENT_CATEGORYS, valid_types=valid_types))
+
+
+def get_industries() -> str:
+    lines: list[str] = []
+    for key, value in INDUSTRIES_MAP.items():
+        lines.append(f"# {key}")
+        for sub_key, sub_value in value.items():
+            lines.append(f"- {sub_key}: {sub_value}")
+        lines.append("")
+    lines.append("# 研究领域（仅 opinion, summary, pamirs_summary, calendar 支持）")
+    for key, value in RESEARCH_AREA_MAP.items():
+        lines.append(f"- {key}: {value}")
+    return "\n".join(lines).strip()
+
+
+def get_regions() -> str:
+    return ", ".join(REGIONS_MAP.keys())
 
 
 def get_chiefs(**kwargs):
