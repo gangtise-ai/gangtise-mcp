@@ -1,7 +1,7 @@
 """MCP 工具名到可调用实现的注册表。"""
 from __future__ import annotations
 
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List, Optional
 
 from .announcement import announcement_finder as announcement
 from .foreign_opinion import opinion_finder as foreign_opinion
@@ -18,6 +18,8 @@ from .pamirs_summary import pamirs_summary_finder as pamirs_summary
 from .get_chiefs import get_chiefs as _get_chiefs_impl
 from .get_institutions import get_institutions as _get_institutions_impl
 from .get_file import get_file
+from .search_chief import SEARCH_TOP_DEFAULT
+from .search_institution import SEARCH_TOP_DEFAULT as INSTITUTION_SEARCH_TOP_DEFAULT
 
 from .get_announcement_types import ANNOUNCEMENT_CATEGORYS, tree_to_string
 from .utils import INDUSTRIES_MAP, REGIONS_MAP, RESEARCH_AREA_MAP
@@ -47,15 +49,35 @@ def get_regions() -> str:
     return ", ".join(REGIONS_MAP.keys())
 
 
-def get_chiefs(**kwargs) -> str:
+def get_chiefs(
+    keyword: str = "",
+    name: str = "",
+    institution: str = "",
+    group: str = "",
+    top: int = SEARCH_TOP_DEFAULT,
+) -> str:
     """MCP 入口：只返回文案，丢弃内部状态码。"""
-    text, _code = _get_chiefs_impl(**kwargs)
+    text, _code = _get_chiefs_impl(
+        keyword=keyword,
+        name=name,
+        institution=institution,
+        group=group,
+        top=top,
+    )
     return text
 
 
-def get_institutions(**kwargs) -> str:
+def get_institutions(
+    keyword: str = "",
+    category_list: Optional[List[str]] = None,
+    top: int = INSTITUTION_SEARCH_TOP_DEFAULT,
+) -> str:
     """MCP 入口：只返回文案，丢弃内部状态码。"""
-    text, _code = _get_institutions_impl(**kwargs)
+    text, _code = _get_institutions_impl(
+        keyword=keyword,
+        category_list=category_list,
+        top=top,
+    )
     return text
 
 

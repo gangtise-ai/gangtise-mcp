@@ -128,7 +128,7 @@ def _parse_scalar(raw: str) -> Any:
 
 
 def _load_yaml_fallback(text: str) -> Dict[str, Any]:
-    """极简 YAML 解析器，覆盖本仓库 references 的固定格式。"""
+    """极简 YAML 解析器，覆盖本仓库 references 的固定格式（含 enum 列表）。"""
     lines = text.splitlines()
     root: Dict[str, Any] = {}
     stack: List[tuple[int, Any]] = [(-1, root)]
@@ -139,7 +139,20 @@ def _load_yaml_fallback(text: str) -> Dict[str, Any]:
             i += 1
             continue
         indent = len(line) - len(line.lstrip(" "))
-        key_val = line.strip().split(":", 1)
+        stripped = line.strip()
+
+        # 列表项：- value
+        if stripped.startswith("- "):
+            while stack and indent < stack[-1][0]:
+                stack.pop()
+            parent = stack[-1][1]
+            item = _parse_scalar(stripped[2:].strip())
+            if isinstance(parent, list):
+                parent.append(item)
+            i += 1
+            continue
+
+        key_val = stripped.split(":", 1)
         key = key_val[0].strip()
         val_part = key_val[1].strip() if len(key_val) > 1 else ""
 
@@ -161,7 +174,19 @@ def _load_yaml_fallback(text: str) -> Dict[str, Any]:
             continue
 
         if val_part == "":
-            node: Dict[str, Any] = {}
+            # 看下一非空行是否是列表项 → 建 list，否则建 dict
+            j = i + 1
+            next_is_list = False
+            while j < len(lines):
+                nxt = lines[j]
+                if not nxt.strip() or nxt.lstrip().startswith("#"):
+                    j += 1
+                    continue
+                nindent = len(nxt) - len(nxt.lstrip(" "))
+                if nindent > indent and nxt.strip().startswith("- "):
+                    next_is_list = True
+                break
+            node: Any = [] if next_is_list else {}
             if isinstance(parent, dict):
                 parent[key] = node
             stack.append((indent, node))

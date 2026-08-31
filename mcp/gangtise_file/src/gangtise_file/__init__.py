@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from .announcement import announcement_finder as announcement
 from .foreign_opinion import opinion_finder as foreign_opinion
 from .foreign_report import report_finder as foreign_report
@@ -17,6 +19,8 @@ from .get_industries import main as _get_industries_cli
 from .get_institutions import get_institutions as _get_institutions
 from .get_regions import main as _get_regions_cli
 from .get_file import get_file
+from .search_chief import SEARCH_TOP_DEFAULT
+from .search_institution import SEARCH_TOP_DEFAULT as INSTITUTION_SEARCH_TOP_DEFAULT
 from .utils import INDUSTRIES_MAP, REGIONS_MAP, RESEARCH_AREA_MAP
 
 
@@ -42,13 +46,33 @@ def get_regions() -> str:
     return ", ".join(REGIONS_MAP.keys())
 
 
-def get_chiefs(**kwargs):
-    text, _code = _get_chiefs(**kwargs)
+def get_chiefs(
+    keyword: str = "",
+    name: str = "",
+    institution: str = "",
+    group: str = "",
+    top: int = SEARCH_TOP_DEFAULT,
+):
+    text, _code = _get_chiefs(
+        keyword=keyword,
+        name=name,
+        institution=institution,
+        group=group,
+        top=top,
+    )
     return text
 
 
-def get_institutions(**kwargs):
-    text, _code = _get_institutions(**kwargs)
+def get_institutions(
+    keyword: str = "",
+    category_list: Optional[List[str]] = None,
+    top: int = INSTITUTION_SEARCH_TOP_DEFAULT,
+):
+    text, _code = _get_institutions(
+        keyword=keyword,
+        category_list=category_list,
+        top=top,
+    )
     return text
 
 __all__ = [

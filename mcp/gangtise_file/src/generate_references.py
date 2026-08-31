@@ -167,7 +167,9 @@ TOOL_DESCRIPTIONS: Dict[str, str] = {
         "返回外资研报/观点支持的地区代码列表。"
     ),
     "get_file": (
-        "按 file_id 与 file_type 下载检索结果中的单个文件（PDF 或 Markdown）。"
+        "按 file_id 与 file_type 下载检索结果中的单个文件。"
+        "file_type 须与检索结果「类型」一致，枚举：研究报告、外资研报、公司公告、港股公告、美股公告、"
+        "会议纪要、帕米尔专家纪要、外资独立观点、公众号、财报日历。"
     ),
     "kb": (
         "在内部知识库中按自然语言语义检索，直接返回高相关文档片段，适合先读内容再决定是否拉原文。"
@@ -233,9 +235,16 @@ PARAM_DESCRIPTIONS: Dict[str, str] = {
     "consensus_list": "一致预期指标列表",
     "download": "是否下载文件全文",
     "download_types": "下载格式列表，如 pdf、markdown；帕米尔专家纪要为 original、html",
-    "file_id": "文件 ID（来自检索类接口返回）",
-    "file_type": "文件类型，如 report、announcement、summary、帕米尔专家纪要",
-    "download_type": "单文件下载格式：pdf 或 markdown；帕米尔专家纪要为 original 或 html",
+    "file_id": "文件 ID（来自检索类接口返回的 file_id / id 等字段）",
+    "file_type": (
+        "文件类型（须与检索结果「类型」一致）。枚举：研究报告、外资研报、公司公告、港股公告、美股公告、"
+        "会议纪要、帕米尔专家纪要、外资独立观点、公众号、财报日历"
+    ),
+    "download_type": (
+        "下载格式（按 file_type）：研究报告/公司公告/美股公告为 pdf、markdown；"
+        "外资研报另支持 zh_pdf、zh_markdown；外资独立观点为 html、html_zh；"
+        "帕米尔专家纪要为 original、html；公众号为 txt、html"
+    ),
     "search_type": "搜索类型：1 标题搜索，2 全文搜索",
     "rank_type": "排序方式：1 综合排序，2 时间倒序",
     "query": "自然语言检索问句（kb）",
@@ -380,6 +389,31 @@ def _build_parameters(fn: Any, tool_name: str) -> Dict[str, Any]:
             pdef["items"] = {"type": "string"}
         if param.default is inspect.Parameter.empty:
             pdef["required"] = True
+        # get_file：显式枚举，便于 MCP 客户端展示可选值
+        if tool_name == "get_file" and name == "file_type":
+            pdef["enum"] = [
+                "研究报告",
+                "外资研报",
+                "公司公告",
+                "港股公告",
+                "美股公告",
+                "会议纪要",
+                "帕米尔专家纪要",
+                "外资独立观点",
+                "公众号",
+                "财报日历",
+            ]
+        if tool_name == "get_file" and name == "download_type":
+            pdef["enum"] = [
+                "pdf",
+                "markdown",
+                "original",
+                "html",
+                "txt",
+                "zh_pdf",
+                "zh_markdown",
+                "html_zh",
+            ]
         params[name] = pdef
     return params
 
@@ -409,6 +443,10 @@ def _dump_yaml(data: Dict[str, Any]) -> str:
                 lines.append("    items:")
                 for ik, iv in v.items():
                     lines.append(f"      {ik}: {iv}")
+            elif k == "enum" and isinstance(v, list):
+                lines.append("    enum:")
+                for item in v:
+                    lines.append(f"      - {_yaml_quote(str(item))}")
             else:
                 if isinstance(v, bool):
                     val = "true" if v else "false"

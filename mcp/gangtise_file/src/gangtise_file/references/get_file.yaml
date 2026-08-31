@@ -1,18 +1,48 @@
 name: get_file
 title: Get File
-description: 按 file_id 与 file_type 下载检索结果中的单个文件（PDF 或 Markdown）。
+description: |
+  按 file_id 与 file_type 下载检索结果中的单个文件。
+  file_type 须与检索结果中的「类型」字段一致；可选值见 file_type 枚举。
 parameters:
   file_id:
     type: string
-    description: 文件 ID（来自检索类接口返回）
+    description: 文件 ID（来自检索类接口返回的 file_id / id 等字段）
     required: true
   file_type:
     type: string
-    description: 文件类型，如 report、announcement、summary、帕米尔专家纪要
+    description: |
+      文件类型（须与检索结果「类型」一致）。枚举：研究报告、外资研报、公司公告、港股公告、美股公告、会议纪要、帕米尔专家纪要、外资独立观点、公众号、财报日历
     required: true
+    enum:
+      - 研究报告
+      - 外资研报
+      - 公司公告
+      - 港股公告
+      - 美股公告
+      - 会议纪要
+      - 帕米尔专家纪要
+      - 外资独立观点
+      - 公众号
+      - 财报日历
   download_type:
     type: string
-    description: 单文件下载格式：pdf 或 markdown；帕米尔专家纪要为 original 或 html
+    description: |
+      下载格式（按 file_type 取值不同）：
+      研究报告/公司公告/美股公告：pdf、markdown（默认 markdown）；
+      外资研报：pdf、markdown、zh_pdf、zh_markdown；
+      外资独立观点：html（原文）、html_zh（中文翻译）；
+      帕米尔专家纪要：original、html；
+      公众号：txt、html；
+      会议纪要/港股公告/财报日历：一般无需指定
+    enum:
+      - pdf
+      - markdown
+      - original
+      - html
+      - txt
+      - zh_pdf
+      - zh_markdown
+      - html_zh
   title:
     type: string
-    description: title
+    description: 可选自定义保存文件名（不含路径）
