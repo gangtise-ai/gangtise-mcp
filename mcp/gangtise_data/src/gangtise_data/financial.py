@@ -190,7 +190,10 @@ def _pick_numeric_series(df: pd.DataFrame, candidates: Tuple[str, ...]) -> Optio
     for col in candidates:
         if col not in df.columns:
             continue
-        s = pd.to_numeric(df[col], errors="coerce")
+        raw = df[col]
+        if isinstance(raw, pd.DataFrame):
+            raw = raw.iloc[:, 0]
+        s = pd.to_numeric(raw, errors="coerce")
         if s.notna().any():
             return s
     return None
@@ -488,6 +491,9 @@ def _drop_empty_value_rows_and_cols(df: pd.DataFrame) -> pd.DataFrame:
     value_cols = [c for c in d.columns if c not in ALL_META_FIELDS_EN]
     if not value_cols:
         return d
+    # 列名去重后再做数值清洗，避免 rename 撞名后 d[c] 变成 DataFrame
+    d = _dedupe_dataframe_columns(d)
+    value_cols = [c for c in d.columns if c not in ALL_META_FIELDS_EN]
     for c in value_cols:
         d[c] = pd.to_numeric(d[c], errors="coerce")
     row_keep = d[value_cols].notna().any(axis=1)
@@ -497,6 +503,27 @@ def _drop_empty_value_rows_and_cols(df: pd.DataFrame) -> pd.DataFrame:
     empty_val_cols = [c for c in value_cols if c in d.columns and d[c].notna().sum() == 0]
     d = d.drop(columns=empty_val_cols, errors="ignore")
     return d
+
+
+def _dedupe_dataframe_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """合并因中英字段映射撞名产生的重复列（从左到右 coalesce）。"""
+    if df.empty or df.columns.is_unique:
+        return df
+    out = pd.DataFrame(index=df.index)
+    seen: Set[str] = set()
+    for name in df.columns:
+        if name in seen:
+            continue
+        seen.add(name)
+        block = df.loc[:, df.columns == name]
+        if isinstance(block, pd.Series) or block.shape[1] == 1:
+            out[name] = block.iloc[:, 0] if isinstance(block, pd.DataFrame) else block
+            continue
+        s = block.iloc[:, 0]
+        for i in range(1, block.shape[1]):
+            s = s.combine_first(block.iloc[:, i])
+        out[name] = s
+    return out
 
 
 def _rename_columns_for_table(
@@ -511,15 +538,18 @@ def _rename_columns_for_table(
         out = out.rename(columns={k: v for k, v in HK_CN_META_ALIASES.items() if k in out.columns})
     elif market == "us":
         out = out.rename(columns={k: v for k, v in US_CN_META_ALIASES.items() if k in out.columns})
-    return out
+    return _dedupe_dataframe_columns(out)
 
 
 def _round_numeric_values(df: pd.DataFrame) -> pd.DataFrame:
-    d = df.copy()
-    for c in d.columns:
+    d = _dedupe_dataframe_columns(df.copy())
+    for c in list(d.columns):
         if c in META_CN_LABELS or c in ALL_META_FIELDS_EN:
             continue
-        d[c] = pd.to_numeric(d[c], errors="coerce").round(2)
+        col = d[c]
+        if isinstance(col, pd.DataFrame):
+            col = col.iloc[:, 0]
+        d[c] = pd.to_numeric(col, errors="coerce").round(2)
     return d
 
 
