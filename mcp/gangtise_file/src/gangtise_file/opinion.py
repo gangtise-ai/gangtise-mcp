@@ -9,7 +9,23 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (FILE_DEFAULT_LIMIT, OPINION_URL, RESEARCH_AREA_MAP, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags)
+from .utils import (  # noqa: E402
+    DOWNLOAD_DEFAULT,
+    DOWNLOAD_TYPE_DEFAULT,
+    FILE_DEFAULT_LIMIT,
+    OPINION_URL,
+    RESEARCH_AREA_MAP,
+    authorized_request,
+    check_version,
+    format_response,
+    get_authorization_headers,
+    get_authorization_token,
+    get_headers_extra,
+    match_best,
+    remove_html_tags,
+    resolve_result_limit,
+)
+from .get_file import download_files
 from .security import batch_security_search
 from .search_chief import SEARCH_TOP_DEFAULT, resolve_chief_token
 from .search_institution import (
@@ -50,9 +66,17 @@ def _format_time_range(start_date: str = None, end_date: str = None):
 def _format_opinion_item(items: List[dict]) -> List[dict]:
     _results = []
     for row in items:
-        content_list = row.get("contentList") or {}
-        title = remove_html_tags(content_list.get("title") or "")
-        content = remove_html_tags(content_list.get("content") or "")
+        content_list = row.get("contentList") if isinstance(row.get("contentList"), dict) else {}
+        title = remove_html_tags(row.get("title") or content_list.get("title") or "")
+        # 列表接口仅返回 brief（正文前 200 字）；兼容旧字段 contentList.content
+        brief = remove_html_tags(
+            row.get("brief")
+            or content_list.get("brief")
+            or ""
+        )
+        if not brief:
+            legacy = remove_html_tags(content_list.get("content") or row.get("content") or "")
+            brief = legacy[:200] if legacy else ""
 
         author = row.get("author") or {}
         chief_name = author.get("chiefName") or ""
@@ -110,8 +134,8 @@ def _format_opinion_item(items: List[dict]) -> List[dict]:
 
         item = {
             "标题": title,
-            "文件时间": "",
-            "摘要": content + ("..." if content else ""),
+            "文件时间": (row.get("publishTime") or "") or "",
+            "摘要": brief + ("..." if brief else ""),
             "首席": chief_display,
             "券商": broker_display,
             "研究方向": ra_display,
@@ -293,10 +317,13 @@ def opinion_finder(
     llm_tags: Optional[List[str]] = None,
     source_types: Optional[List[str]] = None,
     rank_type: int = 1,
-    limit: int = FILE_DEFAULT_LIMIT["opinion"],
+    limit: Optional[int] = None,
+    download: bool = False,
+    download_types: Optional[List[str]] = None,
     output_dir: Optional[str] = None,
 ):
     try:
+        limit = resolve_result_limit(limit, download, "opinion")
         headers = get_authorization_headers()
 
         research_area_ids = _resolve_research_areas(industries) if industries else []
@@ -407,12 +434,21 @@ def opinion_finder(
 
         all_results = all_results[:limit]
 
+        additional_message = None
+        if download:
+            dts = download_types or ["txt"]
+            additional_message = download_files(
+                all_results, "opinion", output_dir, download_types=dts
+            ) + ("\n\n" + part_error_message if part_error_message else "")
+        elif part_error_message:
+            additional_message = part_error_message
+
         response_data = {
             "state": "success",
             "message": "已找到相关观点",
             "data": [{"data": all_results, "module": "opinion", "type": "files"}],
         }
-        return format_response(response_data, "opinion", additional_message=part_error_message or "", output_dir=output_dir)
+        return format_response(response_data, "opinion", additional_message=additional_message or "", output_dir=output_dir)
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -436,7 +472,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="首席观点检索：按关键词、证券、券商、研究方向、首席、概念、标签等查询观点列表。",
+        description="首席观点检索：按关键词、证券、券商、研究方向、首席、概念、标签等查询观点列表；可选 -d 通过 getDetail 下载正文。",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("-k", "--keyword", default="", help="搜索关键词，可为空")
@@ -445,9 +481,9 @@ def main():
     parser.add_argument(
         "-l",
         "--limit",
-        default=FILE_DEFAULT_LIMIT["opinion"],
+        default=None,
         type=int,
-        help="返回条数上限",
+        help="返回条数上限；不传时用检索默认，开启 -d 下载时默认 5",
     )
     parser.add_argument(
         "--rank-type",
@@ -491,12 +527,24 @@ def main():
         default="",
         help="来源，逗号分隔：realTime/openSource 或 实时/开放来源",
     )
-
+    parser.add_argument(
+        "-d",
+        "--download",
+        default=DOWNLOAD_DEFAULT,
+        type=bool,
+        help="检索后按观点 ID 调用 getDetail 下载正文原文（30 积分/条）",
+    )
     parser.add_argument(
         "-od",
         "--output-dir",
         default=None,
-        help="结果保存目录路径，建议使用绝对路径",
+        help="结果与下载文件保存目录路径，建议使用绝对路径",
+    )
+    parser.add_argument(
+        "-dt",
+        "--download-types",
+        default=DOWNLOAD_TYPE_DEFAULT.get("opinion", "txt") or "txt",
+        help="下载格式，逗号分隔：txt / md（正文相同，仅后缀不同）",
     )
 
     args = parser.parse_args()
@@ -511,8 +559,13 @@ def main():
     source_types = _parse_str_list(args.source_types)
     start_date = args.start_date or None
     end_date = args.end_date or None
-    limit = int(args.limit)
+    limit = resolve_result_limit(args.limit, bool(args.download), "opinion")
     rank_type = int(args.rank_type)
+    download_types = [
+        x.strip().lower()
+        for x in str(args.download_types or "txt").replace("，", ",").split(",")
+        if x.strip()
+    ] or ["txt"]
 
     try:
         if not check_version():
@@ -533,6 +586,8 @@ def main():
         source_types=source_types,
         rank_type=rank_type,
         limit=limit,
+        download=bool(args.download),
+        download_types=download_types,
         output_dir=args.output_dir or None,
     )
     print(out)

@@ -1,6 +1,6 @@
 name: opinion
 title: Opinion
-description: 检索国内机构首席观点，支持券商、首席、题材、投研标签、来源类型等多维筛选；可选下载。
+description: 检索国内机构首席观点（列表仅摘要）；支持券商、首席、题材、投研标签、来源类型等多维筛选；可选 -d 经 getDetail 下载正文。
 parameters:
   keyword:
     type: string
@@ -51,4 +51,15 @@ parameters:
     description: 排序方式：1 综合排序，2 时间倒序
   limit:
     type: integer
-    description: 返回条数上限
+    description: 返回条数上限；开启 download 且未传时默认 5
+  download:
+    type: boolean
+    description: 是否下载观点正文（getDetail，按条计积分）
+  download_types:
+    type: array
+    description: 下载格式，如 txt、md
+    items:
+      type: string
+  output_dir:
+    type: string
+    description: 结果与下载文件保存目录

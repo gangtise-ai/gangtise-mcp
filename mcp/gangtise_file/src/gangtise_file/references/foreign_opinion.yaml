@@ -1,10 +1,10 @@
 name: foreign_opinion
 title: Foreign Opinion
-description: 检索外资/海外机构观点索引，支持地区、评级、证券与机构等筛选；可选下载。
+description: 检索外资机构/独立观点；机构观点列表仅摘要，-d 经 getDetail 下载正文；独立观点可下载 HTML。
 parameters:
   source:
     type: string
-    description: 来源类型列表，如 researchReport、conference、announcement、view
+    description: institution（外资机构观点）或 independent（外资独立观点）
   keyword:
     type: string
     description: 搜索关键词
@@ -52,9 +52,12 @@ parameters:
     description: 返回条数上限
   download:
     type: boolean
-    description: 是否下载文件全文
+    description: 是否下载：institution 下载正文 txt/zh；independent 下载 HTML
   download_types:
     type: array
-    description: 下载格式列表，如 pdf、markdown；帕米尔专家纪要为 original、html
+    description: institution 用 txt/zh；independent 用 html/html_zh
     items:
       type: string
+  output_dir:
+    type: string
+    description: 结果与下载文件保存目录

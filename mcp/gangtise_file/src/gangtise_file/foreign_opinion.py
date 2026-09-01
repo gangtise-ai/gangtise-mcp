@@ -11,7 +11,25 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (DOWNLOAD_DEFAULT, DOWNLOAD_TYPE_DEFAULT, FILE_DEFAULT_LIMIT, FILE_DOWNLOAD_DEFAULT_LIMIT, FOREIGN_OPINION_URL, INDEPENDENT_OPINION_LIST_URL, INDUSTRIES_MAP, REGIONS_MAP, authorized_request, check_version, format_response, get_authorization_headers, get_authorization_token, get_headers_extra, match_best, remove_html_tags, resolve_result_limit)
+from .utils import (  # noqa: E402
+    DOWNLOAD_DEFAULT,
+    DOWNLOAD_TYPE_DEFAULT,
+    FILE_DEFAULT_LIMIT,
+    FILE_DOWNLOAD_DEFAULT_LIMIT,
+    FOREIGN_OPINION_URL,
+    INDEPENDENT_OPINION_LIST_URL,
+    INDUSTRIES_MAP,
+    REGIONS_MAP,
+    authorized_request,
+    check_version,
+    format_response,
+    get_authorization_headers,
+    get_authorization_token,
+    get_headers_extra,
+    match_best,
+    remove_html_tags,
+    resolve_result_limit,
+)
 from .get_file import download_files
 from .security import batch_security_search
 from .search_institution import (
@@ -94,7 +112,15 @@ def _format_foreign_institution_items(rows: List[dict]) -> List[dict]:
         sec_line, _ = _security_display_list(it.get("securityList"))
         ind_line = _industry_display_list(it.get("industryList"))
         title_tr = remove_html_tags(it.get("titleTranslate", "") or "")
-        content_tr = remove_html_tags(it.get("contentTranslate", "") or "")
+        # 列表接口仅返回 brief / briefTranslate；兼容旧字段 content / contentTranslate
+        brief = remove_html_tags(it.get("brief") or "")
+        brief_tr = remove_html_tags(it.get("briefTranslate") or "")
+        if not brief:
+            legacy = remove_html_tags(it.get("content") or "")
+            brief = legacy[:200] if legacy else ""
+        if not brief_tr:
+            legacy_tr = remove_html_tags(it.get("contentTranslate") or "")
+            brief_tr = legacy_tr[:200] if legacy_tr else ""
         out.append(
             {
                 "标题": remove_html_tags(it.get("title", "") or ""),
@@ -105,8 +131,8 @@ def _format_foreign_institution_items(rows: List[dict]) -> List[dict]:
                 "所属区域": region_display,
                 "所属证券": sec_line,
                 "所属板块": ind_line,
-                "摘要": remove_html_tags(it.get("content", "") or ""),
-                "中文摘要": content_tr,
+                "摘要": brief,
+                "中文摘要": brief_tr,
                 "类型": "外资机构观点",
                 "类型ID": str(it.get("foreignOpinionId", "") or ""),
             }
@@ -267,7 +293,7 @@ def opinion_finder(
     output_dir: Optional[str] = None,
 ):
     """
-    source: institution — 外资机构观点（foreign-opinion/getList）；
+    source: institution — 外资机构观点（foreign-opinion/getList + getDetail 下载正文）；
             independent — 外资独立观点（independent-opinion/getList），可配合 download 下载 HTML。
     """
     source = (source or "institution").strip().lower()
@@ -378,15 +404,16 @@ def opinion_finder(
 
         additional_message = None
         if download:
-            if source != "independent":
-                additional_message = "当前来源为外资机构观点，接口不提供原文下载；-d 仅对外资独立观点有效。"
-            else:
+            if source == "independent":
                 dts = download_types or ["html"]
-                additional_message = download_files(
-                    all_results, "foreign_opinion", output_dir, download_types=dts
-                ) + ("\n\n" + part_error_message if part_error_message else "")
+            else:
+                # 机构观点：getDetail 正文，默认原文 txt；可用 zh 下载中文翻译
+                dts = download_types or ["txt"]
+            additional_message = download_files(
+                all_results, "foreign_opinion", output_dir, download_types=dts
+            ) + ("\n\n" + part_error_message if part_error_message else "")
 
-        if part_error_message and not (download and source == "independent"):
+        if part_error_message and not download:
             additional_message = (additional_message + "\n\n" if additional_message else "") + part_error_message
 
         response_data = {
@@ -419,14 +446,14 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="外资机构观点 / 外资独立观点 检索（open-insight）；独立观点支持下载 HTML。",
+        description="外资机构观点 / 外资独立观点 检索（open-insight）；机构观点 -d 走 getDetail 正文，独立观点 -d 下载 HTML。",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--source",
         choices=["institution", "independent"],
         default="institution",
-        help="institution=外资机构观点；independent=外资独立观点（可 -d 下载）",
+        help="institution=外资机构观点（可 -d 下载正文）；independent=外资独立观点（可 -d 下载 HTML）",
     )
     parser.add_argument("-k", "--keyword", default="", help="关键词，可为空")
     parser.add_argument("-sd", "--start-date", default="", help="开始日期 YYYY-MM-DD 或 yyyy-MM-dd HH:mm:ss")
@@ -465,14 +492,15 @@ def main():
         "-d",
         "--download",
         default=DOWNLOAD_DEFAULT,
-        help="检索后下载文件（仅 independent 有效，外资独立观点 HTML）",
+        type=bool,
+        help="检索后下载：institution 走 getDetail 正文（txt/zh）；independent 下载 HTML",
     )
     parser.add_argument("-od", "--output-dir", default=None, help="结果与下载文件保存目录路径，建议使用绝对路径")
     parser.add_argument(
         "-dt",
         "--download-types",
-        default=DOWNLOAD_TYPE_DEFAULT.get("foreign_opinion", "html") or "html",
-        help="独立观点下载类型，逗号分隔：html（原文）, html_zh（中文翻译）；与 get_file 一致",
+        default=None,
+        help="下载类型。institution：txt（原文）、zh（中文翻译）；independent：html、html_zh。不传时 institution 默认 txt，independent 默认 html",
     )
 
     args = parser.parse_args()
@@ -489,7 +517,14 @@ def main():
     limit = resolve_result_limit(args.limit, bool(args.download), "foreign_opinion")
     rank_type = int(args.rank_type or 1)
     output_dir = args.output_dir or None
-    download_types = _parse_download_types(args.download_types)
+    if args.download_types:
+        download_types = _parse_download_types(args.download_types)
+    elif args.source == "institution":
+        download_types = ["txt"]
+    else:
+        download_types = _parse_download_types(
+            DOWNLOAD_TYPE_DEFAULT.get("foreign_opinion", "html") or "html"
+        )
 
     try:
         if not check_version():

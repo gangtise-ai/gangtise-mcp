@@ -34,6 +34,7 @@ DOWNLOAD_TYPE_DEFAULT_STR = os.getenv("DOWNLOAD_TYPE_DEFAULT", """
     "foreign_opinion": "html",
     "foreign_report": "pdf",
     "official_account": "txt",
+    "opinion": "txt",
     "pamirs_summary": "original",
     "report": "pdf"
 }
@@ -72,6 +73,8 @@ SUMMARY_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/summary/v2/download/file"
 PAMIRS_SUMMARY_URL = GANGTISE_INSIGHT_DOMAIN + "/pamirs-summary/getList"
 PAMIRS_SUMMARY_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/pamirs-summary/download/file"
 OPINION_URL = GANGTISE_INSIGHT_DOMAIN + "/chief-opinion/getList"
+OPINION_DETAIL_URL = GANGTISE_INSIGHT_DOMAIN + "/chief-opinion/getDetail"
+FOREIGN_OPINION_DETAIL_URL = GANGTISE_INSIGHT_DOMAIN + "/foreign-opinion/getDetail"
 OFFICIAL_ACCOUNT_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/officialAccount/getList"
 OFFICIAL_ACCOUNT_DOWNLOAD_URL = GANGTISE_INSIGHT_DOMAIN + "/officialAccount/download/file"
 ROADSHOW_LIST_URL = GANGTISE_INSIGHT_DOMAIN + "/schedule/roadshow/getList"

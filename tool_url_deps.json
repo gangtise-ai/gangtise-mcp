@@ -73,6 +73,7 @@
       "/announcement/getList"
     ],
     "foreign_opinion": [
+      "/foreign-opinion/getDetail",
       "/foreign-opinion/getList",
       "/independent-opinion/getList"
     ],
@@ -87,6 +88,8 @@
       "/announcement-us/download/file",
       "/announcement/download/file",
       "/broker-report/download/file",
+      "/chief-opinion/getDetail",
+      "/foreign-opinion/getDetail",
       "/foreign-report/download/file",
       "/independent-opinion/download/file",
       "/officialAccount/download/file",
@@ -112,6 +115,7 @@
       "/officialAccount/getList"
     ],
     "opinion": [
+      "/chief-opinion/getDetail",
       "/chief-opinion/getList"
     ],
     "pamirs_summary": [
@@ -232,6 +236,7 @@
         "/announcement/getList"
       ],
       "foreign_opinion": [
+        "/foreign-opinion/getDetail",
         "/foreign-opinion/getList",
         "/independent-opinion/getList"
       ],
@@ -246,6 +251,8 @@
         "/announcement-us/download/file",
         "/announcement/download/file",
         "/broker-report/download/file",
+        "/chief-opinion/getDetail",
+        "/foreign-opinion/getDetail",
         "/foreign-report/download/file",
         "/independent-opinion/download/file",
         "/officialAccount/download/file",
@@ -271,6 +278,7 @@
         "/officialAccount/getList"
       ],
       "opinion": [
+        "/chief-opinion/getDetail",
         "/chief-opinion/getList"
       ],
       "pamirs_summary": [
@@ -339,6 +347,7 @@
     "/broker-report/download/file",
     "/broker-report/getList",
     "/capital-structure/top-holders",
+    "/chief-opinion/getDetail",
     "/chief-opinion/getList",
     "/concept/info",
     "/concept/securities",
@@ -356,6 +365,7 @@
     "/financial-report/income-statement/hk",
     "/financial-report/income-statement/quarterly",
     "/financial-report/income-statement/us",
+    "/foreign-opinion/getDetail",
     "/foreign-opinion/getList",
     "/foreign-report/download/file",
     "/foreign-report/getList",
@@ -415,6 +425,7 @@
     "FINANCIAL_REPORT_INCOME_QUARTERLY_URL": "/financial-report/income-statement/quarterly",
     "FINANCIAL_REPORT_INCOME_URL": "/financial-report/income-statement/accumulated",
     "FINANCIAL_REPORT_URL": "/financial-report/income-statement/accumulated",
+    "FOREIGN_OPINION_DETAIL_URL": "/foreign-opinion/getDetail",
     "FOREIGN_OPINION_URL": "/foreign-opinion/getList",
     "FOREIGN_REPORT_DOWNLOAD_URL": "/foreign-report/download/file",
     "FOREIGN_REPORT_URL": "/foreign-report/getList",
@@ -442,6 +453,7 @@
     "OFFICIAL_ACCOUNT_DOWNLOAD_URL": "/officialAccount/download/file",
     "OFFICIAL_ACCOUNT_LIST_URL": "/officialAccount/getList",
     "OFFICIAL_ACCOUNT_SEARCH_URL": "/officialAccount/search",
+    "OPINION_DETAIL_URL": "/chief-opinion/getDetail",
     "OPINION_URL": "/chief-opinion/getList",
     "PAMIRS_SUMMARY_DOWNLOAD_URL": "/pamirs-summary/download/file",
     "PAMIRS_SUMMARY_URL": "/pamirs-summary/getList",

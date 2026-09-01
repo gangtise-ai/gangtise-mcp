@@ -15,7 +15,31 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
     sys.path.append(script_dir)
 
-from .utils import (COMPANY_ANNOUNCEMENT_DOWNLOAD_URL, FILE_TYPE_MAP, FILE_URL, FOREIGN_REPORT_DOWNLOAD_URL, HK_ANNOUNCEMENT_DOWNLOAD_URL, INDEPENDENT_OPINION_DOWNLOAD_URL, OFFICIAL_ACCOUNT_DOWNLOAD_URL, PAMIRS_SUMMARY_DOWNLOAD_URL, PERFORMANCE_CALENDAR_DOWNLOAD_URL, REPORT_DOWNLOAD_URL, SUMMARY_DOWNLOAD_URL, TRY_MORE_DOWNLOAD, US_ANNOUNCEMENT_DOWNLOAD_URL, WORK_PATH, authorized_request, check_version, file_dir, get_authorization_headers, get_authorization_token, get_headers_extra)
+from .utils import (
+    TRY_MORE_DOWNLOAD,
+    FILE_URL,
+    SUMMARY_DOWNLOAD_URL,
+    PAMIRS_SUMMARY_DOWNLOAD_URL,
+    COMPANY_ANNOUNCEMENT_DOWNLOAD_URL,
+    HK_ANNOUNCEMENT_DOWNLOAD_URL,
+    US_ANNOUNCEMENT_DOWNLOAD_URL,
+    REPORT_DOWNLOAD_URL,
+    OFFICIAL_ACCOUNT_DOWNLOAD_URL,
+    FOREIGN_REPORT_DOWNLOAD_URL,
+    INDEPENDENT_OPINION_DOWNLOAD_URL,
+    OPINION_DETAIL_URL,
+    FOREIGN_OPINION_DETAIL_URL,
+    PERFORMANCE_CALENDAR_DOWNLOAD_URL,
+    FILE_TYPE_MAP,
+    WORK_PATH,
+    authorized_request,
+    check_version,
+    file_dir,
+    get_authorization_headers,
+    get_authorization_token,
+    get_headers_extra,
+    remove_html_tags,
+)
 
 def _has_cjk(text: str) -> bool:
     return any("\u4e00" <= ch <= "\u9fff" for ch in text)
@@ -293,6 +317,144 @@ def _independent_opinion_file_type(download_type: Optional[str]) -> int:
     )
 
 
+def _is_opinion_detail_type(file_type: str) -> bool:
+    return str(file_type or "").strip() in ("首席观点", "外资机构观点")
+
+
+def _opinion_detail_wants_translate(download_type: Optional[str]) -> bool:
+    s = (download_type or "txt").strip().lower()
+    return s in (
+        "2", "zh", "translation", "html_zh", "zh_html", "txt_zh", "zh_txt",
+        "md_zh", "zh_md", "chinese", "中文", "翻译",
+    )
+
+
+def _opinion_detail_extension(download_type: Optional[str], translated: bool) -> str:
+    s = (download_type or "txt").strip().lower()
+    if s in ("md", "markdown", "md_zh", "zh_md"):
+        return "md"
+    if s in ("html", "html_zh", "zh_html"):
+        return "html"
+    if translated and s in ("zh", "translation", "chinese", "中文", "翻译", "2"):
+        return "txt"
+    return "txt"
+
+
+def _fetch_opinion_detail_record(file_id: str, file_type: str, headers: dict) -> dict:
+    """调用 getDetail，返回单条观点记录 dict。"""
+    ft = str(file_type or "").strip()
+    if ft == "首席观点":
+        url = OPINION_DETAIL_URL
+        body = {"chiefOpinionIdList": [str(file_id)]}
+        id_key = "chiefOpinionId"
+    elif ft == "外资机构观点":
+        url = FOREIGN_OPINION_DETAIL_URL
+        body = {"foreignOpinionIdList": [str(file_id)]}
+        id_key = "foreignOpinionId"
+    else:
+        raise ValueError(f"不支持的观点详情类型: {file_type}")
+
+    response = authorized_request("POST", url, headers=headers, json=body, timeout=120)
+    if response.status_code != 200:
+        raise RuntimeError(response.text.replace("\n", " ").replace("\r", " ").strip()[:500])
+    result = response.json()
+    if str(result.get("code", "")) not in ("000000", "200") and result.get("status") is not True:
+        raise RuntimeError((result.get("msg") or "请求失败").replace("\n", " ").strip())
+    rows = result.get("data") or []
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("未返回观点正文")
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if str(row.get(id_key) or "") == str(file_id):
+            return row
+    row0 = rows[0]
+    if isinstance(row0, dict):
+        return row0
+    raise RuntimeError("未返回观点正文")
+
+
+def _opinion_detail_body_text(record: dict, file_type: str, download_type: Optional[str]) -> tuple[str, str]:
+    """返回 (正文文本, 文件后缀)。"""
+    translated = _opinion_detail_wants_translate(download_type) and str(file_type).strip() == "外资机构观点"
+    if translated:
+        text = remove_html_tags(record.get("contentTranslate") or "")
+        if not text:
+            text = remove_html_tags(record.get("content") or "")
+    else:
+        text = remove_html_tags(record.get("content") or "")
+        if not text and str(file_type).strip() == "外资机构观点":
+            text = remove_html_tags(record.get("contentTranslate") or "")
+    if not text:
+        raise RuntimeError("观点正文为空")
+    ext = _opinion_detail_extension(download_type, translated)
+    return text, ext
+
+
+def _save_opinion_detail_file(
+    file_id: str,
+    file_type: str,
+    headers: dict,
+    download_type: str,
+    output: Optional[str] = None,
+    output_dir: Optional[str] = None,
+    title: Optional[str] = None,
+) -> str:
+    """按 getDetail 拉取观点正文并落盘（txt/md/html）。"""
+    record = _fetch_opinion_detail_record(file_id, file_type, headers)
+    text, ext = _opinion_detail_body_text(record, file_type, download_type)
+    rec_title = remove_html_tags(record.get("title") or "") or title or str(file_id)
+    stem = safe_file_title({"title": rec_title, "url": ""})
+    if _opinion_detail_wants_translate(download_type) and str(file_type).strip() == "外资机构观点":
+        stem = f"{stem}_zh"
+
+    path_warn = ""
+    if output:
+        try:
+            output = _normalize_user_path(output)
+        except UnsupportedClientPathError as e:
+            path_warn = f"[WARNING]{e}\n"
+            output = None
+        if output:
+            # 若用户未带后缀，补上
+            if not os.path.splitext(os.path.basename(output))[1]:
+                output = f"{output}.{ext}"
+            output = _safe_output_path(output)
+    if not output and output_dir:
+        try:
+            output_dir = _normalize_user_path(output_dir)
+        except UnsupportedClientPathError as e:
+            path_warn = f"[WARNING]{e}\n"
+            output_dir = None
+    if not output:
+        base_dir = output_dir or file_dir
+        os.makedirs(base_dir, exist_ok=True)
+        output = _safe_output_path(_join_user_path(base_dir, f"{stem}.{ext}"))
+
+    out_dir, _ = _split_user_path(output)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+
+    payload = text.encode("utf-8")
+    if os.path.exists(output):
+        with open(output, "rb") as f:
+            existed = hashlib.sha256(f.read()).hexdigest()
+        if existed == hashlib.sha256(payload).hexdigest():
+            abs_output = os.path.abspath(output)
+            return path_warn + _success_message_with_paths(f"文件已存在：`{abs_output}`", [abs_output])
+        iteration = 1
+        output_dirname, output_basename = _split_user_path(output)
+        output_stem, output_ext = os.path.splitext(output_basename)
+        while os.path.exists(output):
+            output = _join_user_path(output_dirname, f"{output_stem}({iteration}){output_ext}")
+            iteration += 1
+
+    with open(output, "wb") as f:
+        f.write(payload)
+    abs_output = os.path.abspath(output)
+    return path_warn + _success_message_with_paths(f"文件已保存到：`{abs_output}`", [abs_output])
+
+
 def safe_file_title(file_item):
     title = file_item["title"]
     not_allow_title_symbol = [
@@ -518,6 +680,20 @@ def get_file(
             print(f"[WARNING] 检查 Gangtise skills 版本失败\n")
         headers = get_authorization_headers()
 
+        if _is_opinion_detail_type(file_type):
+            dt = download_type
+            if dt is None or not str(dt).strip():
+                dt = "txt"
+            return _save_opinion_detail_file(
+                file_id=file_id,
+                file_type=file_type,
+                headers=headers,
+                download_type=dt,
+                output=output,
+                output_dir=output_dir,
+                title=title,
+            )
+
         requested_type = _normalize_download_type(download_type)
         if file_type == "公众号" and (download_type is None or not str(download_type).strip()):
             requested_type = "txt"
@@ -730,7 +906,10 @@ def download_files(files: List[dict], method_name: str, output_dir: Optional[str
 
     if method_name == "official_account":
         default_types = ["txt"]
+    elif method_name == "opinion":
+        default_types = ["txt"]
     elif method_name == "foreign_opinion":
+        # 独立观点默认 html；机构观点由调用方传入 txt/zh
         default_types = ["html"]
     elif method_name == "pamirs_summary":
         default_types = ["original"]
